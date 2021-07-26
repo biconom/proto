@@ -1,0 +1,36 @@
+syntax = "proto3";
+package conditions;
+
+message ElementField {
+  uint32 varType = 1;
+  string placeholder = 2;
+}
+message Element {
+  uint32 elementID = 1;
+  uint32 categoryID = 2;
+  uint32 viewType = 3;
+  uint32 returnType = 4;
+  string content = 5;
+  map<string, ElementField> fields = 6;
+}
+message Component {
+  uint32 itemID = 1;
+  uint32 itemRefID = 2;
+  uint32 itemRefLine = 3;
+  uint32 elementID = 4;
+  string field = 5;
+  map<string, string> fields = 6;
+}
+message Storage {
+  uint32 positionTop = 1;
+  uint32 positionLeft = 2;
+  repeated Component items = 3;
+}
+
+message Scene {
+  uint32 sceneID = 1;
+  map<string, uint32> viewTypeIDs = 2;
+  map<string, uint32> varTypeIDs = 3;
+  repeated Element elements = 4;
+  repeated Storage storages = 5;
+}
