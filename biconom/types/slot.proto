@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/slot_policy.proto";
+
+// Slot представляет собой ячейку или позицию в иерархической структуре (Tree).
+// Каждый слот принадлежит определенному дистрибьютору (Distributor).
+message Slot {
+	message Id {
+		message ParentBranch {
+			uint32 parent_id = 1; // ID вышестоящего слота
+			uint32 parent_branch_number = 2; // Числовой идентификатор ветки от вышестоящего слота (parent_id)
+		}
+		message ParentEntity {
+			uint32 parent_id = 1; // ID вышестоящего слота
+			uint32 parent_entity_id = 2; // Порядковый идентификатор слота в рамках вышестоящего слота (parent_id)
+		}
+		message TreeEntity {
+			uint32 tree_id = 1; // ID дерева, к которому относится слот
+			uint32 tree_entity_id = 2; // Порядковый идентификатор слота в рамках дерева (tree_id)
+		}
+		message DistributorEntity {
+			uint32 distributor_id = 1; // ID дистрибьютора, владеющего слотом
+			uint32 distributor_entity_id = 2; // Порядковый идентификатор слота в рамках дистрибьютора (distributor_id)
+		}
+		message TreeDistributorEntity {
+			uint32 tree_id = 1; // ID дерева, к которому относится слот
+			uint32 distributor_id = 2; // ID дистрибьютора, владеющего слотом
+			uint32 tree_distributor_entity_id = 3; // Порядковый идентификатор слота в рамках пары (tree_id и distributor_id)
+		}
+		// Различные способы идентификации слота
+		oneof identifier {
+			uint32 id = 1; // Глобальный ID слота
+			ParentBranch parent_branch = 2; // Идентификация по вышестоящему слоту и номеру ветки
+			ParentEntity parent_entity = 3; // Идентификация слота через комбинацию ID вышестоящего слота и порядкового идентификатора слота в рамках вышестоящего слота
+			TreeEntity tree_entity = 4; // Идентификация слота через комбинацию ID дерева и порядкового идентификатора слота в рамках этого дерева
+			DistributorEntity distributor_entity = 5; // Идентификация слота через комбинацию ID дистрибьютора и порядкового идентификатора слота в рамках этого дистрибьютора
+			TreeDistributorEntity tree_distributor_entity = 6; // Идентификация слота через комбинацию ID дерева, ID дистрибьютора и порядкового идентификатора слота в рамках этой пары
+		}
+	}
+
+	message List {
+		repeated Slot items = 1;
+	}
+	
+	uint32 id = 1;
+	uint32 parent_id = 2; // ID вышестоящего слота
+	uint32 parent_entity_id = 3; // Порядковый идентификатор слота в рамках вышестоящего слота (parent_id)
+	uint32 parent_branch_number = 4; // Числовой идентификатор ветки от вышестоящего слота (parent_id)
+	uint32 tree_id = 5; // ID дерева, к которому относится слот
+	uint32 tree_entity_id = 6; // Порядковый идентификатор слота в рамках дерева (tree_id)
+	uint32 distributor_id = 7; // ID дистрибьютора, владеющего слотом
+	uint32 distributor_entity_id = 8; // Порядковый идентификатор слота в рамках дистрибьютора (distributor_id)
+	uint32 tree_distributor_entity_id = 9; // Порядковый идентификатор слота в рамках пары (tree_id и distributor_id)
+	uint32 tree_partition_id = 10; // ID партиции, к которому относится слот
+	uint32 level = 11; // Глобальный уровень глубины
+	
+	uint32 children_quantity = 12; // Количество дочерних слотов
+	uint32 children_capacity = 13; // Вместимость дочерних слотов
+
+	uint32 structure_quantity = 14; // Количество слотов в структуре
+	uint64 structure_capacity = 15; // Вместимость слотов в структуре
+	uint32 structure_last_id = 16; // Последний ID слота в структуре
+	uint32 structure_level_max = 17; // Максимальный уровень слота в структуре
+
+	uint64 trace_id = 18;
+	uint32 policy_id = 19; // ID политики, применяемой к этому слоту.
+	google.protobuf.Timestamp created_at = 20;
+	google.protobuf.Timestamp updated_at = 21;
+	optional google.protobuf.Any additional_data = 22;
+}

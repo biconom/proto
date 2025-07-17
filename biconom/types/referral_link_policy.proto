@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// ReferralLinkPolicy определяет набор правил для группы реферальных ссылок.
+// Для коллективных ссылок, эта политика может описывать логику балансировщика.
+message ReferralLinkPolicy {
+    message Id {
+        oneof identifier {
+            uint32 id = 1;   // Глобальный ID политики
+            string name = 2; // Уникальное имя политики
+        }
+    }
+
+    message List {
+        repeated ReferralLinkPolicy items = 1;
+    }
+
+    uint32 id = 1;
+    uint64 trace_id = 2;
+    string name = 3;
+    string description = 4;
+    
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+    optional google.protobuf.Any additional_data = 7;
+}

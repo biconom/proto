@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, описывающая платежный шлюз.
+// Это "бирка" или "идентификатор" для внешней или внутренней системы обработки платежей,
+// например, сам блокчейн (Tron, Ethereum) или банковская система.
+// Сами правила и лимиты для конкретной валюты в этом шлюзе определяются в `WalletPaymentSettings`.
+message PaymentGateway {
+	// Идентификатор для поиска платежного шлюза.
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный числовой ID шлюза.
+			string code = 2;	// Уникальный строковый код (напр., "tron", "ethereum").
+		}
+	}
+
+	// Список платежных шлюзов.
+	message List {
+		repeated PaymentGateway items = 1;
+	}
+
+	// Статус платежного шлюза.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;	// Неопределенный статус.
+		ACTIVE = 1;				// Шлюз работает в штатном режиме.
+		INACTIVE = 2;			// Шлюз отключен администратором.
+		SUSPENDED = 3;			// Работа шлюза временно приостановлена (например, из-за проблем с сетью).
+		DEPRECATED = 4;			// Устаревший шлюз, не рекомендуется к использованию.
+	}
+
+	// Тип платежного шлюза, помогает группировать и применять общую логику.
+	enum GatewayType {
+		GATEWAY_TYPE_UNSPECIFIED = 0;		// Тип не определен.
+		GATEWAY_TYPE_BLOCKCHAIN = 1;		// Сеть блокчейна (напр., Tron, Ethereum).
+		GATEWAY_TYPE_BANK = 2;				// Банковская система (напр., SWIFT, SEPA).
+		GATEWAY_TYPE_PAYMENT_SYSTEM = 3;	// Внешняя платежная система (напр., PayPal, Stripe).
+		GATEWAY_TYPE_MANUAL = 4;			// Внутренняя операция, проводимая вручную (напр., зачисление/выдача наличных).
+	}
+
+	uint32 id = 1;			// Глобальный числовой ID шлюза.
+	string code = 2;		// Уникальный строковый код для программного доступа (напр., "tron").
+	string name = 3;		// Человекочитаемое имя шлюза (напр., "Tron Blockchain").
+	Status status = 4;		// Текущий статус шлюза.
+	GatewayType gateway_type = 5;	// Тип шлюза.
+
+	google.protobuf.Timestamp created_at = 6;	// Время создания записи о шлюзе.
+	google.protobuf.Timestamp updated_at = 7;	// Время последнего обновления.
+	optional google.protobuf.Any additional_data = 8;	// Дополнительные метаданные для шлюза.
+}

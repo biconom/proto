@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/ledger_transaction.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, представляющая "Заявку" на создание одной или нескольких транзакций.
+// Описывает высокоуровневую бизнес-операцию (намерение), которая может состоять
+// из нескольких движений средств, исполняемых поэтапно.
+message LedgerRequest {
+	message Id {
+		uint64 id = 1;
+	}
+
+	message List {
+		repeated LedgerRequest items = 1;
+	}
+
+	// Одно атомарное движение средств в рамках Заявки.
+	message Leg {
+		enum Status {
+			LEG_STATUS_UNSPECIFIED = 0;
+			SCHEDULED = 1;		// "Плечо" запланировано к исполнению.
+			EXECUTED = 2;		// "Плечо" успешно исполнено, транзакция создана.
+			FAILED = 3;			// Исполнение "плеча" не удалось.
+		}
+
+		uint32 stage = 1;		// Этап исполнения. "Плечи" одного этапа могут исполняться параллельно.
+								// Следующий этап начнется только после успеха всех "плеч" предыдущего.
+
+		optional uint64 source_ledger_id = 2;
+		optional uint64 destination_ledger_id = 3;
+		string amount = 4;
+		LedgerTransaction.Kind kind = 5;
+		LedgerTransaction.ExecutionRule execution_rule = 6;
+		Status status = 7;						// Текущий статус этого "плеча".
+		optional uint64 transaction_id = 8;		// ID транзакции, созданной этим "плечом".
+		optional string description = 9;
+	}
+
+	// Общий статус жизненного цикла Заявки.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;
+		PENDING = 1;		// Заявка создана, но еще не прошла валидацию.
+		SCHEDULED = 2;		// Заявка валидна, принята к исполнению. Ее "плечи" запланированы.
+		SUCCEEDED = 3;		// Все "плечи" всех этапов успешно исполнены.
+		REJECTED = 4;		// Заявка отклонена на этапе валидации.
+		FAILED = 5;			// Исполнение одного из "плеч" не удалось, вся заявка считается проваленной.
+		CANCELED = 6;		// Заявка отменена до ее полного исполнения.
+	}
+
+	uint64 id = 1;
+	uint64 event_id = 2;
+	string initiator_object_id = 3;
+	
+	// Ключ идемпотентности. Позволяет клиенту безопасно повторять запросы
+	// без риска двойного исполнения. Должен быть уникальным для каждой операции.
+	optional string idempotency_key = 4;
+
+	LedgerTransaction.Kind kind = 5;	// Общий тип высокоуровневой операции.
+	Status status = 6;
+
+	repeated Leg legs = 7;				// Список движений средств, которые должны произойти в рамках этой заявки.
+	
+	optional string description = 8;
+	optional string reason = 9;
+	
+	google.protobuf.Timestamp created_at = 10;
+	google.protobuf.Timestamp updated_at = 11;
+	optional google.protobuf.Any additional_data = 12;
+}

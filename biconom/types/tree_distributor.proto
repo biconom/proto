@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/tree_distributor_policy.proto";
+
+// TreeDistributor представляет собой связь между деревом (Tree) и дистрибьютором (Distributor).
+message TreeDistributor {
+	message Id {
+		// Составной идентификатор для связи
+		message Pair {
+			uint32 tree_id = 1;				// Идентификатор дерева
+			uint32 distributor_id = 2;		// Идентификатор дистрибьютора
+		}
+
+		// Различные способы идентификации связи
+		oneof identifier {
+			uint32 id = 1;					// Глобальный ID связи
+			Pair pair = 2;					// Идентификация по паре дерево-дистрибьютор
+		}
+	}
+
+	message List {
+		repeated TreeDistributor items = 1;
+	}
+
+	uint32 id = 1;
+	uint32 tree_id = 2;						// Идентификатор дерева
+	uint32 tree_entity_id = 3;				// Порядковый номер связи в рамках дерева (tree_id)
+	uint32 distributor_id = 4;				// Идентификатор дистрибьютора
+	uint32 distributor_entity_id = 5;		// Порядковый номер связи в рамках дистрибьютора (distributor_id)
+	uint32 policy_id = 6;					// ID политики, применяемой к этой связи. Определяет ее статус и правила.
+	
+	uint64 trace_id = 7;
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

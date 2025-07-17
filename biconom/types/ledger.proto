@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, представляющая собой "Хранилище" или "Счет" (Ledger).
+// Это атомарная единица для хранения средств одной валюты, принадлежащая одному Владельцу.
+// Каждый Ledger подчиняется определенному набору правил (LedgerPolicy).
+message Ledger {
+	message Id {
+		uint64 id = 1;
+	}
+
+	message List {
+		repeated Ledger items = 1;
+	}
+
+	enum Status {
+		STATUS_UNSPECIFIED = 0;
+		ACTIVE = 1;
+		FROZEN = 2;
+		CLOSED = 3;
+	}
+
+	uint64 id = 1;
+	string owner_object_id = 2;				// Глобальный ID сущности-владельца (User, Account, etc.).
+	uint32 ledger_policy_id = 3;			// ID Политики, которой подчиняется это Хранилище.
+	uint32 currency_id = 4;					// ID валюты, которая хранится здесь.
+
+	// --- Балансы ---
+	string total_balance = 5;				// Фактическое количество средств, которое хранится на счете.
+	string available_balance = 6;			// Баланс, которым можно распоряжаться. Рассчитывается как: total_balance - on_hold_outgoing_balance.
+	string on_hold_outgoing_balance = 7;	// Сумма, заблокированная под ИСХОДЯЩИЕ операции.
+	string on_hold_incoming_balance = 8;	// Сумма, ожидающая ЗАЧИСЛЕНИЯ. НЕ является частью total_balance.
+
+	Status status = 9;
+
+	google.protobuf.Timestamp created_at = 10;
+	google.protobuf.Timestamp updated_at = 11;
+	optional google.protobuf.Any additional_data = 12;
+}

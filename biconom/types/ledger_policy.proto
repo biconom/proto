@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/ledger_transaction.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, определяющая "Политику" или "набор правил" для Хранилища (Ledger).
+// Она задает, какие операции разрешены для счетов, подчиняющихся этой политике.
+message LedgerPolicy {
+	message Id {
+		uint32 id = 1;
+	}
+
+	message List {
+		repeated LedgerPolicy items = 1;
+	}
+
+	uint32 id = 1;				// Глобальный числовой ID Политики.
+	string name = 2;			// Уникальное имя политики (например, "Standard User Policy", "System Pool Policy").
+	
+	// Список типов транзакций, которые РАЗРЕШЕНЫ для счетов с этой политикой.
+	// Если список пуст, могут быть разрешены все операции (зависит от логики сервера).
+	repeated LedgerTransaction.Kind allowed_transaction_kinds = 3;
+
+	google.protobuf.Timestamp created_at = 4;
+	google.protobuf.Timestamp updated_at = 5;
+	optional google.protobuf.Any additional_data = 6;
+}

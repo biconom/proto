@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// Locale представляет собой языковую локаль, используемую в системе для интернационализации.
+message Locale {
+	// Определяет статус доступности локали.
+	enum Status {
+		// Статус не определен.
+		UNSPECIFIED = 0;
+		// Активна. Локаль доступна для выбора пользователями.
+		ACTIVE = 1;
+		// Неактивна. Локаль скрыта и недоступна.
+		INACTIVE = 2;
+	}
+
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID локали
+			string code = 2;	// Уникальный код локали (например, "en-US")
+		}
+	}
+
+	message List {
+		repeated Locale items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;			// Полное название (например, "English (United States)")
+	string code = 3;			// Уникальный код по стандарту IETF BCP 47 (например, "en-US", "ar-SA").
+	bool is_rtl = 4;			// Указывает, имеет ли язык написание справа налево (Right-to-Left).
+	Status status = 5;			// Текущий статус доступности локали
+	
+	uint64 trace_id = 6;
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	optional google.protobuf.Any additional_data = 9;
+}

@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/tree_partition_policy.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// TreePartition представляет собой выделенную часть или "партицию" внутри дерева (Tree).
+// Партиция начинается с определенного корневого слота и может функционировать как отдельное поддерево.
+message TreePartition {
+	message Id {
+		// Идентификация по порядковому номеру в дереве
+		message TreeEntity {
+			uint32 tree_id = 1;				// Идентификатор дерева
+			uint32 tree_entity_id = 2; 		// Порядковый идентификатор партиции в рамках дерева
+		}
+
+		// Различные способы идентификации партиции
+		oneof identifier {
+			uint32 id = 1;					// Глобальный ID партиции
+			TreeEntity entity = 2;			// Идентификация по дереву и порядковому номеру
+		}
+	}
+
+	message List {
+		repeated TreePartition items = 1;
+	}
+
+	uint32 id = 1;
+	uint32 tree_id = 2;						// ID родительского дерева
+	uint32 tree_entity_id = 3;				// Порядковый номер партиции в рамках дерева
+	uint32 root_slot_id = 4;				// ID корневого слота, с которого начинается партиция
+	uint32 policy_id = 5;					// Политика, управляющая поведением партиции (например, возможностью слияния).
+	bool is_archived = 6;					// Флаг, указывающий, что партиция была слита с другой и больше не активна.
+	
+	uint64 trace_id = 7;
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

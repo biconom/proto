@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// Trace представляет собой полную трассировку одной бизнес-операции, состоящую из плоского списка шагов (spans).
+// Иерархия шагов строится на клиенте с использованием поля `parent_id`.
+message Trace {
+	// Span представляет один, конкретный, атомарный шаг (операцию) в трассировке.
+	message Span {
+		// Статус выполнения шага.
+		enum Status {
+			UNSPECIFIED = 0;
+			// Шаг успешно выполнен.
+			SUCCESS = 1;
+			// В процессе выполнения шага произошла ошибка.
+			FAILURE = 2;
+		}
+
+		uint64 id = 1;									// Уникальный ID самого шага (span'а).
+		uint64 parent_id = 2;							// ID родительского шага. Равен 0 для корневого шага.
+		
+		string name = 3;								// Техническое имя операции (например, "CreateLedgerTransaction").
+		Status status = 4;								// Статус выполнения этого шага.
+		optional string error_message = 5;				// Сообщение об ошибке, если status = FAILURE.
+		
+		google.protobuf.Timestamp started_at = 6;
+		google.protobuf.Timestamp finished_at = 7;
+		
+		optional google.protobuf.Any context = 8;		// Контекст, специфичный для этого шага (например, ID созданной транзакции, сумма и т.д.).
+	}
+	uint64 trace_id = 1;								// Глобальный УНИКАЛЬНЫЙ ID всей бизнес-операции.
+	optional uint32 actor_id = 2;						// Аккаунт, который ИНИЦИИРОВАЛ всю операцию. Если пуст - действие системное.
+	repeated Span spans = 3;							// Плоский список всех шагов, произошедших в рамках этой операции.
+}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package biconom.client.currency_pair;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/currency_pair.proto";
+import "biconom/types/sort.proto";
+
+// Сервис для получения справочной информации о валютных парах.
+service CurrencyPairService {
+    // Возвращает информацию о конкретной валютной паре по ее ID.
+    rpc Get(biconom.types.CurrencyPair.Id) returns (biconom.types.CurrencyPair);
+
+    // Возвращает список всех валютных пар, доступных в системе.
+    rpc List(ListRequest) returns (biconom.types.CurrencyPair.List);
+}
+
+message ListRequest {
+	// Необязательный фильтр по статусу.
+	// По умолчанию могут возвращаться только активные пары.
+	optional biconom.types.CurrencyPair.Status status = 1;
+	// "Курсор", с которого начинать выборку. Указывается идентификатор пары.
+	optional biconom.types.CurrencyPair.Id cursor = 2;
+	// Необязательные параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 3;
+}

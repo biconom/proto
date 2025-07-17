@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, представляющая одну финансовую транзакцию или "инструкцию".
+// Описывает атомарный перевод средств между двумя Хранилищами (Ledger)
+// и правила, по которым этот перевод должен быть исполнен.
+message LedgerTransaction {
+	message Id {
+		uint64 id = 1;
+	}
+
+	message List {
+		repeated LedgerTransaction items = 1;
+	}
+
+	// Правило исполнения: КОГДА и КАК транзакция должна повлиять на баланс.
+	message ExecutionRule {
+		enum Condition {
+			CONDITION_UNSPECIFIED = 0;
+			IMMEDIATE = 1;			// Немедленное исполнение и применение к балансу.
+			TIME_BASED = 2;			// Исполнение по достижению определенного времени.
+			TRIGGER_BASED = 3;		// Исполнение по внешнему триггеру (напр., подтверждение от админа).
+		}
+		
+		Condition condition = 1;
+		// Время исполнения (заполняется, если condition = TIME_BASED).
+		optional google.protobuf.Timestamp execute_at = 2;
+	}
+
+	// Направление движения средств.
+	enum Direction {
+		DIRECTION_UNSPECIFIED = 0;
+		DEBIT = 1;
+		CREDIT = 2;
+	}
+
+	// Контекст или причина транзакции.
+	enum Kind {
+		KIND_UNSPECIFIED = 0;
+		GATEWAY_DEPOSIT = 1;
+		GATEWAY_WITHDRAWAL = 2;
+		INTERNAL_TRANSFER_SPEND = 3;
+		INTERNAL_TRANSFER_RECEIVE = 4;
+		EXCHANGE_SPEND = 5;
+		EXCHANGE_RECEIVE = 6;
+		BONUS_AWARD = 7;
+		FEE = 8;
+		VOUCHER_CREATE = 9;
+		VOUCHER_REDEEM = 10;
+		TRANSFER_TO_POOL = 11;
+		TRANSFER_FROM_POOL = 12;
+		MINT = 13;
+		BURN = 14;
+		ADJUSTMENT = 15;
+	}
+
+	// Статус жизненного цикла транзакции.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;
+		PENDING = 1;    // Ожидает исполнения своего правила (средства заблокированы или ожидаются).
+		EXECUTED = 2;   // Успешно исполнена (влияние на баланс применено).
+		REJECTED = 3;   // Отклонена до исполнения.
+		CANCELED = 4;   // Отменена до исполнения.
+	}
+
+	uint64 id = 1;
+	uint64 event_id = 2; // Позволяет связать финансовую операцию с ее причиной в системе аудита.
+
+	uint64 source_ledger_id = 3;
+	uint64 destination_ledger_id = 4;
+
+	Kind kind = 5;
+	Status status = 6;
+	string amount = 7;
+	ExecutionRule execution_rule = 8; // Правило исполнения этой транзакции.
+
+	string source_balance_after = 9;
+	string destination_balance_after = 10;
+
+	optional string description = 11;
+	optional uint64 cancels_transaction_id = 12; // Ссылка на транзакцию, которую эта отменяет.
+
+	google.protobuf.Timestamp created_at = 13;
+	google.protobuf.Timestamp updated_at = 14;
+	optional google.protobuf.Any additional_data = 15;
+	
+	// ID Заявки (LedgerRequest), которая породила эту транзакцию.
+	// Позволяет сгруппировать несколько транзакций, относящихся к одной бизнес-операции.
+	optional uint64 request_id = 16;
+}

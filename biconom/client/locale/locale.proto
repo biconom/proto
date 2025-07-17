@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package biconom.client.locale;
+
+import "biconom/types/locale.proto";
+import "biconom/types/sort.proto";
+import "google/protobuf/empty.proto";
+
+// Сервис для управления локалями и языковыми предпочтениями пользователя.
+service LocaleService {
+    // --- Методы для текущей локали пользователя ---
+
+    // Получает текущую установленную локаль пользователя.
+    rpc GetCurrent(google.protobuf.Empty) returns (biconom.types.Locale);
+
+    // Устанавливает новую локаль для текущего пользователя.
+    rpc SetCurrent(biconom.types.Locale.Id) returns (biconom.types.Locale);
+
+    // --- Методы для получения справочной информации ---
+
+    // Получает информацию о конкретной локали по ее коду или ID.
+    rpc Get(biconom.types.Locale.Id) returns (biconom.types.Locale);
+
+    // Возвращает список всех локалей, доступных в системе.
+    rpc List(ListRequest) returns (biconom.types.Locale.List);
+}
+
+message ListRequest {
+	// Необязательный фильтр по статусу.
+	// По умолчанию могут возвращаться только активные локали.
+	optional biconom.types.Locale.Status status = 1;
+	// "Курсор", с которого начинать выборку. Указывается идентификатор локали.
+	optional biconom.types.Locale.Id cursor = 2;
+	// Необязательные параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 3;
+}

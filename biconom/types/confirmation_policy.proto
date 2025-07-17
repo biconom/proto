@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// ConfirmationPolicy определяет набор правил для группы форм подтверждения.
+message ConfirmationPolicy {
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID политики
+			string name = 2;	// Уникальное имя политики
+		}
+	}
+
+	message List {
+		repeated ConfirmationPolicy items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;							// Уникальное имя политики для идентификации
+	string description = 3;						// Описание, поясняющее суть и логику работы политики
+	uint32 expires_in_seconds = 4;				// Время жизни формы подтверждения в секундах.
+	uint32 verification_attempt_limit = 5;		// Максимальное количество попыток ввода данных.
+	uint32 code_generation_attempt_limit = 6;	// Максимальное количество запросов на генерацию нового кода.
+	
+	uint64 trace_id = 7;
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

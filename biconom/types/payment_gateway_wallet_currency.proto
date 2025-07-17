@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/calculation.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Ключевая модель, определяющая детальные правила игры для конкретной операции (ввод/вывод)
+// через связку "Платежный Шлюз -> Кошелек -> Валюта".
+// Логическим идентификатором является тройка (payment_gateway_id, wallet_id, currency_id).
+message PaymentGatewayWalletCurrency {
+	// Составной идентификатор для поиска настройки.
+	message Id {
+		uint32 payment_gateway_id = 1;
+		uint32 wallet_id = 2;
+		uint32 currency_id = 3;
+	}
+
+	message List {
+		repeated PaymentGatewayWalletCurrency items = 1;
+	}
+
+	// Настройки для конкретной операции (ввода или вывода).
+	message OperationSettings {
+		// Статус доступности операции.
+		enum Status {
+			STATUS_UNSPECIFIED = 0;		// Статус не определен.
+			ENABLED = 1;				// Операция разрешена.
+			DISABLED = 2;				// Операция отключена.
+			SUSPENDED = 3;				// Операция временно приостановлена.
+		}
+
+		Status status = 1;				// Текущий статус операции.
+		optional string min_amount = 2;	// Минимальная сумма для одной операции. Если отсутствует - лимита нет.
+		optional string max_amount = 3;	// Максимальная сумма для одной операции. Если отсутствует - лимита нет.
+		// Группа расчетов для определения итоговой комиссии.
+		// Может содержать несколько компонентов (например, комиссию платформы + комиссию сети).
+		// Если отсутствует - комиссии нет.
+		optional biconom.types.CalculationGroup fee_calculation_group = 4;
+	}
+
+	uint32 payment_gateway_id = 1; // ID платежного шлюза.
+	uint32 wallet_id = 2;          // ID типа кошелька.
+	uint32 currency_id = 3;        // ID валюты.
+
+	OperationSettings deposit_settings = 4;  // Настройки для ВВОДА средств.
+	OperationSettings withdrawal_settings = 5; // Настройки для ВЫВОДА средств.
+
+	google.protobuf.Timestamp created_at = 6; // Время создания этой записи о настройках.
+	google.protobuf.Timestamp updated_at = 7; // Время последнего обновления.
+	optional google.protobuf.Any additional_data = 8;
+}

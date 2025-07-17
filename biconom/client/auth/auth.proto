@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package biconom.client.auth;
+
+import "biconom/types/confirmation.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/referral_link.proto";
+import "biconom/types/account.proto";
+
+// AuthService предоставляет методы для аутентификации и регистрации пользователей.
+// Все методы сервиса являются публичными и не требуют аутентификации.
+service AuthService {
+    // Проверяет, зарегистрирован ли уже указанный email.
+    rpc CheckEmail(CheckEmailRequest) returns (CheckEmailResponse);
+
+    // Инициирует процесс входа в систему.
+    rpc Authorize(AuthorizeRequest) returns (biconom.types.Confirmation);
+
+    // Инициирует процесс регистрации нового пользователя.
+    rpc Register(RegisterRequest) returns (biconom.types.Confirmation);
+
+    // Инициирует процесс восстановления доступа к аккаунту.
+    rpc Recover(RecoverRequest) returns (biconom.types.Confirmation);
+
+    // Получает информацию о спонсоре по реферальному идентификатору.
+    rpc GetReferralInfo(GetReferralInfoRequest) returns (GetReferralInfoResponse);
+}
+
+message CheckEmailRequest {
+    string email = 1; // Email для проверки.
+}
+
+message CheckEmailResponse {
+    bool is_registered = 1; // `true`, если email уже используется.
+}
+
+message AuthorizeRequest {
+    string email = 1; // Email пользователя для входа.
+}
+
+message RegisterRequest {
+    string email = 1; // Email для регистрации нового пользователя.
+    
+    // Необязательное указание реферала.
+    oneof referral {
+        biconom.types.Distributor.Id distributor = 2;
+        biconom.types.ReferralLink.Id referral_link = 3;
+    }
+}
+
+message RecoverRequest {
+    string email = 1; // Email для восстановления доступа.
+}
+
+message GetReferralInfoRequest {
+    // Идентификатор реферала.
+    oneof referral {
+        biconom.types.Distributor.Id distributor = 1;
+        biconom.types.ReferralLink.Id referral_link = 2;
+    }
+}
+
+message GetReferralInfoResponse {
+    // Информация о реферальной ссылке, если она была использована.
+    optional biconom.types.ReferralLink referral_link = 1;
+    // Аккаунт дистрибьютора-спонсора.
+    biconom.types.Account account = 2;
+    // Дистрибьютор-спонсор.
+    biconom.types.Distributor distributor = 3;
+}

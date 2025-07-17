@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "biconom/types/session_policy.proto";
+
+// Session представляет собой активную сессию пользователя в системе.
+message Session {
+	// Статус жизненного цикла сессии.
+	enum Status {
+		UNSPECIFIED = 0;
+		// Сессия активна и используется.
+		ACTIVE = 1;
+		// Срок действия сессии истек (по времени или неактивности).
+		EXPIRED = 2;
+		// Сессия была завершена пользователем (logout).
+		CANCELLED = 3;
+		// Сессия была принудительно завершена системой (например, при входе с нового устройства).
+		REVOKED = 4;
+	}
+
+	// Информация об устройстве и клиенте, с которого была начата сессия.
+	message Device {
+		string ip_address = 1;			// IP-адрес, с которого была создана сессия.
+		string user_agent = 2;			// Полная строка User-Agent.
+		optional string location = 3;	// Приблизительное местоположение (например, "City, Country"), полученное по IP.
+	}
+
+	message Id {
+		uint64 id = 1;					// Глобальный ID сессии.
+	}
+
+	message List {
+		repeated Session items = 1;
+	}
+
+	uint64 id = 1;
+	uint32 user_id = 2;									// ID пользователя, которому принадлежит сессия.
+	Status status = 3;									// Текущий статус сессии.
+	Device device = 4;									// Информация об устройстве.
+	
+	uint64 trace_id = 5;
+	uint32 policy_id = 6;								// Политика, управляющая правилами этой сессии.
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	google.protobuf.Timestamp expires_at = 9;			// Точное время, когда сессия станет недействительной.
+	google.protobuf.Timestamp last_activity_at = 10;	// Время последнего действия пользователя в этой сессии.
+
+	optional google.protobuf.Any additional_data = 11;
+}

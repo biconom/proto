@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, указывающая, что платежный шлюз поддерживает определенную валюту,
+// и определяющая статус этой поддержки. Например, "Шлюз Tron поддерживает USDT".
+// Логическим идентификатором является пара (payment_gateway_id, currency_id).
+message PaymentGatewayCurrency {
+	// Составной идентификатор для поиска.
+	message Id {
+		uint32 payment_gateway_id = 1;	// ID платежного шлюза.
+		uint32 currency_id = 2;			// ID валюты.
+	}
+
+	// Список связей.
+	message List {
+		repeated PaymentGatewayCurrency items = 1;
+	}
+
+	// Статус поддержки валюты в данном шлюзе.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;			// Статус не определен.
+		ACTIVE = 1;						// Валюта поддерживается и активна в этом шлюзе.
+		INACTIVE = 2;					// Поддержка валюты в этом шлюзе отключена.
+		SUSPENDED = 3;					// Операции с этой валютой временно приостановлены.
+	}
+
+	uint32 payment_gateway_id = 1;		// ID платежного шлюза (часть составного ключа).
+	uint32 currency_id = 2;				// ID валюты (часть составного ключа).
+	Status status = 3;					// Текущий статус поддержки.
+
+	google.protobuf.Timestamp created_at = 4;		// Время создания этой связи.
+	google.protobuf.Timestamp updated_at = 5;		// Время последнего обновления.
+	optional google.protobuf.Any additional_data = 6;
+}

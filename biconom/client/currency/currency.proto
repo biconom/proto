@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package biconom.client.currency;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/currency.proto";
+import "biconom/types/sort.proto";
+
+// Сервис для получения справочной информации о валютах.
+service CurrencyService {
+    // Возвращает информацию о конкретной валюте по ее ID.
+    rpc Get(biconom.types.Currency.Id) returns (biconom.types.Currency);
+
+    // Возвращает список валют, доступных в системе.
+    rpc List(ListRequest) returns (biconom.types.Currency.List);
+}
+
+message ListRequest {
+	// Необязательный фильтр по статусу.
+	// По умолчанию могут возвращаться только активные валюты.
+	optional biconom.types.Currency.Status status = 1;
+	// "Курсор", с которого начинать выборку. Указывается идентификатор валюты.
+	optional biconom.types.Currency.Id cursor = 2;
+	// Необязательные параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 3;
+}

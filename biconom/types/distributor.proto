@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/distributor_policy.proto";
+
+// Distributor представляет участника или узел в партнерской или дистрибьюторской сети.
+// Эта сущность связана с системным аккаунтом (Account) и может иметь иерархические связи.
+message Distributor {
+	message Id {
+		message ParentBranch {
+			uint32 parent_id = 1; // ID вышестоящего дистрибьютора
+			uint32 parent_branch_number = 2; // Числовой идентификатор ветки
+		}
+		message ParentEntity {
+			uint32 parent_id = 1; // ID вышестоящего дистрибьютора
+			uint32 parent_entity_id = 2; // Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора
+		}
+		message NetworkEntity {
+			uint32 network_id = 1; // ID сети, к которому относится дистрибьютор
+			uint32 network_entity_id = 2; // Порядковый идентификатор дистрибьютора в рамках сети (network_id)
+		}
+		message AccountEntity {
+			uint32 account_id = 1; // ID аккаунта, владеющего дистрибьютором
+			uint32 account_entity_id = 2; // Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
+		}
+		message NetworkAccountEntity {
+			uint32 network_id = 1; // ID сети, к которому относится дистрибьютор
+			uint32 account_id = 2; // ID аккаунта, владеющего дистрибьютором
+			uint32 network_account_entity_id = 3; // Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
+		}
+		// Различные способы идентификации дистрибьютора
+		oneof identifier {
+			uint32 id = 1; // Глобальный ID дистрибьютора
+			string username = 2; // Уникальное имя дистрибьютора/бренда
+			ParentBranch parent_branch = 3;
+			ParentEntity parent_entity = 4;
+			NetworkEntity network_entity = 5;
+			AccountEntity account_entity = 6;
+			NetworkAccountEntity network_account_entity = 7;
+		}
+	}
+
+	message List {
+		repeated Distributor items = 1;
+	}
+	
+	uint32 id = 1;
+	optional string username = 2; // Уникальное, человекочитаемое имя (псевдоним, бренд).
+	uint32 parent_id = 3; // ID вышестоящего дистрибьютора
+	uint32 parent_entity_id = 4; // Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
+	uint32 parent_branch_number = 5; // Числовой идентификатор ветки от вышестоящего дистрибьютора (parent_id)
+	uint32 network_id = 6; // ID сети, к которому относится дистрибьютор
+	uint32 network_entity_id = 7; // Порядковый идентификатор дистрибьютора в рамках сети (network_id)
+	uint32 account_id = 8; // ID аккаунта, владеющего дистрибьютором
+	uint32 account_entity_id = 9; // Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
+	uint32 network_account_entity_id = 10; // Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
+	uint32 network_partition_id = 11; // ID партиции, к которому относится дистрибьютор
+	uint32 level = 12; // Глобальный уровень глубины
+	
+	uint32 children_quantity = 13; // Количество дочерних дистрибьюторов
+	
+	uint32 structure_quantity = 14; // Количество дистрибьюторов в структуре
+	uint32 structure_last_id = 15; // Последний ID дистрибьютора в структуре
+	uint32 structure_level_max = 16; // Максимальный уровень дистрибьютора в структуре
+	
+	uint64 trace_id = 17;
+	uint32 policy_id = 18; // ID политики, применяемой к этому дистрибьютору.
+	google.protobuf.Timestamp created_at = 19;
+	google.protobuf.Timestamp updated_at = 20;
+	optional google.protobuf.Any additional_data = 21;
+}

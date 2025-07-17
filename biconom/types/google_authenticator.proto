@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "biconom/types/google_authenticator_policy.proto";
+
+// GoogleAuthenticator представляет собой настройки двухфакторной аутентификации (2FA) для пользователя.
+// Эта модель НЕ содержит секретный ключ из соображений безопасности.
+message GoogleAuthenticator {
+	// Определяет статус настройки 2FA.
+	enum Status {
+		// Статус не определен.
+		UNSPECIFIED = 0;
+		// Неактивна. 2FA для пользователя не используется.
+		INACTIVE = 1;
+		// Ожидает подтверждения. Пользователь отсканировал QR-код, но еще не ввел первый код для активации.
+		PENDING_VERIFICATION = 2;
+		// Активна. 2FA включена и используется при входе и важных операциях.
+		ACTIVE = 3;
+	}
+
+	message Id {
+		oneof identifier {
+			uint32 id = 1;			// Глобальный ID
+			uint32 user_id = 2;		// ID пользователя, к которому привязан 2FA
+		}
+	}
+
+	message List {
+		repeated GoogleAuthenticator items = 1;
+	}
+
+	uint32 id = 1;
+	uint32 user_id = 2;					// ID пользователя, для которого настроен 2FA
+	Status status = 3;					// Текущий статус настройки 2FA
+	
+	uint64 trace_id = 4;				// Уникальный идентификатор операции, в рамках которой был создан объект
+	uint32 policy_id = 5;				// Политика, управляющая правилами 2FA
+	google.protobuf.Timestamp created_at = 6;
+	google.protobuf.Timestamp updated_at = 7;
+	optional google.protobuf.Any additional_data = 8;
+}

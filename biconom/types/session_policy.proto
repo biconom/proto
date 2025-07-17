@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
+message SessionPolicy {
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID политики
+			string name = 2;	// Уникальное имя политики
+		}
+	}
+
+	message List {
+		repeated SessionPolicy items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+	
+	uint32 expires_in_seconds = 4;				// Время жизни сессии в секундах. 0 означает "бессрочная".
+	uint32 inactivity_timeout_seconds = 5;		// Время неактивности в секундах, после которого сессия истекает. 0 означает "не проверять".
+	uint32 max_concurrent_sessions = 6;			// Максимальное количество одновременных активных сессий для одного пользователя.
+	bool bind_to_ip = 7;						// Требовать ли, чтобы IP-адрес сессии не менялся.
+	
+	uint64 trace_id = 8;
+	google.protobuf.Timestamp created_at = 9;
+	google.protobuf.Timestamp updated_at = 10;
+	optional google.protobuf.Any additional_data = 11;
+}

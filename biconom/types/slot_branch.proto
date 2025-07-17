@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/slot.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/slot_branch_policy.proto";
+
+// SlotBranch представляет собой иерархическую связь или "ветку" между слотами.
+message SlotBranch {
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID ветки слота
+			biconom.types.Slot.Id.ParentBranch parent_branch = 2;
+		}
+	}
+
+	message List {
+		repeated SlotBranch items = 1;
+	}
+	
+	uint32 id = 1;
+	uint32 parent_id = 2;				// ID вышестоящего слота
+	uint32 parent_branch_number = 3;	// Числовой идентификатор ветки от вышестоящего слота
+	optional uint32 child_id = 4;		// ID дочернего слота, если ветка занята
+	
+	uint64 trace_id = 5;
+	uint32 policy_id = 6;				// Политика, управляющая поведением ветки (например, начисление бонусов).
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	optional google.protobuf.Any additional_data = 9;
+}

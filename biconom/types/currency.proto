@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "biconom/types/currency_policy.proto";
+
+// Currency представляет собой финансовую единицу, такую как криптовалюта или фиат.
+message Currency {
+	// Определяет операционный статус валюты.
+	enum Status {
+		// Статус не определен.
+		UNSPECIFIED = 0;
+		// Активна. Доступна для всех операций.
+		ACTIVE = 1;
+		// Только просмотр/вывод. Новые депозиты и торговые операции невозможны.
+		VIEW_ONLY = 2;
+		// Тех. обслуживание. Операции временно приостановлены.
+		MAINTENANCE = 3;
+		// Неактивна. Полностью отключена, но может быть активирована.
+		INACTIVE = 4;
+		// Устарела. Валюта больше не поддерживается и сохранена только для истории.
+		DEPRECATED = 5;
+	}
+
+	message Id {
+		oneof identifier {
+			uint32 id = 1;			// Глобальный ID валюты
+			string symbol = 2;		// Уникальный символ (тикер), например, "BTC"
+		}
+	}
+
+	message List {
+		repeated Currency items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;				// Полное название валюты (например, "Bitcoin")
+	string symbol = 3;				// Уникальный символ (тикер), например, "BTC"
+	uint32 precision = 4;			// Количество знаков после запятой для отображения и расчетов
+	Status status = 5;				// Текущий операционный статус валюты
+	
+	uint64 trace_id = 6;
+	uint32 policy_id = 7;			// Политика, управляющая поведением валюты
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

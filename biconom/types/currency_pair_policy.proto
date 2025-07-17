@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// CurrencyPairPolicy определяет набор правил для группы валютных пар.
+// Конкретная логика политики (например, лимиты на торговлю, требования к марже) реализуется на бэкенде.
+message CurrencyPairPolicy {
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID политики
+			string name = 2;	// Уникальное имя политики
+		}
+	}
+
+	message List {
+		repeated CurrencyPairPolicy items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;			// Уникальное имя политики для идентификации
+	string description = 3;		// Описание, поясняющее суть и логику работы политики
+	
+	uint64 trace_id = 4;
+	google.protobuf.Timestamp created_at = 5;
+	google.protobuf.Timestamp updated_at = 6;
+	optional google.protobuf.Any additional_data = 7;
+}

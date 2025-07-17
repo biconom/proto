@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/tree_policy.proto";
+
+// Tree представляет собой основную иерархическую структуру или сеть.
+// Она служит контейнером для слотов, дистрибьюторов и партиций.
+message Tree {
+	message Id {
+		// Идентификация по сети и порядковому номеру
+		message NetworkEntity {
+			uint32 network_id = 1;				// Идентификатор сети
+			uint32 network_entity_id = 2;		// Порядковый идентификатор дерева в рамках сети
+		}
+
+		// Различные способы идентификации дерева
+		oneof identifier {
+			uint32 id = 1;						// Глобальный ID дерева
+			string name = 2;					// Уникальное имя дерева
+			NetworkEntity network_entity = 3;	// Идентификация по сети и порядковому номеру
+		}
+	}
+
+	message List {
+		repeated Tree items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;							// Уникальное строковое имя для идентификации дерева
+	uint32 network_id = 3;						// ID сети, к которой принадлежит дерево
+	uint32 network_entity_id = 4;				// Порядковый идентификатор дерева в рамках сети (network_id)
+	uint32 root_partition_id = 5;				// ID корневой партиции (TreePartition) для данного дерева
+	uint32 slot_children_capacity_default = 6;	// Вместимость дочерних слотов по умолчанию. Используется для визуализации структуры.
+	
+	uint64 trace_id = 7;
+	uint32 policy_id = 8;						// Политика, управляющая поведением всего дерева.
+	google.protobuf.Timestamp created_at = 9;
+	google.protobuf.Timestamp updated_at = 10;
+	optional google.protobuf.Any additional_data = 11;
+}

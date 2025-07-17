@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// NetworkPartition представляет собой выделенную часть или "партицию" внутри сети (Network).
+// Партиция начинается с определенного корневого дистрибьютора и может функционировать как отдельная подсеть.
+message NetworkPartition {
+	message Id {
+		// Идентификация по порядковому номеру в сети
+		message NetworkEntity {
+			uint32 network_id = 1;			// Идентификатор сети
+			uint32 network_entity_id = 2;	// Порядковый идентификатор партиции в рамках сети
+		}
+
+		// Различные способы идентификации партиции
+		oneof identifier {
+			uint32 id = 1;					// Глобальный ID партиции
+			NetworkEntity entity = 2;		// Идентификация по сети и порядковому номеру
+		}
+	}
+
+	message List {
+		repeated NetworkPartition items = 1;
+	}
+
+	uint32 id = 1;
+	uint32 network_id = 2;					// ID родительской сети
+	uint32 network_entity_id = 3;			// Порядковый номер партиции в рамках сети
+	uint32 root_distributor_id = 4;			// ID корневого дистрибьютора, с которого начинается партиция
+	uint32 policy_id = 5;					// Политика, управляющая поведением партиции (например, возможностью слияния).
+	bool is_archived = 6;					// Флаг, указывающий, что партиция была слита с другой и больше не активна.
+
+	uint64 trace_id = 7;
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "biconom/types/currency_pair_policy.proto";
+
+// CurrencyPair представляет собой декларативную связь между двумя валютами.
+// Эта модель является справочной, но несет в себе операционный статус и ссылку на политику,
+// которые определяют правила для других систем, использующих эту пару (например, торговых).
+message CurrencyPair {
+	// Определяет операционный статус торговой пары.
+	enum Status {
+		// Статус не определен.
+		UNSPECIFIED = 0;
+		// Активна. Торговля разрешена.
+		ACTIVE = 1;
+		// Только просмотр. Новые ордера не принимаются, но можно просматривать историю.
+		VIEW_ONLY = 2;
+		// Тех. обслуживание. Торговля временно приостановлена.
+		MAINTENANCE = 3;
+		// Неактивна. Торговля приостановлена и может быть возобновлена.
+		INACTIVE = 4;
+		// Устарела. Пара больше не поддерживается и скрыта из основных списков, но сохранена в системе для истории.
+		DEPRECATED = 5;
+	}
+
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID пары
+			string name = 2;	// Уникальное имя пары, например, "BTC_USDT"
+		}
+	}
+
+	message List {
+		repeated CurrencyPair items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;				// Уникальное имя пары (например, "BTC_USDT")
+	uint32 base_currency_id = 3;	// ID базовой валюты (например, BTC)
+	uint32 quote_currency_id = 4;	// ID котируемой валюты (например, USDT)
+	Status status = 5;				// Текущий операционный статус пары.
+	uint32 policy_id = 6;			// Политика, управляющая правилами для этой пары.
+	
+	uint64 trace_id = 7;
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

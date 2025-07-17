@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/boundary.proto";
+import "biconom/types/rounding.proto";
+
+// Calculation является инструкцией для динамического расчета суммы.
+// Это не самостоятельная сущность, а встраиваемая модель для описания правил.
+message Calculation {
+	// Simple описывает простой, линейный расчет.
+	message Simple {
+		string fixed_value = 1;			// Фиксированная часть (например, "5.00" USDT).
+		string percent_value = 2;		// Процентная часть (например, "0.01" для 1%).
+	}
+
+	// Tiered описывает многоуровневый расчет.
+	message Tiered {
+		// Определяет, как применяется расчет в многоуровневой шкале.
+		enum Mode {
+			UNSPECIFIED = 0;
+			SLAB = 1;			// По достижению.
+			PROGRESSIVE = 2;	// Прогрессивная.
+		}
+
+		message Tier {
+			optional biconom.types.Boundary lower_bound = 1;
+			optional biconom.types.Boundary upper_bound = 2;
+			Simple calculation = 3;
+		}
+
+		Mode mode = 1;
+		repeated Tier tiers = 2;
+	}
+
+	// Conditional позволяет реализовать логику "if-else".
+	message Conditional {
+		biconom.types.Boundary condition = 1;
+		Calculation if_true = 2;
+		Calculation if_false = 3;
+	}
+
+	// PostProcessing определяет правила, применяемые к результату расчета.
+	message PostProcessing {
+		optional string min_value = 1;					// Минимальное значение результата (например, "комиссия не менее 10").
+		optional string max_value = 2;					// Максимальное значение результата (например, "комиссия не более 100").
+		optional biconom.types.Rounding rounding = 3;	// Правила округления.
+	}
+	
+	// Определяет вид/структуру калькуляции.
+	oneof kind {
+		Simple simple = 1;
+		Tiered tiered = 2;
+		Conditional conditional = 3;
+	}
+
+	optional PostProcessing post_processing = 4;		// Правила постобработки, применяемые к результату.
+}
+
+// CalculationGroup - это контейнер для нескольких независимых расчетов.
+message CalculationGroup {
+	map<string, Calculation> calculations = 1;
+	optional Calculation.PostProcessing post_processing = 2;	// Правила постобработки, применяемые к ИТОГОВОЙ сумме.
+}

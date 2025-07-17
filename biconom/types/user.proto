@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/user_policy.proto";
+
+// Модель данных для пользователя системы
+message User {
+	message Id {
+		uint32 id = 1; // Глобальный ID пользователя
+	}
+
+	message List {
+		repeated User items = 1; // Элементы списка (пользователи)
+	}
+
+	uint32 id = 1;
+	
+	uint64 trace_id = 2;
+	uint32 policy_id = 3; // Политика, управляющая поведением пользователя.
+	google.protobuf.Timestamp created_at = 4;
+	google.protobuf.Timestamp updated_at = 5;
+	optional google.protobuf.Any additional_data = 6;
+}

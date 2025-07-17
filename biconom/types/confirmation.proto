@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/confirmation_policy.proto";
+
+// Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
+message Confirmation {
+	// --- Вложенные типы и сообщения ----
+
+	// Статус формы подтверждения.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;
+		// Форма активна и ожидает подтверждения.
+		STATUS_PENDING = 1;
+		// Форма была успешно подтверждена.
+		STATUS_CONFIRMED = 2;
+		// В верификации было отказано (например, исчерпаны попытки).
+		STATUS_REJECTED = 3;
+		// Форма была отменена пользователем или системой.
+		STATUS_CANCELLED = 4;
+		// Срок действия формы истек.
+		STATUS_EXPIRED = 5;
+	}
+
+	// Типы полей, которые могут потребоваться для подтверждения.
+	enum FieldKind {
+		FIELD_KIND_UNSPECIFIED = 0;
+		// Пароль от аккаунта пользователя.
+		FIELD_KIND_PASSWORD = 1;
+		// Код из приложения 2FA Google Authenticator.
+		FIELD_KIND_GOOGLE_AUTHENTICATOR_CODE = 2;
+		// Код, отправленный на email.
+		FIELD_KIND_EMAIL_CODE = 3;
+		// Чекбокс для подтверждения согласия с условиями.
+		FIELD_KIND_AGREEMENT_CHECKBOX = 4;
+	}
+
+	// Детали генерации кодов для полей типа EMAIL_CODE.
+	message CodeGenerationDetails {
+		google.protobuf.Timestamp next_generation_at = 1;	// Время, после которого можно запросить новый код.
+		google.protobuf.Timestamp last_generated_at = 2;	// Время генерации последнего кода.
+		google.protobuf.Timestamp expires_at = 3;			// Время, когда сгенерированный код станет недействительным.
+		uint32 generation_attempt_limit = 4;				// Лимит доступных попыток генерации нового кода.
+		uint32 generation_attempts_made = 5;				// Количество уже сделанных попыток генерации.
+	}
+
+	// Описание одного поля для верификации.
+	message VerificationField {
+		uint32 id = 1;										// Уникальный ID поля в рамках формы.
+		FieldKind kind = 2;									// Тип поля (пароль, 2FA, чекбокс и т.д.).
+		optional string contact_info = 3;					// Контакт для отправки кода (например, email), если применимо.
+		optional CodeGenerationDetails code_details = 4;	// Детали генерации кода (для EMAIL_CODE).
+		optional string agreement_text = 5;					// Текст для чекбокса согласия.
+	}
+
+	// Группа верификации, описывающая один из возможных наборов полей для подтверждения.
+	message VerificationGroup {
+		repeated uint32 required_field_ids = 1; // Список ID полей (VerificationField.id), необходимых для этой группы.
+	}
+
+	// Идентификатор для поиска формы.
+	message Id {
+		uint32 id = 1; // Глобальный ID формы.
+	}
+
+	// Список форм подтверждения.
+	message List {
+		repeated Confirmation items = 1;
+	}
+
+	// ---- Сообщения для Запросов и Ответов ----
+
+	// Запрос на генерацию одноразового кода для поля.
+	message GenerateCodeRequest {
+		uint32 confirmation_id = 1;			// ID формы подтверждения.
+		uint32 field_id = 2;				// ID поля, для которого нужно сгенерировать код.
+	}
+
+	// Запрос на подтверждение формы.
+	message ConfirmRequest {
+		// Поле, предоставленное пользователем для верификации.
+		message SubmittedField {
+			uint32 field_id = 1; // ID поля, которое заполняет пользователь.
+			oneof value {
+				string string_value = 2;	// Значение для полей типа пароль, код и т.д.
+				bool bool_value = 3;		// Значение для чекбокса (должно быть `true`).
+			}
+		}
+
+		uint32 confirmation_id = 1; // Глобальный ID формы для подтверждения.
+		repeated SubmittedField submitted_fields = 2; // Список полей, которые отправляет пользователь.
+	}
+
+	// Ответ на запрос подтверждения формы.
+	message ConfirmResponse {
+		// Общий статус ответа на запрос подтверждения.
+		enum OverallStatus {
+			OVERALL_STATUS_UNSPECIFIED = 0;
+			// Форма отклонена (одно или несколько полей неверны).
+			OVERALL_STATUS_REJECTED = 1;
+			// Форма успешно подтверждена.
+			OVERALL_STATUS_APPROVED = 2;
+		}
+
+		// Детальный статус для каждого отдельного поля.
+		enum FieldStatus {
+			FIELD_STATUS_UNSPECIFIED = 0;
+			// Поле заполнено верно.
+			FIELD_STATUS_OK = 1;
+			// Поле не заполнено, но является обязательным.
+			FIELD_STATUS_EMPTY = 2;
+			// Поле заполнено неверно.
+			FIELD_STATUS_WRONG = 3;
+			// Срок действия значения поля истек (например, для кода).
+			FIELD_STATUS_EXPIRED = 4;
+			// Пользователь не согласился с условиями (чекбокс не `true`).
+			FIELD_STATUS_NOT_AGREED = 5;
+		}
+
+		// Результат проверки для одного поля.
+		message FieldResult {
+			uint32 field_id = 1;					// ID проверенного поля.
+			FieldStatus status = 2;					// Статус проверки этого поля.
+			optional string comment = 3;			// Дополнительный комментарий об ошибке.
+		}
+
+		OverallStatus status = 1;					// Общий статус подтверждения.
+		repeated FieldResult field_results = 2;		// Детальный результат по каждому полю.
+		optional google.protobuf.Any data = 3;		// Дополнительные данные, возвращаемые при успехе.
+	}
+
+
+	// ---- Поля основного сообщения Confirmation ----
+
+	uint32 id = 1;
+	uint32 account_id = 2;									// ID аккаунта, который инициировал действие.
+	string action_name = 3;									// Уникальное имя действия (например, "WITHDRAWAL").
+	Status status = 4;
+	string description = 5;									// Описание или инструкция для пользователя.
+
+	uint32 verification_attempt_limit = 6;					// Лимит попыток верификации для этой формы
+	uint32 verification_attempts_made = 7;					// Количество сделанных попыток верификации.
+
+	repeated VerificationField available_fields = 8;		// Список всех доступных полей для этой формы.
+	repeated VerificationGroup verification_groups = 9;	// Список групп верификации (нужно удовлетворить одну из них).
+
+	uint64 trace_id = 10;
+	uint32 policy_id = 11;									// Политика, управляющая правилами (время жизни, лимиты попыток).
+	google.protobuf.Timestamp created_at = 12;
+	google.protobuf.Timestamp expires_at = 13;				// Точное время, когда форма станет недействительной (рассчитывается на основе политики).
+	google.protobuf.Timestamp updated_at = 14;
+	google.protobuf.Any additional_data = 15;				// Гибкое поле для дополнительных данных.
+}

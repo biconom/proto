@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// NetworkAccount представляет собой связь между сетью (Network) и универсальным аккаунтом (Account).
+message NetworkAccount {
+	message Id {
+		// Составной идентификатор для связи
+		message Pair {
+			uint32 network_id = 1;		// Идентификатор сети
+			uint32 account_id = 2;		// Идентификатор аккаунта
+		}
+
+		// Различные способы идентификации связи
+		oneof identifier {
+			uint32 id = 1;				// Глобальный ID связи
+			Pair pair = 2;				// Идентификация по паре сеть-аккаунт
+		}
+	}
+
+	message List {
+		repeated NetworkAccount items = 1;
+	}
+
+	uint32 id = 1;
+	uint32 network_id = 2;				// Идентификатор сети
+	uint32 network_entity_id = 3;		// Порядковый номер связи в рамках сети (network_id)
+	uint32 account_id = 4;				// Идентификатор аккаунта
+	uint32 account_entity_id = 5;		// Порядковый номер связи в рамках аккаунта (account_id)
+	uint32 policy_id = 6;				// ID политики, применяемой к этой связи. Определяет ее статус и правила.
+	
+	uint64 trace_id = 7;				// Уникальный идентификатор операции, в рамках которой был создан объект
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp updated_at = 9;
+	optional google.protobuf.Any additional_data = 10;
+}

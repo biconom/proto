@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package biconom.client.confirmation;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+
+import "biconom/types/confirmation.proto";
+import "biconom/types/sort.proto";
+
+service ConfirmationService {
+	// Получить форму подтверждения по ID.
+	rpc Get (biconom.types.Confirmation.Id) returns (biconom.types.Confirmation);
+
+	// Получить список форм подтверждения для текущего пользователя.
+	rpc List (ListRequest) returns (biconom.types.Confirmation.List);
+
+	// Подтвердить форму.
+	rpc Confirm (biconom.types.Confirmation.ConfirmRequest) returns (biconom.types.Confirmation.ConfirmResponse);
+
+	// Отменить форму подтверждения.
+	rpc Cancel (biconom.types.Confirmation.Id) returns (biconom.types.Confirmation);
+
+	// Сгенерировать новый код для поля.
+	rpc GenerateCode (biconom.types.Confirmation.GenerateCodeRequest) returns (biconom.types.Confirmation);
+}
+
+message ListRequest {
+	// Фильтрация происходит автоматически по аккаунту текущего пользователя.
+	// Необязательный фильтр по статусу.
+	optional biconom.types.Confirmation.Status status = 1;
+	// "Курсор", с которого начинать выборку. Указывается идентификатор сессии.
+	optional biconom.types.Confirmation.Id cursor = 2;
+	// Необязательные параметры сортировки и лимита.
+	// Если не указаны, бэкенд использует значения по умолчанию (например, `direction: BACKWARD`, `limit: 50`).
+	optional biconom.types.Sort sort = 3;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/distributor.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/distributor_branch_policy.proto";
+
+// DistributorBranch представляет собой иерархическую связь или "ветку" между дистрибьюторами.
+message DistributorBranch {
+	message Id {
+		oneof identifier {
+			uint32 id = 1; // Глобальный ID ветки дистрибьютора
+			biconom.types.Distributor.Id.ParentBranch parent_branch = 2;
+		}
+	}
+
+	message List {
+		repeated DistributorBranch items = 1;
+	}
+	
+	uint32 id = 1;
+	uint32 parent_id = 2; // ID вышестоящего дистрибьютора
+	uint32 parent_branch_number = 3; // Числовой идентификатор ветки от вышестоящего дистрибьютора
+	optional uint32 child_id = 4; // ID дочернего дистрибьютора, если ветка занята
+
+	uint64 trace_id = 5;
+	uint32 policy_id = 6; // Политика, управляющая поведением ветки.
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	optional google.protobuf.Any additional_data = 9;
+}

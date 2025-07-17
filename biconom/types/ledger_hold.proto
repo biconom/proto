@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Модель, представляющая "Блокировку" или "Операцию в ожидании" (Hold).
+// Она описывает средства, которые либо заблокированы на счете для будущей операции,
+// либо ожидают зачисления. Каждая блокировка имеет правила своего исполнения.
+message LedgerHold {
+	message Id {
+		uint64 id = 1;
+	}
+
+	message List {
+		repeated LedgerHold items = 1;
+	}
+
+	// Направление блокировки относительно Ledger'а.
+	enum Direction {
+		DIRECTION_UNSPECIFIED = 0;
+		INCOMING = 1; // Ожидающее поступление (увеличивает `on_hold_incoming_balance`).
+		OUTGOING = 2; // Заблокированные средства для списания (увеличивает `on_hold_outgoing_balance`).
+	}
+	
+	// Правило исполнения: КОГДА и КАК блокировка должна быть обработана.
+	message ExecutionRule {
+		enum Condition {
+			CONDITION_UNSPECIFIED = 0;
+			TIME_BASED = 1;     // Исполнение по достижению определенного времени.
+			TRIGGER_BASED = 2;  // Исполнение по внешнему триггеру (напр., подтверждение админа).
+		}
+		
+		Condition condition = 1;
+		// Время исполнения (заполняется, если condition = TIME_BASED).
+		optional google.protobuf.Timestamp execute_at = 2;
+	}
+
+	// Текущий статус самой блокировки.
+	enum Status {
+		STATUS_UNSPECIFIED = 0;
+		PENDING = 1;					// Ожидает исполнения (средства заблокированы или ожидаются).
+		EXECUTED = 2;					// Успешно исполнена (создана LedgerTransaction).
+		CANCELED = 3;					// Отменена (средства разблокированы или отменено ожидание).
+	}
+
+	uint64 id = 1;						// Глобальный числовой ID блокировки.
+	uint64 ledger_id = 2;				// ID Хранилища, к которому относится эта блокировка.
+	optional uint64 activity_id = 3;	// ID Действия, которое создало эту блокировку.
+
+	Direction direction = 4;			// Направление блокировки.
+	Status status = 5;					// Текущий статус блокировки.
+	string amount = 6;					// Сумма.
+	ExecutionRule execution_rule = 7;	// Правило исполнения.
+
+	// ID транзакции, которая была создана в результате исполнения этой блокировки.
+	// Заполняется, когда статус становится EXECUTED.
+	optional uint64 resulting_transaction_id = 8;
+
+	optional string reason = 9; // Причина создания или отмены блокировки.
+
+	google.protobuf.Timestamp created_at = 10;
+	google.protobuf.Timestamp updated_at = 11; // Время последнего изменения статуса.
+	optional google.protobuf.Any additional_data = 12;
+}

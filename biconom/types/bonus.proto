@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "biconom/types/bonus_policy.proto";
+
+// Bonus представляет собой справочную информацию о бонусе, существующем в системе.
+// Вся логика его расчета и начисления определяется в связанной BonusPolicy.
+message Bonus {
+	message Id {
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID бонуса
+			string name = 2;	// Уникальное имя бонуса
+		}
+	}
+
+	message List {
+		repeated Bonus items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;			// Уникальное имя бонуса (например, "Реферальный бонус")
+	string title = 3;			// Заголовок для отображения пользователю
+	string description = 4;		// Описание для отображения пользователю
+	
+	uint64 trace_id = 5;
+	uint32 policy_id = 6;		// Политика, определяющая правила расчета и начисления бонуса.
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	optional google.protobuf.Any additional_data = 9;
+}

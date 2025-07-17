@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package biconom.client.session;
+
+import "google/protobuf/empty.proto";
+
+import "biconom/types/session.proto";
+import "biconom/types/sort.proto";
+
+// SessionService предоставляет методы для управления сессиями текущего пользователя.
+service SessionService {
+	// Получить сессию по ID.
+	rpc Get (biconom.types.Session.Id) returns (biconom.types.Session);
+	
+	// Получить список сессий для текущего пользователя.
+	rpc List (ListRequest) returns (ListResponse);
+
+	// Принудительно завершить (отозвать) конкретную сессию.
+	rpc Revoke (biconom.types.Session.Id) returns (biconom.types.Session);
+
+	// Принудительно завершить все сессии, кроме текущей.
+	rpc RevokeAll (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+message ListRequest {
+	// Фильтрация происходит автоматически по user_id текущего пользователя.
+	// Необязательный фильтр по статусу.
+	optional biconom.types.Session.Status status = 1;
+	// "Курсор", с которого начинать выборку. Указывается идентификатор сессии.
+	optional biconom.types.Session.Id cursor = 2;
+	// Необязательные параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 3;
+}
+
+message ListResponse {
+	repeated biconom.types.Session items = 1;
+	// ID текущей сессии, с которой пользователь делает запрос.
+	// Позволяет клиенту подсветить ее в списке.
+	uint64 current_session_id = 2;
+}

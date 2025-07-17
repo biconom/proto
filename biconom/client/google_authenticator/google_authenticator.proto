@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package biconom.client.google_authenticator;
+
+import "biconom/types/google_authenticator.proto";
+import "biconom/types/confirmation.proto";
+import "google/protobuf/empty.proto";
+
+// Сервис для управления двухфакторной аутентификацией (2FA) Google Authenticator.
+service GoogleAuthenticatorService {
+    // Получает текущий статус и состояние 2FA для пользователя.
+    rpc Get(google.protobuf.Empty) returns (biconom.types.GoogleAuthenticator);
+
+    // Инициирует процесс включения 2FA.
+    // Этот метод создает сессию подтверждения (`Confirmation`), которая содержит
+    // всю необходимую информацию для настройки (QR-код, секретный ключ) и поля для ввода
+    // подтверждающего кода. Для завершения процесса необходимо использовать `ConfirmationService`.
+    rpc Enable(google.protobuf.Empty) returns (biconom.types.Confirmation);
+
+    // Инициирует процесс отключения 2FA.
+    // Создает сессию подтверждения (`Confirmation`), которую необходимо
+    // завершить через `ConfirmationService` (например, вводом пароля и текущего кода 2FA).
+    rpc Disable(google.protobuf.Empty) returns (biconom.types.Confirmation);
+}

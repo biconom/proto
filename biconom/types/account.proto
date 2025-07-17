@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/user.proto";
+import "biconom/types/community.proto";
+import "biconom/types/account_policy.proto";
+
+// Account является универсальной учетной записью в системе.
+// Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),
+// либо на сообщество (Community), позволяя им выступать в роли владельцев других сущностей.
+message Account {
+	message Id {
+		oneof identifier {
+			uint32 id = 1; // Уникальный ID аккаунта
+			uint32 user_id = 2; // Уникальный ID пользователя
+			uint32 community_id = 3; // Уникальный ID сообщества
+		}
+	}
+
+	message List {
+		repeated Account items = 1;
+	}
+
+	uint32 id = 1;
+
+	// Тип владельца аккаунта
+	oneof owner {
+		biconom.types.User user = 2;           // Ссылка на пользователя
+		biconom.types.Community community = 3; // Ссылка на сообщество
+	}
+	
+	uint64 trace_id = 4;
+	uint32 policy_id = 5; // Политика, управляющая поведением аккаунта (включая права доступа).
+	google.protobuf.Timestamp created_at = 6;
+	google.protobuf.Timestamp updated_at = 7;
+	optional google.protobuf.Any additional_data = 8;
+}

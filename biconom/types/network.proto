@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+// Network представляет собой основную партнерскую или дистрибьюторскую сеть.
+// Она служит контейнером для дистрибьюторов и их иерархических связей.
+message Network {
+	message Id {
+		// Различные способы идентификации сети
+		oneof identifier {
+			uint32 id = 1;		// Глобальный ID сети
+			string name = 2;	// Уникальное имя сети
+		}
+	}
+
+	message List {
+		repeated Network items = 1;
+	}
+
+	uint32 id = 1;
+	string name = 2;				// Уникальное строковое имя для идентификации сети
+	uint32 root_partition_id = 3;	// ID корневой партиции (NetworkPartition) для данной сети
+	uint32 policy_id = 4;			// Политика, управляющая поведением всей сети.
+	
+	uint64 trace_id = 5; // Уникальный идентификатор операции, в рамках которой был создан объект
+	google.protobuf.Timestamp created_at = 6;
+	google.protobuf.Timestamp updated_at = 7;
+	optional google.protobuf.Any additional_data = 8;
+}
