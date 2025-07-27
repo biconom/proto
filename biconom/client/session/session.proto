@@ -19,13 +19,13 @@ service SessionService {
 	rpc Revoke (biconom.types.Session.Id) returns (biconom.types.Session);
 
 	// Принудительно завершить все сессии, кроме текущей.
-	rpc RevokeAll (google.protobuf.Empty) returns (google.protobuf.Empty);
+	rpc RevokeAll (google.protobuf.Empty) returns (biconom.types.Session.List);
 }
 
 message ListRequest {
 	// Фильтрация происходит автоматически по user_id текущего пользователя.
-	// Необязательный фильтр по статусу.
-	optional biconom.types.Session.Status status = 1;
+	// Необязательный фильтр по статусам.
+	repeated biconom.types.Session.Status filter_statuses = 1;
 	// "Курсор", с которого начинать выборку. Указывается идентификатор сессии.
 	optional biconom.types.Session.Id cursor = 2;
 	// Необязательные параметры сортировки и лимита.
@@ -33,8 +33,6 @@ message ListRequest {
 }
 
 message ListResponse {
-	repeated biconom.types.Session items = 1;
-	// ID текущей сессии, с которой пользователь делает запрос.
-	// Позволяет клиенту подсветить ее в списке.
-	uint64 current_session_id = 2;
+	optional biconom.types.Session current = 1;
+	repeated biconom.types.Session other = 2;
 }

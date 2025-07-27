@@ -202,6 +202,75 @@ pub mod account_policy {
         pub items: ::prost::alloc::vec::Vec<super::AccountPolicy>,
     }
 }
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct Presence {
+    #[prost(enumeration = "presence::Status", tag = "1")]
+    pub status: i32,
+}
+/// Nested message and enum types in `Presence`.
+pub mod presence {
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Пользователь онлайн прямо сейчас (менее 30 секунд назад)
+        Online = 1,
+        /// Был в сети недавно (от 30 секунд до 3 минут назад)
+        Recently = 2,
+        /// Был в сети в течение последнего часа (до 1 часа назад)
+        LastHour = 3,
+        /// Был в сети в течение сегодняшнего дня (до 24 часов назад)
+        Today = 4,
+        /// Был в сети в последние 3 дня
+        LastFewDays = 5,
+        /// Был в сети в течение последней недели
+        LastWeek = 6,
+        /// Был в сети давно (более недели)
+        LongTimeAgo = 7,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Online => "ONLINE",
+                Self::Recently => "RECENTLY",
+                Self::LastHour => "LAST_HOUR",
+                Self::Today => "TODAY",
+                Self::LastFewDays => "LAST_FEW_DAYS",
+                Self::LastWeek => "LAST_WEEK",
+                Self::LongTimeAgo => "LONG_TIME_AGO",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "ONLINE" => Some(Self::Online),
+                "RECENTLY" => Some(Self::Recently),
+                "LAST_HOUR" => Some(Self::LastHour),
+                "TODAY" => Some(Self::Today),
+                "LAST_FEW_DAYS" => Some(Self::LastFewDays),
+                "LAST_WEEK" => Some(Self::LastWeek),
+                "LONG_TIME_AGO" => Some(Self::LongTimeAgo),
+                _ => None,
+            }
+        }
+    }
+}
 /// Account является универсальной учетной записью в системе.
 /// Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),
 /// либо на сообщество (Community), позволяя им выступать в роли владельцев других сущностей.
@@ -209,16 +278,18 @@ pub mod account_policy {
 pub struct Account {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    #[prost(uint64, tag = "4")]
+    #[prost(enumeration = "presence::Status", tag = "4")]
+    pub presence_status: i32,
+    #[prost(uint64, tag = "5")]
     pub trace_id: u64,
     /// Политика, управляющая поведением аккаунта (включая права доступа).
-    #[prost(uint32, tag = "5")]
+    #[prost(uint32, tag = "6")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
     pub additional_data: ::core::option::Option<::prost_types::Any>,
     /// Тип владельца аккаунта
     #[prost(oneof = "account::Owner", tags = "2, 3")]
@@ -671,8 +742,8 @@ pub mod confirmation_policy {
 /// --- Вложенные типы и сообщения ----
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Confirmation {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
     /// ID аккаунта, который инициировал действие.
     #[prost(uint32, tag = "2")]
     pub account_id: u32,
@@ -681,90 +752,173 @@ pub struct Confirmation {
     pub action_name: ::prost::alloc::string::String,
     #[prost(enumeration = "confirmation::Status", tag = "4")]
     pub status: i32,
-    /// Описание или инструкция для пользователя.
-    #[prost(string, tag = "5")]
-    pub description: ::prost::alloc::string::String,
     /// Лимит попыток верификации для этой формы
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "5")]
     pub verification_attempt_limit: u32,
     /// Количество сделанных попыток верификации.
-    #[prost(uint32, tag = "7")]
+    #[prost(uint32, tag = "6")]
     pub verification_attempts_made: u32,
     /// Список всех доступных полей для этой формы.
-    #[prost(message, repeated, tag = "8")]
-    pub available_fields: ::prost::alloc::vec::Vec<confirmation::VerificationField>,
-    /// Список групп верификации (нужно удовлетворить одну из них).
-    #[prost(message, repeated, tag = "9")]
-    pub verification_groups: ::prost::alloc::vec::Vec<confirmation::VerificationGroup>,
-    #[prost(uint64, tag = "10")]
+    #[prost(message, repeated, tag = "7")]
+    pub fields: ::prost::alloc::vec::Vec<confirmation::Field>,
+    /// Битовая маска для групп полей, которые были успешно подтверждены.
+    #[prost(uint32, optional, tag = "8")]
+    pub approved_group_bit_mask: ::core::option::Option<u32>,
+    #[prost(uint64, tag = "9")]
     pub trace_id: u64,
     /// Политика, управляющая правилами (время жизни, лимиты попыток).
-    #[prost(uint32, tag = "11")]
+    #[prost(uint32, tag = "10")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "12")]
+    #[prost(message, optional, tag = "11")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     /// Точное время, когда форма станет недействительной (рассчитывается на основе политики).
-    #[prost(message, optional, tag = "13")]
+    #[prost(message, optional, tag = "12")]
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "14")]
+    #[prost(message, optional, tag = "13")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     /// Гибкое поле для дополнительных данных.
-    #[prost(message, optional, tag = "15")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
+    #[prost(message, optional, tag = "14")]
+    pub metadata: ::core::option::Option<confirmation::Metadata>,
 }
 /// Nested message and enum types in `Confirmation`.
 pub mod confirmation {
-    /// Детали генерации кодов для полей типа EMAIL_CODE.
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct CodeGenerationDetails {
-        /// Время, после которого можно запросить новый код.
-        #[prost(message, optional, tag = "1")]
-        pub next_generation_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Время генерации последнего кода.
-        #[prost(message, optional, tag = "2")]
-        pub last_generated_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Время, когда сгенерированный код станет недействительным.
-        #[prost(message, optional, tag = "3")]
-        pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Лимит доступных попыток генерации нового кода.
-        #[prost(uint32, tag = "4")]
-        pub generation_attempt_limit: u32,
-        /// Количество уже сделанных попыток генерации.
-        #[prost(uint32, tag = "5")]
-        pub generation_attempts_made: u32,
-    }
     /// Описание одного поля для верификации.
     #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct VerificationField {
+    pub struct Field {
         /// Уникальный ID поля в рамках формы.
         #[prost(uint32, tag = "1")]
         pub id: u32,
+        /// Битовая маска для группировки полей.
+        #[prost(uint32, tag = "2")]
+        pub group_bit_mask: u32,
         /// Тип поля (пароль, 2FA, чекбокс и т.д.).
-        #[prost(enumeration = "FieldKind", tag = "2")]
+        #[prost(enumeration = "field::Kind", tag = "3")]
         pub kind: i32,
-        /// Контакт для отправки кода (например, email), если применимо.
-        #[prost(string, optional, tag = "3")]
-        pub contact_info: ::core::option::Option<::prost::alloc::string::String>,
-        /// Детали генерации кода (для EMAIL_CODE).
+        /// Детали генерации кода для канала связи.
         #[prost(message, optional, tag = "4")]
-        pub code_details: ::core::option::Option<CodeGenerationDetails>,
-        /// Текст для чекбокса согласия.
-        #[prost(string, optional, tag = "5")]
-        pub agreement_text: ::core::option::Option<::prost::alloc::string::String>,
+        pub chanel: ::core::option::Option<field::Chanel>,
     }
-    /// Группа верификации, описывающая один из возможных наборов полей для подтверждения.
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct VerificationGroup {
-        /// Список ID полей (VerificationField.id), необходимых для этой группы.
-        #[prost(uint32, repeated, tag = "1")]
-        pub required_field_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Nested message and enum types in `Field`.
+    pub mod field {
+        /// Детали генерации кодов для каналов связи.
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct Chanel {
+            /// Тип канала связи (email, sms и т.д.).
+            #[prost(enumeration = "chanel::Kind", tag = "1")]
+            pub chanel_kind: i32,
+            /// Значение канала связи (например, email адрес).
+            #[prost(string, tag = "2")]
+            pub chanel_contact: ::prost::alloc::string::String,
+            /// Интервал между попытками генерации нового кода (в секундах).
+            #[prost(uint32, tag = "3")]
+            pub generation_duration: u32,
+            /// Время генерации последнего кода.
+            #[prost(message, optional, tag = "4")]
+            pub last_generated_at: ::core::option::Option<::prost_types::Timestamp>,
+            /// Лимит доступных попыток генерации нового кода.
+            #[prost(uint32, tag = "5")]
+            pub generation_attempt_limit: u32,
+            /// Количество уже сделанных попыток генерации.
+            #[prost(uint32, tag = "6")]
+            pub generation_attempts_made: u32,
+        }
+        /// Nested message and enum types in `Chanel`.
+        pub mod chanel {
+            /// Типы контактного канала, на который отправляется код.
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Kind {
+                Unspecified = 0,
+                Email = 1,
+            }
+            impl Kind {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Email => "EMAIL",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "EMAIL" => Some(Self::Email),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        /// Типы полей, которые могут потребоваться для подтверждения.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Kind {
+            Unspecified = 0,
+            /// Код, отправленный на канал связи (например, email).
+            Chanel = 1,
+            /// Пароль от аккаунта пользователя.
+            Password = 2,
+            /// Чекбокс для подтверждения согласия с условиями.
+            AgreementCheckbox = 3,
+            /// Код из приложения 2FA Google Authenticator.
+            GoogleAuthenticatorCode = 4,
+        }
+        impl Kind {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Chanel => "CHANEL",
+                    Self::Password => "PASSWORD",
+                    Self::AgreementCheckbox => "AGREEMENT_CHECKBOX",
+                    Self::GoogleAuthenticatorCode => "GOOGLE_AUTHENTICATOR_CODE",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "CHANEL" => Some(Self::Chanel),
+                    "PASSWORD" => Some(Self::Password),
+                    "AGREEMENT_CHECKBOX" => Some(Self::AgreementCheckbox),
+                    "GOOGLE_AUTHENTICATOR_CODE" => Some(Self::GoogleAuthenticatorCode),
+                    _ => None,
+                }
+            }
+        }
     }
     /// Идентификатор для поиска формы.
     #[derive(Clone, Copy, PartialEq, ::prost::Message)]
     pub struct Id {
         /// Глобальный ID формы.
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
     }
     /// Список форм подтверждения.
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -776,169 +930,196 @@ pub mod confirmation {
     #[derive(Clone, Copy, PartialEq, ::prost::Message)]
     pub struct GenerateCodeRequest {
         /// ID формы подтверждения.
-        #[prost(uint32, tag = "1")]
-        pub confirmation_id: u32,
+        #[prost(uint64, tag = "1")]
+        pub confirmation_id: u64,
         /// ID поля, для которого нужно сгенерировать код.
         #[prost(uint32, tag = "2")]
         pub field_id: u32,
     }
     /// Запрос на подтверждение формы.
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct ConfirmRequest {
-        /// Глобальный ID формы для подтверждения.
-        #[prost(uint32, tag = "1")]
-        pub confirmation_id: u32,
-        /// Список полей, которые отправляет пользователь.
-        #[prost(message, repeated, tag = "2")]
-        pub submitted_fields: ::prost::alloc::vec::Vec<confirm_request::SubmittedField>,
-    }
-    /// Nested message and enum types in `ConfirmRequest`.
-    pub mod confirm_request {
-        /// Поле, предоставленное пользователем для верификации.
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Form {}
+    /// Nested message and enum types in `Form`.
+    pub mod form {
         #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct SubmittedField {
-            /// ID поля, которое заполняет пользователь.
-            #[prost(uint32, tag = "1")]
-            pub field_id: u32,
-            #[prost(oneof = "submitted_field::Value", tags = "2, 3")]
-            pub value: ::core::option::Option<submitted_field::Value>,
+        pub struct Request {
+            /// Глобальный ID формы для подтверждения.
+            #[prost(uint64, tag = "1")]
+            pub confirmation_id: u64,
+            /// Список полей, которые отправляет пользователь.
+            #[prost(message, repeated, tag = "2")]
+            pub fields: ::prost::alloc::vec::Vec<request::Field>,
         }
-        /// Nested message and enum types in `SubmittedField`.
-        pub mod submitted_field {
-            #[derive(Clone, PartialEq, ::prost::Oneof)]
-            pub enum Value {
-                /// Значение для полей типа пароль, код и т.д.
-                #[prost(string, tag = "2")]
-                StringValue(::prost::alloc::string::String),
-                /// Значение для чекбокса (должно быть `true`).
-                #[prost(bool, tag = "3")]
-                BoolValue(bool),
+        /// Nested message and enum types in `Request`.
+        pub mod request {
+            /// Поле, предоставленное пользователем для верификации.
+            #[derive(Clone, PartialEq, ::prost::Message)]
+            pub struct Field {
+                /// ID поля, которое заполняет пользователь.
+                #[prost(uint32, tag = "1")]
+                pub field_id: u32,
+                #[prost(oneof = "field::Value", tags = "2, 3")]
+                pub value: ::core::option::Option<field::Value>,
+            }
+            /// Nested message and enum types in `Field`.
+            pub mod field {
+                #[derive(Clone, PartialEq, ::prost::Oneof)]
+                pub enum Value {
+                    /// Значение для полей типа пароль, код и т.д.
+                    #[prost(string, tag = "2")]
+                    StringValue(::prost::alloc::string::String),
+                    /// Значение для чекбокса (должно быть `true`).
+                    #[prost(bool, tag = "3")]
+                    BoolValue(bool),
+                }
             }
         }
-    }
-    /// Ответ на запрос подтверждения формы.
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct ConfirmResponse {
-        /// Общий статус подтверждения.
-        #[prost(enumeration = "confirm_response::OverallStatus", tag = "1")]
-        pub status: i32,
-        /// Детальный результат по каждому полю.
-        #[prost(message, repeated, tag = "2")]
-        pub field_results: ::prost::alloc::vec::Vec<confirm_response::FieldResult>,
-        /// Дополнительные данные, возвращаемые при успехе.
-        #[prost(message, optional, tag = "3")]
-        pub data: ::core::option::Option<::prost_types::Any>,
-    }
-    /// Nested message and enum types in `ConfirmResponse`.
-    pub mod confirm_response {
-        /// Результат проверки для одного поля.
+        /// Ответ на запрос подтверждения формы.
         #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct FieldResult {
-            /// ID проверенного поля.
-            #[prost(uint32, tag = "1")]
-            pub field_id: u32,
-            /// Статус проверки этого поля.
-            #[prost(enumeration = "FieldStatus", tag = "2")]
+        pub struct Response {
+            /// Общий статус подтверждения.
+            #[prost(enumeration = "response::Status", tag = "1")]
             pub status: i32,
-            /// Дополнительный комментарий об ошибке.
-            #[prost(string, optional, tag = "3")]
-            pub comment: ::core::option::Option<::prost::alloc::string::String>,
+            /// Детальный результат по каждому полю.
+            #[prost(message, repeated, tag = "2")]
+            pub fields: ::prost::alloc::vec::Vec<response::Field>,
+            /// Дополнительные данные, возвращаемые при успехе.
+            #[prost(message, optional, tag = "3")]
+            pub metadata: ::core::option::Option<response::Metadata>,
         }
-        /// Общий статус ответа на запрос подтверждения.
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum OverallStatus {
-            Unspecified = 0,
-            /// Форма отклонена (одно или несколько полей неверны).
-            Rejected = 1,
-            /// Форма успешно подтверждена.
-            Approved = 2,
-        }
-        impl OverallStatus {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "OVERALL_STATUS_UNSPECIFIED",
-                    Self::Rejected => "OVERALL_STATUS_REJECTED",
-                    Self::Approved => "OVERALL_STATUS_APPROVED",
+        /// Nested message and enum types in `Response`.
+        pub mod response {
+            /// Результат проверки для одного поля.
+            #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+            pub struct Field {
+                /// ID проверенного поля.
+                #[prost(uint32, tag = "1")]
+                pub field_id: u32,
+                /// Статус проверки этого поля.
+                #[prost(enumeration = "field::Status", tag = "2")]
+                pub status: i32,
+            }
+            /// Nested message and enum types in `Field`.
+            pub mod field {
+                /// Детальный статус для каждого отдельного поля.
+                #[derive(
+                    Clone,
+                    Copy,
+                    Debug,
+                    PartialEq,
+                    Eq,
+                    Hash,
+                    PartialOrd,
+                    Ord,
+                    ::prost::Enumeration
+                )]
+                #[repr(i32)]
+                pub enum Status {
+                    Unspecified = 0,
+                    /// Поле заполнено верно.
+                    Ok = 1,
+                    /// Поле не заполнено, но является обязательным.
+                    Empty = 2,
+                    /// Поле заполнено неверно.
+                    Wrong = 3,
+                    /// Пользователь не согласился с условиями (чекбокс не `true`).
+                    NotAgreed = 4,
+                }
+                impl Status {
+                    /// String value of the enum field names used in the ProtoBuf definition.
+                    ///
+                    /// The values are not transformed in any way and thus are considered stable
+                    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                    pub fn as_str_name(&self) -> &'static str {
+                        match self {
+                            Self::Unspecified => "UNSPECIFIED",
+                            Self::Ok => "OK",
+                            Self::Empty => "EMPTY",
+                            Self::Wrong => "WRONG",
+                            Self::NotAgreed => "NOT_AGREED",
+                        }
+                    }
+                    /// Creates an enum from field names used in the ProtoBuf definition.
+                    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                        match value {
+                            "UNSPECIFIED" => Some(Self::Unspecified),
+                            "OK" => Some(Self::Ok),
+                            "EMPTY" => Some(Self::Empty),
+                            "WRONG" => Some(Self::Wrong),
+                            "NOT_AGREED" => Some(Self::NotAgreed),
+                            _ => None,
+                        }
+                    }
                 }
             }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "OVERALL_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-                    "OVERALL_STATUS_REJECTED" => Some(Self::Rejected),
-                    "OVERALL_STATUS_APPROVED" => Some(Self::Approved),
-                    _ => None,
+            #[derive(Clone, PartialEq, ::prost::Message)]
+            pub struct Metadata {
+                #[prost(oneof = "metadata::Identifier", tags = "1")]
+                pub identifier: ::core::option::Option<metadata::Identifier>,
+            }
+            /// Nested message and enum types in `Metadata`.
+            pub mod metadata {
+                #[derive(Clone, PartialEq, ::prost::Oneof)]
+                pub enum Identifier {
+                    #[prost(string, tag = "1")]
+                    Comment(::prost::alloc::string::String),
+                }
+            }
+            /// Общий статус ответа на запрос подтверждения.
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Status {
+                Unspecified = 0,
+                /// Форма успешно подтверждена.
+                Approved = 1,
+                /// Форма отклонена (одно или несколько полей неверны).
+                Rejected = 2,
+            }
+            impl Status {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Approved => "APPROVED",
+                        Self::Rejected => "REJECTED",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "APPROVED" => Some(Self::Approved),
+                        "REJECTED" => Some(Self::Rejected),
+                        _ => None,
+                    }
                 }
             }
         }
-        /// Детальный статус для каждого отдельного поля.
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum FieldStatus {
-            Unspecified = 0,
-            /// Поле заполнено верно.
-            Ok = 1,
-            /// Поле не заполнено, но является обязательным.
-            Empty = 2,
-            /// Поле заполнено неверно.
-            Wrong = 3,
-            /// Срок действия значения поля истек (например, для кода).
-            Expired = 4,
-            /// Пользователь не согласился с условиями (чекбокс не `true`).
-            NotAgreed = 5,
-        }
-        impl FieldStatus {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "FIELD_STATUS_UNSPECIFIED",
-                    Self::Ok => "FIELD_STATUS_OK",
-                    Self::Empty => "FIELD_STATUS_EMPTY",
-                    Self::Wrong => "FIELD_STATUS_WRONG",
-                    Self::Expired => "FIELD_STATUS_EXPIRED",
-                    Self::NotAgreed => "FIELD_STATUS_NOT_AGREED",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "FIELD_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-                    "FIELD_STATUS_OK" => Some(Self::Ok),
-                    "FIELD_STATUS_EMPTY" => Some(Self::Empty),
-                    "FIELD_STATUS_WRONG" => Some(Self::Wrong),
-                    "FIELD_STATUS_EXPIRED" => Some(Self::Expired),
-                    "FIELD_STATUS_NOT_AGREED" => Some(Self::NotAgreed),
-                    _ => None,
-                }
-            }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Metadata {
+        #[prost(oneof = "metadata::Identifier", tags = "1")]
+        pub identifier: ::core::option::Option<metadata::Identifier>,
+    }
+    /// Nested message and enum types in `Metadata`.
+    pub mod metadata {
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Identifier {
+            #[prost(string, tag = "1")]
+            GoogleAuthenticatorSecret(::prost::alloc::string::String),
         }
     }
     /// Статус формы подтверждения.
@@ -959,7 +1140,7 @@ pub mod confirmation {
         /// Форма активна и ожидает подтверждения.
         Pending = 1,
         /// Форма была успешно подтверждена.
-        Confirmed = 2,
+        Approved = 2,
         /// В верификации было отказано (например, исчерпаны попытки).
         Rejected = 3,
         /// Форма была отменена пользователем или системой.
@@ -974,75 +1155,23 @@ pub mod confirmation {
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         pub fn as_str_name(&self) -> &'static str {
             match self {
-                Self::Unspecified => "STATUS_UNSPECIFIED",
-                Self::Pending => "STATUS_PENDING",
-                Self::Confirmed => "STATUS_CONFIRMED",
-                Self::Rejected => "STATUS_REJECTED",
-                Self::Cancelled => "STATUS_CANCELLED",
-                Self::Expired => "STATUS_EXPIRED",
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Pending => "PENDING",
+                Self::Approved => "APPROVED",
+                Self::Rejected => "REJECTED",
+                Self::Cancelled => "CANCELLED",
+                Self::Expired => "EXPIRED",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
         pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
             match value {
-                "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-                "STATUS_PENDING" => Some(Self::Pending),
-                "STATUS_CONFIRMED" => Some(Self::Confirmed),
-                "STATUS_REJECTED" => Some(Self::Rejected),
-                "STATUS_CANCELLED" => Some(Self::Cancelled),
-                "STATUS_EXPIRED" => Some(Self::Expired),
-                _ => None,
-            }
-        }
-    }
-    /// Типы полей, которые могут потребоваться для подтверждения.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum FieldKind {
-        Unspecified = 0,
-        /// Пароль от аккаунта пользователя.
-        Password = 1,
-        /// Код из приложения 2FA Google Authenticator.
-        GoogleAuthenticatorCode = 2,
-        /// Код, отправленный на email.
-        EmailCode = 3,
-        /// Чекбокс для подтверждения согласия с условиями.
-        AgreementCheckbox = 4,
-    }
-    impl FieldKind {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "FIELD_KIND_UNSPECIFIED",
-                Self::Password => "FIELD_KIND_PASSWORD",
-                Self::GoogleAuthenticatorCode => "FIELD_KIND_GOOGLE_AUTHENTICATOR_CODE",
-                Self::EmailCode => "FIELD_KIND_EMAIL_CODE",
-                Self::AgreementCheckbox => "FIELD_KIND_AGREEMENT_CHECKBOX",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "FIELD_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-                "FIELD_KIND_PASSWORD" => Some(Self::Password),
-                "FIELD_KIND_GOOGLE_AUTHENTICATOR_CODE" => {
-                    Some(Self::GoogleAuthenticatorCode)
-                }
-                "FIELD_KIND_EMAIL_CODE" => Some(Self::EmailCode),
-                "FIELD_KIND_AGREEMENT_CHECKBOX" => Some(Self::AgreementCheckbox),
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "PENDING" => Some(Self::Pending),
+                "APPROVED" => Some(Self::Approved),
+                "REJECTED" => Some(Self::Rejected),
+                "CANCELLED" => Some(Self::Cancelled),
+                "EXPIRED" => Some(Self::Expired),
                 _ => None,
             }
         }
@@ -1702,14 +1831,15 @@ pub mod google_authenticator_policy {
 /// Эта модель НЕ содержит секретный ключ из соображений безопасности.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GoogleAuthenticator {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
     /// ID пользователя, для которого настроен 2FA
-    #[prost(uint32, tag = "2")]
+    #[prost(uint32, tag = "1")]
     pub user_id: u32,
     /// Текущий статус настройки 2FA
-    #[prost(enumeration = "google_authenticator::Status", tag = "3")]
-    pub status: i32,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+    /// Текущее состояние запроса на изменение настроек 2FA
+    #[prost(message, optional, tag = "3")]
+    pub confirmation: ::core::option::Option<Confirmation>,
     /// Уникальный идентификатор операции, в рамках которой был создан объект
     #[prost(uint64, tag = "4")]
     pub trace_id: u64,
@@ -1725,74 +1855,10 @@ pub struct GoogleAuthenticator {
 }
 /// Nested message and enum types in `GoogleAuthenticator`.
 pub mod google_authenticator {
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// ID пользователя, к которому привязан 2FA
-            #[prost(uint32, tag = "2")]
-            UserId(u32),
-        }
-    }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::GoogleAuthenticator>,
-    }
-    /// Определяет статус настройки 2FA.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        /// Статус не определен.
-        Unspecified = 0,
-        /// Неактивна. 2FA для пользователя не используется.
-        Inactive = 1,
-        /// Ожидает подтверждения. Пользователь отсканировал QR-код, но еще не ввел первый код для активации.
-        PendingVerification = 2,
-        /// Активна. 2FA включена и используется при входе и важных операциях.
-        Active = 3,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "UNSPECIFIED",
-                Self::Inactive => "INACTIVE",
-                Self::PendingVerification => "PENDING_VERIFICATION",
-                Self::Active => "ACTIVE",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "UNSPECIFIED" => Some(Self::Unspecified),
-                "INACTIVE" => Some(Self::Inactive),
-                "PENDING_VERIFICATION" => Some(Self::PendingVerification),
-                "ACTIVE" => Some(Self::Active),
-                _ => None,
-            }
-        }
     }
 }
 /// Locale представляет собой языковую локаль, используемую в системе для интернационализации.
@@ -2551,47 +2617,49 @@ pub mod session_policy {
 pub struct Session {
     #[prost(uint64, tag = "1")]
     pub id: u64,
-    /// ID пользователя, которому принадлежит сессия.
-    #[prost(uint32, tag = "2")]
-    pub user_id: u32,
     /// Текущий статус сессии.
-    #[prost(enumeration = "session::Status", tag = "3")]
+    #[prost(enumeration = "session::Status", tag = "2")]
     pub status: i32,
-    /// Информация об устройстве.
-    #[prost(message, optional, tag = "4")]
-    pub device: ::core::option::Option<session::Device>,
-    #[prost(uint64, tag = "5")]
+    /// IP-адрес и geo данные.
+    #[prost(message, optional, tag = "3")]
+    pub geoip: ::core::option::Option<session::Geoip>,
+    #[prost(string, optional, tag = "4")]
+    pub os: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub device: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub browser: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint64, tag = "7")]
     pub trace_id: u64,
     /// Политика, управляющая правилами этой сессии.
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "8")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "7")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Точное время, когда сессия станет недействительной.
     #[prost(message, optional, tag = "9")]
-    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Время последнего действия пользователя в этой сессии.
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "10")]
-    pub last_activity_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "presence::Status", tag = "11")]
+    pub presence_status: i32,
 }
 /// Nested message and enum types in `Session`.
 pub mod session {
-    /// Информация об устройстве и клиенте, с которого была начата сессия.
     #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Device {
+    pub struct Geoip {
         /// IP-адрес, с которого была создана сессия.
         #[prost(string, tag = "1")]
         pub ip_address: ::prost::alloc::string::String,
-        /// Полная строка User-Agent.
-        #[prost(string, tag = "2")]
-        pub user_agent: ::prost::alloc::string::String,
-        /// Приблизительное местоположение (например, "City, Country"), полученное по IP.
+        /// Код страны, полученное по IP.
+        #[prost(string, optional, tag = "2")]
+        pub country_iso: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название страны, полученное по IP.
         #[prost(string, optional, tag = "3")]
-        pub location: ::core::option::Option<::prost::alloc::string::String>,
+        pub country: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название города, полученное по IP.
+        #[prost(string, optional, tag = "4")]
+        pub city: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название промежуточных регионов (Штат/область), полученное по IP.
+        #[prost(string, repeated, tag = "5")]
+        pub subdivisions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     }
     #[derive(Clone, Copy, PartialEq, ::prost::Message)]
     pub struct Id {
@@ -2621,12 +2689,16 @@ pub mod session {
         Unspecified = 0,
         /// Сессия активна и используется.
         Active = 1,
-        /// Срок действия сессии истек (по времени или неактивности).
-        Expired = 2,
+        /// Сессия требует подтверждения (например, при входе с нового устройства).
+        Pending = 2,
         /// Сессия была завершена пользователем (logout).
         Cancelled = 3,
         /// Сессия была принудительно завершена системой (например, при входе с нового устройства).
         Revoked = 4,
+        /// Срок действия сессии истек (по времени или неактивности).
+        Expired = 5,
+        /// Принудительное завершение (система, модерация)
+        Terminated = 6,
     }
     impl Status {
         /// String value of the enum field names used in the ProtoBuf definition.
@@ -2637,9 +2709,11 @@ pub mod session {
             match self {
                 Self::Unspecified => "UNSPECIFIED",
                 Self::Active => "ACTIVE",
-                Self::Expired => "EXPIRED",
+                Self::Pending => "PENDING",
                 Self::Cancelled => "CANCELLED",
                 Self::Revoked => "REVOKED",
+                Self::Expired => "EXPIRED",
+                Self::Terminated => "TERMINATED",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2647,9 +2721,11 @@ pub mod session {
             match value {
                 "UNSPECIFIED" => Some(Self::Unspecified),
                 "ACTIVE" => Some(Self::Active),
-                "EXPIRED" => Some(Self::Expired),
+                "PENDING" => Some(Self::Pending),
                 "CANCELLED" => Some(Self::Cancelled),
                 "REVOKED" => Some(Self::Revoked),
+                "EXPIRED" => Some(Self::Expired),
+                "TERMINATED" => Some(Self::Terminated),
                 _ => None,
             }
         }

@@ -16,22 +16,21 @@ service ConfirmationService {
 	rpc List (ListRequest) returns (biconom.types.Confirmation.List);
 
 	// Подтвердить форму.
-	rpc Confirm (biconom.types.Confirmation.ConfirmRequest) returns (biconom.types.Confirmation.ConfirmResponse);
+	rpc Confirm (biconom.types.Confirmation.Form.Request) returns (biconom.types.Confirmation.Form.Response);
 
 	// Отменить форму подтверждения.
 	rpc Cancel (biconom.types.Confirmation.Id) returns (biconom.types.Confirmation);
 
 	// Сгенерировать новый код для поля.
-	rpc GenerateCode (biconom.types.Confirmation.GenerateCodeRequest) returns (biconom.types.Confirmation);
+	rpc GenerateCode (biconom.types.Confirmation.GenerateCodeRequest) returns (biconom.types.Confirmation.Field.Chanel);
 }
 
 message ListRequest {
 	// Фильтрация происходит автоматически по аккаунту текущего пользователя.
 	// Необязательный фильтр по статусу.
-	optional biconom.types.Confirmation.Status status = 1;
+	repeated biconom.types.Confirmation.Status filter_statuses = 1;
 	// "Курсор", с которого начинать выборку. Указывается идентификатор сессии.
 	optional biconom.types.Confirmation.Id cursor = 2;
 	// Необязательные параметры сортировки и лимита.
-	// Если не указаны, бэкенд использует значения по умолчанию (например, `direction: BACKWARD`, `limit: 50`).
 	optional biconom.types.Sort sort = 3;
 }
