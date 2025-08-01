@@ -737,47 +737,328 @@ pub mod confirmation_policy {
         pub items: ::prost::alloc::vec::Vec<super::ConfirmationPolicy>,
     }
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PasswordPolicy {
+    /// ID политики
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Настройки политики
+    #[prost(message, optional, tag = "2")]
+    pub config: ::core::option::Option<password_policy::Config>,
+    /// Дата создания
+    #[prost(message, optional, tag = "3")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `PasswordPolicy`.
+pub mod password_policy {
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Id {
+        /// Уникальный идентификатор политики паролей
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::PasswordPolicy>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PasswordReport {
+        #[prost(bool, tag = "1")]
+        pub is_valid: bool,
+        #[prost(bool, tag = "2")]
+        pub empty: bool,
+        #[prost(bool, tag = "3")]
+        pub too_short: bool,
+        #[prost(bool, tag = "4")]
+        pub too_long: bool,
+        #[prost(bool, tag = "5")]
+        pub group_satisfied: bool,
+        #[prost(string, repeated, tag = "6")]
+        pub forbidden: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        #[prost(string, optional, tag = "7")]
+        pub denied: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Config {
+        /// Минимально допустимая длина пароля
+        #[prost(uint32, tag = "1")]
+        pub min_length: u32,
+        /// Максимально допустимая длина пароля
+        #[prost(uint32, tag = "2")]
+        pub max_length: u32,
+        /// Битовая маска разрешённых классов символов.
+        /// Например: (1 << DIGITS) | (1 << UPPERCASE) => 0b000101
+        #[prost(uint32, tag = "3")]
+        pub allowed_bit_mask: u32,
+        /// Требуемые группы: хотя бы одна из групп должна быть полностью удовлетворена.
+        /// Например: \[0b101\] означает DIGITS+UPPERCASE;
+        ///            \[0b101, 0b110\] означает: либо (DIGITS+UPPERCASE), либо (LOWERCASE+UPPERCASE)
+        #[prost(uint32, repeated, tag = "4")]
+        pub required_any_of_bit_mask: ::prost::alloc::vec::Vec<u32>,
+    }
+    /// Nested message and enum types in `Config`.
+    pub mod config {
+        /// Классы символов, используемые в паролях
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Character {
+            /// Цифры: 0–9
+            Digits = 0,
+            /// Строчные латинские буквы: a–z
+            Lowercase = 1,
+            /// Заглавные латинские буквы: A–Z
+            Uppercase = 2,
+            /// Спецсимволы: !"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~
+            Special = 3,
+            /// Эмодзи: Unicode ≥ 4 байт
+            Emoji = 4,
+        }
+        impl Character {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Digits => "DIGITS",
+                    Self::Lowercase => "LOWERCASE",
+                    Self::Uppercase => "UPPERCASE",
+                    Self::Special => "SPECIAL",
+                    Self::Emoji => "EMOJI",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "DIGITS" => Some(Self::Digits),
+                    "LOWERCASE" => Some(Self::Lowercase),
+                    "UPPERCASE" => Some(Self::Uppercase),
+                    "SPECIAL" => Some(Self::Special),
+                    "EMOJI" => Some(Self::Emoji),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+/// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SessionPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    /// Время жизни сессии в секундах. 0 означает "бессрочная".
+    #[prost(uint32, tag = "4")]
+    pub expires_in_seconds: u32,
+    /// Время неактивности в секундах, после которого сессия истекает. 0 означает "не проверять".
+    #[prost(uint32, tag = "5")]
+    pub inactivity_timeout_seconds: u32,
+    /// Максимальное количество одновременных активных сессий для одного пользователя.
+    #[prost(uint32, tag = "6")]
+    pub max_concurrent_sessions: u32,
+    /// Требовать ли, чтобы IP-адрес сессии не менялся.
+    #[prost(bool, tag = "7")]
+    pub bind_to_ip: bool,
+    #[prost(uint64, tag = "8")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "9")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `SessionPolicy`.
+pub mod session_policy {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::SessionPolicy>,
+    }
+}
+/// Session представляет собой активную сессию пользователя в системе.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Session {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// Текущий статус сессии.
+    #[prost(enumeration = "session::Status", tag = "2")]
+    pub status: i32,
+    /// IP-адрес и geo данные.
+    #[prost(message, optional, tag = "3")]
+    pub geoip: ::core::option::Option<session::Geoip>,
+    #[prost(string, optional, tag = "4")]
+    pub os: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub device: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub browser: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint64, tag = "7")]
+    pub trace_id: u64,
+    /// Политика, управляющая правилами этой сессии.
+    #[prost(uint32, tag = "8")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "9")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "presence::Status", tag = "11")]
+    pub presence_status: i32,
+}
+/// Nested message and enum types in `Session`.
+pub mod session {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Geoip {
+        /// IP-адрес, с которого была создана сессия.
+        #[prost(string, tag = "1")]
+        pub ip_address: ::prost::alloc::string::String,
+        /// Код страны, полученное по IP.
+        #[prost(string, optional, tag = "2")]
+        pub country_iso: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название страны, полученное по IP.
+        #[prost(string, optional, tag = "3")]
+        pub country: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название города, полученное по IP.
+        #[prost(string, optional, tag = "4")]
+        pub city: ::core::option::Option<::prost::alloc::string::String>,
+        /// Название промежуточных регионов (Штат/область), полученное по IP.
+        #[prost(string, repeated, tag = "5")]
+        pub subdivisions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    }
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Id {
+        /// Глобальный ID сессии.
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Session>,
+    }
+    /// Статус жизненного цикла сессии.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Сессия активна и используется.
+        Active = 1,
+        /// Сессия требует подтверждения (например, при входе с нового устройства).
+        Pending = 2,
+        /// Сессия была завершена пользователем (logout).
+        Cancelled = 3,
+        /// Сессия была принудительно завершена системой (например, при входе с нового устройства).
+        Revoked = 4,
+        /// Срок действия сессии истек (по времени или неактивности).
+        Expired = 5,
+        /// Принудительное завершение (система, модерация)
+        Terminated = 6,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Active => "ACTIVE",
+                Self::Pending => "PENDING",
+                Self::Cancelled => "CANCELLED",
+                Self::Revoked => "REVOKED",
+                Self::Expired => "EXPIRED",
+                Self::Terminated => "TERMINATED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "ACTIVE" => Some(Self::Active),
+                "PENDING" => Some(Self::Pending),
+                "CANCELLED" => Some(Self::Cancelled),
+                "REVOKED" => Some(Self::Revoked),
+                "EXPIRED" => Some(Self::Expired),
+                "TERMINATED" => Some(Self::Terminated),
+                _ => None,
+            }
+        }
+    }
+}
 /// Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
 ///
 /// --- Вложенные типы и сообщения ----
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Confirmation {
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// ID аккаунта, который инициировал действие.
-    #[prost(uint32, tag = "2")]
-    pub account_id: u32,
+    #[prost(uint64, optional, tag = "1")]
+    pub id: ::core::option::Option<u64>,
     /// Уникальное имя действия (например, "WITHDRAWAL").
-    #[prost(string, tag = "3")]
+    #[prost(string, tag = "2")]
     pub action_name: ::prost::alloc::string::String,
-    #[prost(enumeration = "confirmation::Status", tag = "4")]
+    #[prost(enumeration = "confirmation::Status", tag = "3")]
     pub status: i32,
     /// Лимит попыток верификации для этой формы
-    #[prost(uint32, tag = "5")]
+    #[prost(uint32, tag = "4")]
     pub verification_attempt_limit: u32,
     /// Количество сделанных попыток верификации.
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "5")]
     pub verification_attempts_made: u32,
     /// Список всех доступных полей для этой формы.
-    #[prost(message, repeated, tag = "7")]
+    #[prost(message, repeated, tag = "6")]
     pub fields: ::prost::alloc::vec::Vec<confirmation::Field>,
     /// Битовая маска для групп полей, которые были успешно подтверждены.
-    #[prost(uint32, optional, tag = "8")]
+    #[prost(uint32, optional, tag = "7")]
     pub approved_group_bit_mask: ::core::option::Option<u32>,
-    #[prost(uint64, tag = "9")]
-    pub trace_id: u64,
-    /// Политика, управляющая правилами (время жизни, лимиты попыток).
-    #[prost(uint32, tag = "10")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "11")]
+    #[prost(message, optional, tag = "8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     /// Точное время, когда форма станет недействительной (рассчитывается на основе политики).
-    #[prost(message, optional, tag = "12")]
+    #[prost(message, optional, tag = "9")]
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "13")]
+    #[prost(message, optional, tag = "10")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     /// Гибкое поле для дополнительных данных.
-    #[prost(message, optional, tag = "14")]
+    #[prost(message, optional, tag = "11")]
     pub metadata: ::core::option::Option<confirmation::Metadata>,
 }
 /// Nested message and enum types in `Confirmation`.
@@ -794,9 +1075,8 @@ pub mod confirmation {
         /// Тип поля (пароль, 2FA, чекбокс и т.д.).
         #[prost(enumeration = "field::Kind", tag = "3")]
         pub kind: i32,
-        /// Детали генерации кода для канала связи.
-        #[prost(message, optional, tag = "4")]
-        pub chanel: ::core::option::Option<field::Chanel>,
+        #[prost(oneof = "field::Config", tags = "4, 5")]
+        pub config: ::core::option::Option<field::Config>,
     }
     /// Nested message and enum types in `Field`.
     pub mod field {
@@ -881,10 +1161,12 @@ pub mod confirmation {
             Chanel = 1,
             /// Пароль от аккаунта пользователя.
             Password = 2,
+            /// Новый пароль для аккаунта пользователя.
+            PasswordNew = 3,
             /// Чекбокс для подтверждения согласия с условиями.
-            AgreementCheckbox = 3,
+            AgreementCheckbox = 4,
             /// Код из приложения 2FA Google Authenticator.
-            GoogleAuthenticatorCode = 4,
+            GoogleAuthenticatorCode = 5,
         }
         impl Kind {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -896,6 +1178,7 @@ pub mod confirmation {
                     Self::Unspecified => "UNSPECIFIED",
                     Self::Chanel => "CHANEL",
                     Self::Password => "PASSWORD",
+                    Self::PasswordNew => "PASSWORD_NEW",
                     Self::AgreementCheckbox => "AGREEMENT_CHECKBOX",
                     Self::GoogleAuthenticatorCode => "GOOGLE_AUTHENTICATOR_CODE",
                 }
@@ -906,11 +1189,21 @@ pub mod confirmation {
                     "UNSPECIFIED" => Some(Self::Unspecified),
                     "CHANEL" => Some(Self::Chanel),
                     "PASSWORD" => Some(Self::Password),
+                    "PASSWORD_NEW" => Some(Self::PasswordNew),
                     "AGREEMENT_CHECKBOX" => Some(Self::AgreementCheckbox),
                     "GOOGLE_AUTHENTICATOR_CODE" => Some(Self::GoogleAuthenticatorCode),
                     _ => None,
                 }
             }
+        }
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Config {
+            /// Детали генерации кода для канала связи.
+            #[prost(message, tag = "4")]
+            Chanel(Chanel),
+            /// Детали конфигурации пароля.
+            #[prost(message, tag = "5")]
+            PasswordPolicyConfig(super::super::password_policy::Config),
         }
     }
     /// Идентификатор для поиска формы.
@@ -990,7 +1283,7 @@ pub mod confirmation {
         /// Nested message and enum types in `Response`.
         pub mod response {
             /// Результат проверки для одного поля.
-            #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+            #[derive(Clone, PartialEq, ::prost::Message)]
             pub struct Field {
                 /// ID проверенного поля.
                 #[prost(uint32, tag = "1")]
@@ -998,6 +1291,8 @@ pub mod confirmation {
                 /// Статус проверки этого поля.
                 #[prost(enumeration = "field::Status", tag = "2")]
                 pub status: i32,
+                #[prost(oneof = "field::Details", tags = "3")]
+                pub details: ::core::option::Option<field::Details>,
             }
             /// Nested message and enum types in `Field`.
             pub mod field {
@@ -1051,6 +1346,14 @@ pub mod confirmation {
                         }
                     }
                 }
+                #[derive(Clone, PartialEq, ::prost::Oneof)]
+                pub enum Details {
+                    /// Детали валидации для полей (PASSWORD | PASSWORD_NEW)
+                    #[prost(message, tag = "3")]
+                    PasswordReport(
+                        super::super::super::super::password_policy::PasswordReport,
+                    ),
+                }
             }
             #[derive(Clone, PartialEq, ::prost::Message)]
             pub struct Metadata {
@@ -1062,7 +1365,7 @@ pub mod confirmation {
                 #[derive(Clone, PartialEq, ::prost::Oneof)]
                 pub enum Identifier {
                     #[prost(string, tag = "1")]
-                    Comment(::prost::alloc::string::String),
+                    AuthorizationBearer(::prost::alloc::string::String),
                 }
             }
             /// Общий статус ответа на запрос подтверждения.
@@ -1111,7 +1414,7 @@ pub mod confirmation {
     }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Metadata {
-        #[prost(oneof = "metadata::Identifier", tags = "1")]
+        #[prost(oneof = "metadata::Identifier", tags = "1, 2")]
         pub identifier: ::core::option::Option<metadata::Identifier>,
     }
     /// Nested message and enum types in `Metadata`.
@@ -1120,6 +1423,8 @@ pub mod confirmation {
         pub enum Identifier {
             #[prost(string, tag = "1")]
             GoogleAuthenticatorSecret(::prost::alloc::string::String),
+            #[prost(message, tag = "2")]
+            Session(super::super::Session),
         }
     }
     /// Статус формы подтверждения.
@@ -1138,7 +1443,7 @@ pub mod confirmation {
     pub enum Status {
         Unspecified = 0,
         /// Форма активна и ожидает подтверждения.
-        Pending = 1,
+        Active = 1,
         /// Форма была успешно подтверждена.
         Approved = 2,
         /// В верификации было отказано (например, исчерпаны попытки).
@@ -1156,7 +1461,7 @@ pub mod confirmation {
         pub fn as_str_name(&self) -> &'static str {
             match self {
                 Self::Unspecified => "UNSPECIFIED",
-                Self::Pending => "PENDING",
+                Self::Active => "ACTIVE",
                 Self::Approved => "APPROVED",
                 Self::Rejected => "REJECTED",
                 Self::Cancelled => "CANCELLED",
@@ -1167,7 +1472,7 @@ pub mod confirmation {
         pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
             match value {
                 "UNSPECIFIED" => Some(Self::Unspecified),
-                "PENDING" => Some(Self::Pending),
+                "ACTIVE" => Some(Self::Active),
                 "APPROVED" => Some(Self::Approved),
                 "REJECTED" => Some(Self::Rejected),
                 "CANCELLED" => Some(Self::Cancelled),
@@ -2553,180 +2858,6 @@ pub mod relationship {
                     "SEPARATE" => Some(Self::Separate),
                     _ => None,
                 }
-            }
-        }
-    }
-}
-/// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SessionPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    /// Время жизни сессии в секундах. 0 означает "бессрочная".
-    #[prost(uint32, tag = "4")]
-    pub expires_in_seconds: u32,
-    /// Время неактивности в секундах, после которого сессия истекает. 0 означает "не проверять".
-    #[prost(uint32, tag = "5")]
-    pub inactivity_timeout_seconds: u32,
-    /// Максимальное количество одновременных активных сессий для одного пользователя.
-    #[prost(uint32, tag = "6")]
-    pub max_concurrent_sessions: u32,
-    /// Требовать ли, чтобы IP-адрес сессии не менялся.
-    #[prost(bool, tag = "7")]
-    pub bind_to_ip: bool,
-    #[prost(uint64, tag = "8")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "9")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `SessionPolicy`.
-pub mod session_policy {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::SessionPolicy>,
-    }
-}
-/// Session представляет собой активную сессию пользователя в системе.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Session {
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// Текущий статус сессии.
-    #[prost(enumeration = "session::Status", tag = "2")]
-    pub status: i32,
-    /// IP-адрес и geo данные.
-    #[prost(message, optional, tag = "3")]
-    pub geoip: ::core::option::Option<session::Geoip>,
-    #[prost(string, optional, tag = "4")]
-    pub os: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "5")]
-    pub device: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "6")]
-    pub browser: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(uint64, tag = "7")]
-    pub trace_id: u64,
-    /// Политика, управляющая правилами этой сессии.
-    #[prost(uint32, tag = "8")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "9")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "presence::Status", tag = "11")]
-    pub presence_status: i32,
-}
-/// Nested message and enum types in `Session`.
-pub mod session {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Geoip {
-        /// IP-адрес, с которого была создана сессия.
-        #[prost(string, tag = "1")]
-        pub ip_address: ::prost::alloc::string::String,
-        /// Код страны, полученное по IP.
-        #[prost(string, optional, tag = "2")]
-        pub country_iso: ::core::option::Option<::prost::alloc::string::String>,
-        /// Название страны, полученное по IP.
-        #[prost(string, optional, tag = "3")]
-        pub country: ::core::option::Option<::prost::alloc::string::String>,
-        /// Название города, полученное по IP.
-        #[prost(string, optional, tag = "4")]
-        pub city: ::core::option::Option<::prost::alloc::string::String>,
-        /// Название промежуточных регионов (Штат/область), полученное по IP.
-        #[prost(string, repeated, tag = "5")]
-        pub subdivisions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    }
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct Id {
-        /// Глобальный ID сессии.
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Session>,
-    }
-    /// Статус жизненного цикла сессии.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        Unspecified = 0,
-        /// Сессия активна и используется.
-        Active = 1,
-        /// Сессия требует подтверждения (например, при входе с нового устройства).
-        Pending = 2,
-        /// Сессия была завершена пользователем (logout).
-        Cancelled = 3,
-        /// Сессия была принудительно завершена системой (например, при входе с нового устройства).
-        Revoked = 4,
-        /// Срок действия сессии истек (по времени или неактивности).
-        Expired = 5,
-        /// Принудительное завершение (система, модерация)
-        Terminated = 6,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "UNSPECIFIED",
-                Self::Active => "ACTIVE",
-                Self::Pending => "PENDING",
-                Self::Cancelled => "CANCELLED",
-                Self::Revoked => "REVOKED",
-                Self::Expired => "EXPIRED",
-                Self::Terminated => "TERMINATED",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "UNSPECIFIED" => Some(Self::Unspecified),
-                "ACTIVE" => Some(Self::Active),
-                "PENDING" => Some(Self::Pending),
-                "CANCELLED" => Some(Self::Cancelled),
-                "REVOKED" => Some(Self::Revoked),
-                "EXPIRED" => Some(Self::Expired),
-                "TERMINATED" => Some(Self::Terminated),
-                _ => None,
             }
         }
     }

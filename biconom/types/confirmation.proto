@@ -5,6 +5,8 @@ package biconom.types;
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "biconom/types/confirmation_policy.proto";
+import "biconom/types/password_policy.proto";
+import "biconom/types/session.proto";
 
 // Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
 message Confirmation {
@@ -14,7 +16,7 @@ message Confirmation {
 	enum Status {
 		UNSPECIFIED = 0;
 		// Форма активна и ожидает подтверждения.
-		PENDING = 1;
+		ACTIVE = 1;
 		// Форма была успешно подтверждена.
 		APPROVED = 2;
 		// В верификации было отказано (например, исчерпаны попытки).
@@ -34,10 +36,12 @@ message Confirmation {
 			CHANEL = 1;
 			// Пароль от аккаунта пользователя.
 			PASSWORD = 2;
+			// Новый пароль для аккаунта пользователя.
+			PASSWORD_NEW = 3;
 			// Чекбокс для подтверждения согласия с условиями.
-			AGREEMENT_CHECKBOX = 3;
+			AGREEMENT_CHECKBOX = 4;
 			// Код из приложения 2FA Google Authenticator.
-			GOOGLE_AUTHENTICATOR_CODE = 4;
+			GOOGLE_AUTHENTICATOR_CODE = 5;
 		}
 
 		// Детали генерации кодов для каналов связи.
@@ -55,10 +59,13 @@ message Confirmation {
 			uint32 generation_attempts_made = 6;				// Количество уже сделанных попыток генерации.
 		}
 
-		uint32 id = 1;										// Уникальный ID поля в рамках формы.
-		uint32 group_bit_mask = 2;							// Битовая маска для группировки полей.
-		Kind kind = 3;	    								// Тип поля (пароль, 2FA, чекбокс и т.д.).
-		optional Chanel chanel = 4;							// Детали генерации кода для канала связи.
+		uint32 id = 1;										                        // Уникальный ID поля в рамках формы.
+		uint32 group_bit_mask = 2;							                        // Битовая маска для группировки полей.
+		Kind kind = 3;	    								                        // Тип поля (пароль, 2FA, чекбокс и т.д.).
+		oneof config {
+			Chanel chanel = 4;                                                      // Детали генерации кода для канала связи.
+			biconom.types.PasswordPolicy.Config password_policy_config = 5;         // Детали конфигурации пароля.
+		}
 	}
 
 	// Идентификатор для поиска формы.
@@ -122,11 +129,14 @@ message Confirmation {
 				}
 				uint32 field_id = 1;					// ID проверенного поля.
 				Status status = 2;				    	// Статус проверки этого поля.
+				oneof details {
+					biconom.types.PasswordPolicy.PasswordReport password_report = 3;    // Детали валидации для полей (PASSWORD | PASSWORD_NEW)
+				}
 			}
 
 			message Metadata {
 				oneof identifier {
-					string comment = 1;
+					string authorization_bearer = 1;
 				}
 			}
 
@@ -138,27 +148,25 @@ message Confirmation {
 
 	message Metadata {
 		oneof identifier {
-			string Google_Authenticator_secret = 1;
+			string google_authenticator_secret = 1;
+			biconom.types.Session session = 2;
 		}
 	}
 
 	// ---- Поля основного сообщения Confirmation ----
 
-	uint64 id = 1;
-	uint32 account_id = 2;									// ID аккаунта, который инициировал действие.
-	string action_name = 3;									// Уникальное имя действия (например, "WITHDRAWAL").
-	Status status = 4;
+	optional uint64 id = 1;
+	string action_name = 2;									// Уникальное имя действия (например, "WITHDRAWAL").
+	Status status = 3;
 
-	uint32 verification_attempt_limit = 5;					// Лимит попыток верификации для этой формы
-	uint32 verification_attempts_made = 6;					// Количество сделанных попыток верификации.
+	uint32 verification_attempt_limit = 4;					// Лимит попыток верификации для этой формы
+	uint32 verification_attempts_made = 5;					// Количество сделанных попыток верификации.
 
-	repeated Field fields = 7;                              // Список всех доступных полей для этой формы.
-	optional uint32 approved_group_bit_mask = 8;            // Битовая маска для групп полей, которые были успешно подтверждены.
+	repeated Field fields = 6;                              // Список всех доступных полей для этой формы.
+	optional uint32 approved_group_bit_mask = 7;            // Битовая маска для групп полей, которые были успешно подтверждены.
 
-	uint64 trace_id = 9;
-	uint32 policy_id = 10;									// Политика, управляющая правилами (время жизни, лимиты попыток).
-	google.protobuf.Timestamp created_at = 11;
-	google.protobuf.Timestamp expires_at = 12;				// Точное время, когда форма станет недействительной (рассчитывается на основе политики).
-	google.protobuf.Timestamp updated_at = 13;
-	optional Metadata metadata = 14;                        // Гибкое поле для дополнительных данных.
+	google.protobuf.Timestamp created_at = 8;
+	google.protobuf.Timestamp expires_at = 9;				// Точное время, когда форма станет недействительной (рассчитывается на основе политики).
+	google.protobuf.Timestamp updated_at = 10;
+	optional Metadata metadata = 11;                        // Гибкое поле для дополнительных данных.
 }

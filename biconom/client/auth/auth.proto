@@ -14,16 +14,21 @@ service AuthService {
     rpc CheckEmail(CheckEmailRequest) returns (CheckEmailResponse);
 
     // Инициирует процесс входа в систему.
-    rpc Authorize(AuthorizeRequest) returns (biconom.types.Confirmation);
+    rpc Authorize(AuthorizeRequest) returns (ConfirmationResponse);
 
     // Инициирует процесс регистрации нового пользователя.
-    rpc Register(RegisterRequest) returns (biconom.types.Confirmation);
+    rpc Register(RegisterRequest) returns (ConfirmationResponse);
 
     // Инициирует процесс восстановления доступа к аккаунту.
-    rpc Recover(RecoverRequest) returns (biconom.types.Confirmation);
+    rpc RecoverPassword(RecoverPasswordRequest) returns (ConfirmationResponse);
 
     // Получает информацию о спонсоре по реферальному идентификатору.
     rpc GetReferralInfo(GetReferralInfoRequest) returns (GetReferralInfoResponse);
+}
+
+message ConfirmationResponse {
+    biconom.types.Confirmation confirmation = 1;
+    string authorization_bearer = 2;
 }
 
 message CheckEmailRequest {
@@ -48,7 +53,7 @@ message RegisterRequest {
     }
 }
 
-message RecoverRequest {
+message RecoverPasswordRequest {
     string email = 1; // Email для восстановления доступа.
 }
 

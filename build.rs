@@ -80,6 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "biconom/types/network_account_policy.proto",
             "biconom/types/network_partition.proto",
             "biconom/types/network_partition_policy.proto",
+            "biconom/types/password_policy.proto",
             "biconom/types/presence.proto",
             "biconom/types/referral_link.proto",
             "biconom/types/referral_link_policy.proto",
