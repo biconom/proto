@@ -4,21 +4,35 @@ package biconom.types;
 
 import "google/protobuf/timestamp.proto";
 import "biconom/types/confirmation.proto";
+import "biconom/types/confirmation_policy.proto";
 
+// Mnemonic представляет конфигурацию для мнемонических фраз.
 message Mnemonic {
+	// List представляет список мнемонических фраз.
 	message List {
+		// items содержит список мнемонических фраз.
 		repeated Mnemonic items = 1;
 	}
+
+	// Word представляет отдельное слово в мнемонической фразе.
 	message Word {
+		// List представляет список слов в мнемонической фразе.
 		message List {
+			// items содержит список слов.
 			repeated Word items = 1;
 		}
+		// index - порядковый номер слова в мнемонической фразе (начиная с 0).
 		uint32 index = 1; // Индекс слова в мнемонической фразе
+		// value - само слово.
 		string value = 2; // Слово в мнемонической фразе
 	}
 
-	bool enabled = 1;		                			    // Текущий статус настройки Mnemonic
-	optional biconom.types.Confirmation confirmation = 2;	// Текущее состояние запроса на изменение настроек Mnemonic
+	// enabled указывает, включена ли функция мнемонической фразы.
+	bool enabled = 1;
+	// confirmation представляет текущее состояние запроса на изменение настроек мнемонической фразы.
+	optional biconom.types.Confirmation confirmation = 2;
+	// created_at - время создания конфигурации мнемонической фразы.
 	google.protobuf.Timestamp created_at = 3;
+	// updated_at - время последнего обновления конфигурации мнемонической фразы.
 	google.protobuf.Timestamp updated_at = 4;
 }

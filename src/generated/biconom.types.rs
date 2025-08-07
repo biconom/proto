@@ -2254,39 +2254,51 @@ pub mod locale {
         }
     }
 }
+/// Mnemonic представляет конфигурацию для мнемонических фраз.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Mnemonic {
-    /// Текущий статус настройки Mnemonic
+    /// enabled указывает, включена ли функция мнемонической фразы.
     #[prost(bool, tag = "1")]
     pub enabled: bool,
-    /// Текущее состояние запроса на изменение настроек Mnemonic
+    /// confirmation представляет текущее состояние запроса на изменение настроек мнемонической фразы.
     #[prost(message, optional, tag = "2")]
     pub confirmation: ::core::option::Option<Confirmation>,
+    /// created_at - время создания конфигурации мнемонической фразы.
     #[prost(message, optional, tag = "3")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// updated_at - время последнего обновления конфигурации мнемонической фразы.
     #[prost(message, optional, tag = "4")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `Mnemonic`.
 pub mod mnemonic {
+    /// List представляет список мнемонических фраз.
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
+        /// items содержит список мнемонических фраз.
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Mnemonic>,
     }
+    /// Word представляет отдельное слово в мнемонической фразе.
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Word {
+        /// index - порядковый номер слова в мнемонической фразе (начиная с 0).
+        ///
         /// Индекс слова в мнемонической фразе
         #[prost(uint32, tag = "1")]
         pub index: u32,
+        /// value - само слово.
+        ///
         /// Слово в мнемонической фразе
         #[prost(string, tag = "2")]
         pub value: ::prost::alloc::string::String,
     }
     /// Nested message and enum types in `Word`.
     pub mod word {
+        /// List представляет список слов в мнемонической фразе.
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct List {
+            /// items содержит список слов.
             #[prost(message, repeated, tag = "1")]
             pub items: ::prost::alloc::vec::Vec<super::Word>,
         }
