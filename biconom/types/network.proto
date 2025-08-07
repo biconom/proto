@@ -24,9 +24,7 @@ message Network {
 	string name = 2;				// Уникальное строковое имя для идентификации сети
 	uint32 root_partition_id = 3;	// ID корневой партиции (NetworkPartition) для данной сети
 	uint32 policy_id = 4;			// Политика, управляющая поведением всей сети.
-	
-	uint64 trace_id = 5; // Уникальный идентификатор операции, в рамках которой был создан объект
+	uint64 trace_id = 5;            // Уникальный идентификатор операции, в рамках которой был создан объект
 	google.protobuf.Timestamp created_at = 6;
 	google.protobuf.Timestamp updated_at = 7;
-	optional google.protobuf.Any additional_data = 8;
 }

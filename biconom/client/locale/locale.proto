@@ -28,7 +28,7 @@ service LocaleService {
 message ListRequest {
 	// Необязательный фильтр по статусу.
 	// По умолчанию могут возвращаться только активные локали.
-	optional biconom.types.Locale.Status status = 1;
+	repeated biconom.types.Locale.Status filter_statuses = 1;
 	// "Курсор", с которого начинать выборку. Указывается идентификатор локали.
 	optional biconom.types.Locale.Id cursor = 2;
 	// Необязательные параметры сортировки и лимита.

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "biconom/types/confirmation.proto";
+
+message Mnemonic {
+	message List {
+		repeated Mnemonic items = 1;
+	}
+	message Word {
+		message List {
+			repeated Word items = 1;
+		}
+		uint32 index = 1; // Индекс слова в мнемонической фразе
+		string value = 2; // Слово в мнемонической фразе
+	}
+
+	bool enabled = 1;		                			    // Текущий статус настройки Mnemonic
+	optional biconom.types.Confirmation confirmation = 2;	// Текущее состояние запроса на изменение настроек Mnemonic
+	google.protobuf.Timestamp created_at = 3;
+	google.protobuf.Timestamp updated_at = 4;
+}

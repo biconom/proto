@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package biconom.client.mnemonic;
+
+import "biconom/types/mnemonic.proto";
+import "biconom/types/confirmation.proto";
+import "google/protobuf/empty.proto";
+
+service MnemonicService {
+	rpc Get(google.protobuf.Empty) returns (biconom.types.Mnemonic);
+	rpc Enable(google.protobuf.Empty) returns (biconom.types.Confirmation);
+	rpc Disable(google.protobuf.Empty) returns (biconom.types.Confirmation);
+}

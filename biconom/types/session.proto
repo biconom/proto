@@ -48,10 +48,7 @@ message Session {
 	optional string os = 4;
 	optional string device = 5;
 	optional string browser = 6;
-
-	uint64 trace_id = 7;
-	uint32 policy_id = 8;								// Политика, управляющая правилами этой сессии.
-	google.protobuf.Timestamp created_at = 9;
-	google.protobuf.Timestamp updated_at = 10;
-	biconom.types.Presence.Status presence_status = 11;
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
+	biconom.types.Presence.Status presence_status = 9;
 }

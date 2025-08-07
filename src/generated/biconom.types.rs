@@ -45,163 +45,6 @@ pub mod user_policy {
         pub items: ::prost::alloc::vec::Vec<super::UserPolicy>,
     }
 }
-/// Модель данных для пользователя системы
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct User {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    #[prost(uint64, tag = "2")]
-    pub trace_id: u64,
-    /// Политика, управляющая поведением пользователя.
-    #[prost(uint32, tag = "3")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "4")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "5")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `User`.
-pub mod user {
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct Id {
-        /// Глобальный ID пользователя
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        /// Элементы списка (пользователи)
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::User>,
-    }
-}
-/// CommunityPolicy определяет набор правил для группы сообществ.
-/// Конкретная логика политики реализуется на бэкенде.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CommunityPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `CommunityPolicy`.
-pub mod community_policy {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::CommunityPolicy>,
-    }
-}
-/// Модель данных для сообществ системы
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Community {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    #[prost(uint64, tag = "2")]
-    pub trace_id: u64,
-    /// Политика, управляющая поведением сообщества.
-    #[prost(uint32, tag = "3")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "4")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "5")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `Community`.
-pub mod community {
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct Id {
-        /// Глобальный ID сообщества
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
-    /// Список сообществ
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        /// Элементы списка (сообщества)
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Community>,
-    }
-}
-/// AccountPolicy определяет набор правил для группы аккаунтов.
-/// Конкретная логика политики (например, блокировка всех операций) реализуется на бэкенде.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AccountPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `AccountPolicy`.
-pub mod account_policy {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::AccountPolicy>,
-    }
-}
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct Presence {
     #[prost(enumeration = "presence::Status", tag = "1")]
@@ -271,26 +114,177 @@ pub mod presence {
         }
     }
 }
+/// Модель данных для пользователя системы
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct User {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(enumeration = "presence::Status", tag = "2")]
+    pub presence_status: i32,
+    #[prost(uint64, tag = "3")]
+    pub trace_id: u64,
+    /// Политика, управляющая поведением пользователя.
+    #[prost(uint32, tag = "4")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `User`.
+pub mod user {
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Id {
+        /// Глобальный ID пользователя
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        /// Элементы списка (пользователи)
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::User>,
+    }
+}
+/// CommunityPolicy определяет набор правил для группы сообществ.
+/// Конкретная логика политики реализуется на бэкенде.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommunityPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `CommunityPolicy`.
+pub mod community_policy {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::CommunityPolicy>,
+    }
+}
+/// Модель данных для сообществ системы
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct Community {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(uint64, tag = "2")]
+    pub trace_id: u64,
+    /// Политика, управляющая поведением сообщества.
+    #[prost(uint32, tag = "3")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "4")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Community`.
+pub mod community {
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Id {
+        /// Глобальный ID сообщества
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    /// Список сообществ
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        /// Элементы списка (сообщества)
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Community>,
+    }
+}
+/// AccountPolicy определяет набор правил для группы аккаунтов.
+/// Конкретная логика политики (например, блокировка всех операций) реализуется на бэкенде.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AccountPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `AccountPolicy`.
+pub mod account_policy {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::AccountPolicy>,
+    }
+}
 /// Account является универсальной учетной записью в системе.
 /// Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),
 /// либо на сообщество (Community), позволяя им выступать в роли владельцев других сущностей.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct Account {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    #[prost(enumeration = "presence::Status", tag = "4")]
-    pub presence_status: i32,
-    #[prost(uint64, tag = "5")]
+    #[prost(uint64, tag = "4")]
     pub trace_id: u64,
     /// Политика, управляющая поведением аккаунта (включая права доступа).
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "5")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
     /// Тип владельца аккаунта
     #[prost(oneof = "account::Owner", tags = "2, 3")]
     pub owner: ::core::option::Option<account::Owner>,
@@ -323,7 +317,7 @@ pub mod account {
         pub items: ::prost::alloc::vec::Vec<super::Account>,
     }
     /// Тип владельца аккаунта
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
     pub enum Owner {
         /// Ссылка на пользователя
         #[prost(message, tag = "2")]
@@ -924,16 +918,11 @@ pub struct Session {
     pub device: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "6")]
     pub browser: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(uint64, tag = "7")]
-    pub trace_id: u64,
-    /// Политика, управляющая правилами этой сессии.
-    #[prost(uint32, tag = "8")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "7")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
+    #[prost(message, optional, tag = "8")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "presence::Status", tag = "11")]
+    #[prost(enumeration = "presence::Status", tag = "9")]
     pub presence_status: i32,
 }
 /// Nested message and enum types in `Session`.
@@ -1075,7 +1064,7 @@ pub mod confirmation {
         /// Тип поля (пароль, 2FA, чекбокс и т.д.).
         #[prost(enumeration = "field::Kind", tag = "3")]
         pub kind: i32,
-        #[prost(oneof = "field::Config", tags = "4, 5")]
+        #[prost(oneof = "field::Config", tags = "4, 5, 6")]
         pub config: ::core::option::Option<field::Config>,
     }
     /// Nested message and enum types in `Field`.
@@ -1142,6 +1131,13 @@ pub mod confirmation {
                 }
             }
         }
+        /// Индексы позиций в мнемонической фразе, которые нужно заполнить.
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct MnemonicPositions {
+            /// Список позиций (1 <= N <= 24) в мнемонической фразе.
+            #[prost(uint32, repeated, tag = "1")]
+            pub positions: ::prost::alloc::vec::Vec<u32>,
+        }
         /// Типы полей, которые могут потребоваться для подтверждения.
         #[derive(
             Clone,
@@ -1164,9 +1160,11 @@ pub mod confirmation {
             /// Новый пароль для аккаунта пользователя.
             PasswordNew = 3,
             /// Чекбокс для подтверждения согласия с условиями.
-            AgreementCheckbox = 4,
+            Agreement = 4,
             /// Код из приложения 2FA Google Authenticator.
             GoogleAuthenticatorCode = 5,
+            /// Идентификаторы позиций в мнемонической фразе (mnemonic).
+            MnemonicPositions = 6,
         }
         impl Kind {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -1179,8 +1177,9 @@ pub mod confirmation {
                     Self::Chanel => "CHANEL",
                     Self::Password => "PASSWORD",
                     Self::PasswordNew => "PASSWORD_NEW",
-                    Self::AgreementCheckbox => "AGREEMENT_CHECKBOX",
+                    Self::Agreement => "AGREEMENT",
                     Self::GoogleAuthenticatorCode => "GOOGLE_AUTHENTICATOR_CODE",
+                    Self::MnemonicPositions => "MNEMONIC_POSITIONS",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1190,8 +1189,9 @@ pub mod confirmation {
                     "CHANEL" => Some(Self::Chanel),
                     "PASSWORD" => Some(Self::Password),
                     "PASSWORD_NEW" => Some(Self::PasswordNew),
-                    "AGREEMENT_CHECKBOX" => Some(Self::AgreementCheckbox),
+                    "AGREEMENT" => Some(Self::Agreement),
                     "GOOGLE_AUTHENTICATOR_CODE" => Some(Self::GoogleAuthenticatorCode),
+                    "MNEMONIC_POSITIONS" => Some(Self::MnemonicPositions),
                     _ => None,
                 }
             }
@@ -1204,6 +1204,9 @@ pub mod confirmation {
             /// Детали конфигурации пароля.
             #[prost(message, tag = "5")]
             PasswordPolicyConfig(super::super::password_policy::Config),
+            /// Список позиций в мнемонической фразе.
+            #[prost(message, tag = "6")]
+            MnemonicPositions(MnemonicPositions),
         }
     }
     /// Идентификатор для поиска формы.
@@ -1319,6 +1322,8 @@ pub mod confirmation {
                     Wrong = 3,
                     /// Пользователь не согласился с условиями (чекбокс не `true`).
                     NotAgreed = 4,
+                    /// Ранее пароль уже использовался и не может быть повторно использован.
+                    PasswordAlreadyUsed = 5,
                 }
                 impl Status {
                     /// String value of the enum field names used in the ProtoBuf definition.
@@ -1332,6 +1337,7 @@ pub mod confirmation {
                             Self::Empty => "EMPTY",
                             Self::Wrong => "WRONG",
                             Self::NotAgreed => "NOT_AGREED",
+                            Self::PasswordAlreadyUsed => "PASSWORD_ALREADY_USED",
                         }
                     }
                     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1342,6 +1348,7 @@ pub mod confirmation {
                             "EMPTY" => Some(Self::Empty),
                             "WRONG" => Some(Self::Wrong),
                             "NOT_AGREED" => Some(Self::NotAgreed),
+                            "PASSWORD_ALREADY_USED" => Some(Self::PasswordAlreadyUsed),
                             _ => None,
                         }
                     }
@@ -1414,7 +1421,7 @@ pub mod confirmation {
     }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Metadata {
-        #[prost(oneof = "metadata::Identifier", tags = "1, 2")]
+        #[prost(oneof = "metadata::Identifier", tags = "1, 2, 3")]
         pub identifier: ::core::option::Option<metadata::Identifier>,
     }
     /// Nested message and enum types in `Metadata`.
@@ -1425,6 +1432,8 @@ pub mod confirmation {
             GoogleAuthenticatorSecret(::prost::alloc::string::String),
             #[prost(message, tag = "2")]
             Session(super::super::Session),
+            #[prost(string, tag = "3")]
+            MnemonicWords(::prost::alloc::string::String),
         }
     }
     /// Статус формы подтверждения.
@@ -2136,27 +2145,16 @@ pub mod google_authenticator_policy {
 /// Эта модель НЕ содержит секретный ключ из соображений безопасности.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GoogleAuthenticator {
-    /// ID пользователя, для которого настроен 2FA
-    #[prost(uint32, tag = "1")]
-    pub user_id: u32,
     /// Текущий статус настройки 2FA
-    #[prost(bool, tag = "2")]
+    #[prost(bool, tag = "1")]
     pub enabled: bool,
     /// Текущее состояние запроса на изменение настроек 2FA
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub confirmation: ::core::option::Option<Confirmation>,
-    /// Уникальный идентификатор операции, в рамках которой был создан объект
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    /// Политика, управляющая правилами 2FA
-    #[prost(uint32, tag = "5")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "3")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "4")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `GoogleAuthenticator`.
 pub mod google_authenticator {
@@ -2183,14 +2181,10 @@ pub struct Locale {
     /// Текущий статус доступности локали
     #[prost(enumeration = "locale::Status", tag = "5")]
     pub status: i32,
-    #[prost(uint64, tag = "6")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `Locale`.
 pub mod locale {
@@ -2260,6 +2254,44 @@ pub mod locale {
         }
     }
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Mnemonic {
+    /// Текущий статус настройки Mnemonic
+    #[prost(bool, tag = "1")]
+    pub enabled: bool,
+    /// Текущее состояние запроса на изменение настроек Mnemonic
+    #[prost(message, optional, tag = "2")]
+    pub confirmation: ::core::option::Option<Confirmation>,
+    #[prost(message, optional, tag = "3")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Mnemonic`.
+pub mod mnemonic {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Mnemonic>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Word {
+        /// Индекс слова в мнемонической фразе
+        #[prost(uint32, tag = "1")]
+        pub index: u32,
+        /// Слово в мнемонической фразе
+        #[prost(string, tag = "2")]
+        pub value: ::prost::alloc::string::String,
+    }
+    /// Nested message and enum types in `Word`.
+    pub mod word {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Word>,
+        }
+    }
+}
 /// Network представляет собой основную партнерскую или дистрибьюторскую сеть.
 /// Она служит контейнером для дистрибьюторов и их иерархических связей.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2282,8 +2314,6 @@ pub struct Network {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `Network`.
 pub mod network {
@@ -2637,12 +2667,12 @@ pub mod referral_link_policy {
 pub struct ReferralLink {
     #[prost(uint64, tag = "1")]
     pub id: u64,
-    /// Имя ссылки, видимое ее создателю.
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
     /// Уникальный код, используемый в URL (например, "REF123XYZ").
+    #[prost(string, tag = "2")]
+    pub invite_code: ::prost::alloc::string::String,
+    /// Имя ссылки, видимое ее создателю.
     #[prost(string, tag = "3")]
-    pub code: ::prost::alloc::string::String,
+    pub name: ::prost::alloc::string::String,
     /// Тип ссылки (персональная или коллективная).
     #[prost(enumeration = "referral_link::Kind", tag = "4")]
     pub kind: i32,
@@ -2661,8 +2691,6 @@ pub struct ReferralLink {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "10")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `ReferralLink`.
 pub mod referral_link {
@@ -2679,13 +2707,31 @@ pub mod referral_link {
             Id(u64),
             /// Уникальный код ссылки.
             #[prost(string, tag = "2")]
-            Code(::prost::alloc::string::String),
+            InviteCode(::prost::alloc::string::String),
         }
     }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::ReferralLink>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct View {
+        /// Тип ссылки (персональная или коллективная).
+        #[prost(enumeration = "Kind", tag = "1")]
+        pub kind: i32,
+        /// Статус ссылки (активна/неактивна).
+        #[prost(enumeration = "Status", tag = "2")]
+        pub status: i32,
+        /// Аккаунт, который является создателем и владельцем этой ссылки.
+        #[prost(message, optional, tag = "3")]
+        pub account: ::core::option::Option<super::Account>,
+        /// Сеть, к которой относится ссылка.
+        #[prost(message, optional, tag = "4")]
+        pub network: ::core::option::Option<super::Network>,
+        /// Дистрибьютор-наставник.
+        #[prost(message, optional, tag = "5")]
+        pub distributor: ::core::option::Option<super::Distributor>,
     }
     /// Тип реферальной ссылки.
     #[derive(

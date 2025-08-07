@@ -64,6 +64,9 @@ pub mod biconom {
         pub mod google_authenticator {
             include!("generated/biconom.client.google_authenticator.rs");
         }
+        pub mod mnemonic {
+            include!("generated/biconom.client.mnemonic.rs");
+        }
         pub mod locale {
             include!("generated/biconom.client.locale.rs");
         }

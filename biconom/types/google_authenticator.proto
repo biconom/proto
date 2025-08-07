@@ -14,13 +14,8 @@ message GoogleAuthenticator {
 		repeated GoogleAuthenticator items = 1;
 	}
 
-	uint32 user_id = 1;	        			            	// ID пользователя, для которого настроен 2FA
-	bool enabled = 2;		                			    // Текущий статус настройки 2FA
-	optional biconom.types.Confirmation confirmation = 3;	// Текущее состояние запроса на изменение настроек 2FA
-	
-	uint64 trace_id = 4;		                    		// Уникальный идентификатор операции, в рамках которой был создан объект
-	uint32 policy_id = 5;			                    	// Политика, управляющая правилами 2FA
-	google.protobuf.Timestamp created_at = 6;
-	google.protobuf.Timestamp updated_at = 7;
-	optional google.protobuf.Any additional_data = 8;
+	bool enabled = 1;		                			    // Текущий статус настройки 2FA
+	optional biconom.types.Confirmation confirmation = 2;	// Текущее состояние запроса на изменение настроек 2FA
+	google.protobuf.Timestamp created_at = 3;
+	google.protobuf.Timestamp updated_at = 4;
 }

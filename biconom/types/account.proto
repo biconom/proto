@@ -7,7 +7,6 @@ import "google/protobuf/timestamp.proto";
 import "biconom/types/user.proto";
 import "biconom/types/community.proto";
 import "biconom/types/account_policy.proto";
-import "biconom/types/presence.proto";
 
 // Account является универсальной учетной записью в системе.
 // Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),
@@ -32,11 +31,9 @@ message Account {
 		biconom.types.User user = 2;           // Ссылка на пользователя
 		biconom.types.Community community = 3; // Ссылка на сообщество
 	}
-	biconom.types.Presence.Status presence_status = 4;
 	
-	uint64 trace_id = 5;
-	uint32 policy_id = 6; // Политика, управляющая поведением аккаунта (включая права доступа).
-	google.protobuf.Timestamp created_at = 7;
-	google.protobuf.Timestamp updated_at = 8;
-	optional google.protobuf.Any additional_data = 9;
+	uint64 trace_id = 4;
+	uint32 policy_id = 5; // Политика, управляющая поведением аккаунта (включая права доступа).
+	google.protobuf.Timestamp created_at = 6;
+	google.protobuf.Timestamp updated_at = 7;
 }

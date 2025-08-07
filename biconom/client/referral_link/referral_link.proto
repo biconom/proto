@@ -10,28 +10,17 @@ import "biconom/types/distributor.proto";
 // Сервис для получения информации о реферальных ссылках текущего пользователя.
 service ReferralLinkService {
     // Получает полную информацию о реферальной ссылке, включая связанные объекты.
-    rpc Get(biconom.types.ReferralLink.Id) returns (ReferralLinkView);
+    rpc Get(biconom.types.ReferralLink.Id) returns (biconom.types.ReferralLink);
+
+    // Информация о реферальной ссылке, включая связанные объекты.
+    rpc View(biconom.types.ReferralLink.Id) returns (biconom.types.ReferralLink.View);
 
     // Получает список реферальных ссылок с полной информацией.
-    rpc List(ListRequest) returns (ListResponse);
-}
-
-// "View Model" для реферальной ссылки.
-// Содержит как саму ссылку, так и связанные с ней, расширенные данные.
-message ReferralLinkView {
-    biconom.types.ReferralLink link = 1; // Основной объект ссылки.
-    biconom.types.Account account = 2;     // Расширенная информация о владельце.
-    // Для ссылок типа PERSONAL, здесь будет дистрибьютор, связанный с account_id.
-    // Для ссылок типа COLLECTIVE, это поле может быть пустым или содержать "якорного" дистрибьютора.
-    optional biconom.types.Distributor distributor = 3;
+    rpc List(ListRequest) returns (biconom.types.ReferralLink.List);
 }
 
 message ListRequest {
     // Фильтрация по аккаунту текущего пользователя происходит автоматически.
     optional biconom.types.ReferralLink.Id cursor = 1;
     optional biconom.types.Sort sort = 2;
-}
-
-message ListResponse {
-    repeated ReferralLinkView items = 1;
 }

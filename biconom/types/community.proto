@@ -18,10 +18,8 @@ message Community {
 	}
 
 	uint32 id = 1;
-
 	uint64 trace_id = 2;
 	uint32 policy_id = 3; // Политика, управляющая поведением сообщества.
 	google.protobuf.Timestamp created_at = 4;
 	google.protobuf.Timestamp updated_at = 5;
-	optional google.protobuf.Any additional_data = 6;
 }

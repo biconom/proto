@@ -4,6 +4,9 @@ package biconom.types;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/network.proto";
 import "biconom/types/referral_link_policy.proto";
 
 // ReferralLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
@@ -29,7 +32,7 @@ message ReferralLink {
     message Id {
         oneof identifier {
             uint64 id = 1;
-            string code = 2; // Уникальный код ссылки.
+            string invite_code = 2; // Уникальный код ссылки.
         }
     }
 
@@ -37,16 +40,22 @@ message ReferralLink {
         repeated ReferralLink items = 1;
     }
 
+    message View {
+        Kind kind = 1; // Тип ссылки (персональная или коллективная).
+        Status status = 2; // Статус ссылки (активна/неактивна).
+        optional biconom.types.Account account = 3; // Аккаунт, который является создателем и владельцем этой ссылки.
+        optional biconom.types.Network network = 4; // Сеть, к которой относится ссылка.
+        optional biconom.types.Distributor distributor = 5; // Дистрибьютор-наставник.
+    }
+
     uint64 id = 1;
-    string name = 2; // Имя ссылки, видимое ее создателю.
-    string code = 3; // Уникальный код, используемый в URL (например, "REF123XYZ").
+    string invite_code = 2; // Уникальный код, используемый в URL (например, "REF123XYZ").
+    string name = 3; // Имя ссылки, видимое ее создателю.
     Kind kind = 4; // Тип ссылки (персональная или коллективная).
     Status status = 5; // Статус ссылки (активна/неактивна).
     uint32 account_id = 6; // ID аккаунта, который является создателем и владельцем этой ссылки.
-
     uint64 trace_id = 7;
     uint32 policy_id = 8; // Политика, управляющая правилами ссылки.
     google.protobuf.Timestamp created_at = 9;
     google.protobuf.Timestamp updated_at = 10;
-    optional google.protobuf.Any additional_data = 11;
 }

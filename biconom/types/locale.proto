@@ -33,9 +33,6 @@ message Locale {
 	string code = 3;			// Уникальный код по стандарту IETF BCP 47 (например, "en-US", "ar-SA").
 	bool is_rtl = 4;			// Указывает, имеет ли язык написание справа налево (Right-to-Left).
 	Status status = 5;			// Текущий статус доступности локали
-	
-	uint64 trace_id = 6;
-	google.protobuf.Timestamp created_at = 7;
-	google.protobuf.Timestamp updated_at = 8;
-	optional google.protobuf.Any additional_data = 9;
+	google.protobuf.Timestamp created_at = 6;
+	google.protobuf.Timestamp updated_at = 7;
 }
