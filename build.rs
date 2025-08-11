@@ -46,11 +46,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ], &["proto"])
         .unwrap_or_else(|e| panic!("Failed to compile protos: {:?}", e));*/
 
-    tonic_build::configure()
+    tonic_prost_build::configure()
+        // .out_dir(std::path::Path::new("src/generated").as_ref())
         .out_dir("src/generated")
         // .type_attribute(".", "#[derive(serde::Serialize)]")
         .build_server(true)
         .build_client(false)
+        // .file_descriptor_set_path(std::path::Path::new("src/generated/biconom_file_descriptor.bin").as_ref())
         .file_descriptor_set_path("src/generated/biconom_file_descriptor.bin")
         .compile_protos(&[
                 "biconom/types/account.proto",
@@ -83,8 +85,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/network_partition_policy.proto",
                 "biconom/types/password_policy.proto",
                 "biconom/types/presence.proto",
-                "biconom/types/referral_link.proto",
-                "biconom/types/referral_link_policy.proto",
+                "biconom/types/invite_link.proto",
+                "biconom/types/invite_link_policy.proto",
                 "biconom/types/relationship.proto",
                 "biconom/types/rounding.proto",
                 "biconom/types/session.proto",
@@ -112,7 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/client/google_authenticator/google_authenticator.proto",
                 "biconom/client/locale/locale.proto",
                 "biconom/client/mnemonic/mnemonic.proto",
-                "biconom/client/referral_link/referral_link.proto",
+                "biconom/client/invite_link/invite_link.proto",
                 "biconom/client/session/session.proto",
         ], &["proto"])
         .unwrap_or_else(|e| panic!("Failed to compile protos: {:?}", e));

@@ -51,7 +51,7 @@ message Distributor {
 	optional string username = 2; // Уникальное, человекочитаемое имя (псевдоним, бренд).
 	uint32 parent_id = 3; // ID вышестоящего дистрибьютора
 	uint32 parent_entity_id = 4; // Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
-	uint32 parent_branch_number = 5; // Числовой идентификатор ветки от вышестоящего дистрибьютора (parent_id)
+	uint32 parent_branch_id = 5; // Идентификатор ответвления от вышестоящего дистрибьютора (parent_id)
 	uint32 network_id = 6; // ID сети, к которому относится дистрибьютор
 	uint32 network_entity_id = 7; // Порядковый идентификатор дистрибьютора в рамках сети (network_id)
 	uint32 account_id = 8; // ID аккаунта, владеющего дистрибьютором
@@ -63,12 +63,10 @@ message Distributor {
 	uint32 children_quantity = 13; // Количество дочерних дистрибьюторов
 	
 	uint32 structure_quantity = 14; // Количество дистрибьюторов в структуре
-	uint32 structure_last_id = 15; // Последний ID дистрибьютора в структуре
-	uint32 structure_level_max = 16; // Максимальный уровень дистрибьютора в структуре
-	
-	uint64 trace_id = 17;
-	uint32 policy_id = 18; // ID политики, применяемой к этому дистрибьютору.
-	google.protobuf.Timestamp created_at = 19;
-	google.protobuf.Timestamp updated_at = 20;
-	optional google.protobuf.Any additional_data = 21;
+	uint32 structure_level_max = 15; // Максимальный уровень дистрибьютора в структуре
+
+	uint32 policy_id = 16; // ID политики, применяемой к этому дистрибьютору.
+	google.protobuf.Timestamp created_at = 17;
+	google.protobuf.Timestamp updated_at = 18;
+	optional google.protobuf.Any additional_data = 19;
 }

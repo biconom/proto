@@ -7,19 +7,18 @@ import "google/protobuf/any.proto";
 import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/network.proto";
-import "biconom/types/referral_link_policy.proto";
+import "biconom/types/invite_link_policy.proto";
 
-// ReferralLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
-message ReferralLink {
+// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
+message InviteLink {
     // Тип реферальной ссылки.
     enum Kind {
         KIND_UNSPECIFIED = 0;
         // Персональная: всегда ведет к дистрибьютору, связанному с аккаунтом-владельцем.
-        KIND_PERSONAL = 1;
+        KIND_DISTRIBUTOR = 1;
         // Коллективная: использует внутреннюю логику (определяемую политикой) для определения конечного дистрибьютора.
-        KIND_COLLECTIVE = 2;
+        KIND_POOL = 2;
     }
-
     // Статус жизненного цикла ссылки.
     enum Status {
         STATUS_UNSPECIFIED = 0;
@@ -31,13 +30,13 @@ message ReferralLink {
 
     message Id {
         oneof identifier {
-            uint64 id = 1;
+            uint32 id = 1;
             string invite_code = 2; // Уникальный код ссылки.
         }
     }
 
     message List {
-        repeated ReferralLink items = 1;
+        repeated InviteLink items = 1;
     }
 
     message View {
@@ -48,14 +47,21 @@ message ReferralLink {
         optional biconom.types.Distributor distributor = 5; // Дистрибьютор-наставник.
     }
 
-    uint64 id = 1;
+    message Pool {
+        uint32 id = 1;
+    }
+
+    uint32 id = 1;
     string invite_code = 2; // Уникальный код, используемый в URL (например, "REF123XYZ").
     string name = 3; // Имя ссылки, видимое ее создателю.
-    Kind kind = 4; // Тип ссылки (персональная или коллективная).
-    Status status = 5; // Статус ссылки (активна/неактивна).
-    uint32 account_id = 6; // ID аккаунта, который является создателем и владельцем этой ссылки.
-    uint64 trace_id = 7;
-    uint32 policy_id = 8; // Политика, управляющая правилами ссылки.
-    google.protobuf.Timestamp created_at = 9;
-    google.protobuf.Timestamp updated_at = 10;
+    bool enabled = 4; // Статус ссылки (активна/неактивна).
+    oneof target {
+        biconom.types.Distributor distributor = 5;
+        Pool pool = 6;
+    }
+    uint32 account_id = 7;
+    uint32 account_entity_id = 8;
+    uint32 used_quantity = 9;
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp updated_at = 11;
 }

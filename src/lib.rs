@@ -70,8 +70,8 @@ pub mod biconom {
         pub mod locale {
             include!("generated/biconom.client.locale.rs");
         }
-        pub mod referral_link {
-            include!("generated/biconom.client.referral_link.rs");
+        pub mod invite_link {
+            include!("generated/biconom.client.invite_link.rs");
         }
         pub mod session {
             include!("generated/biconom.client.session.rs");

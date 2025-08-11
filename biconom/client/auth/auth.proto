@@ -4,7 +4,7 @@ package biconom.client.auth;
 
 import "biconom/types/confirmation.proto";
 import "biconom/types/distributor.proto";
-import "biconom/types/referral_link.proto";
+import "biconom/types/invite_link.proto";
 import "biconom/types/account.proto";
 import "biconom/types/locale.proto";
 
@@ -22,9 +22,6 @@ service AuthService {
 
     // Инициирует процесс восстановления доступа к аккаунту.
     rpc RecoverPassword(Contact) returns (ConfirmationResponse);
-
-    // Получает информацию о спонсоре по реферальному идентификатору.
-    rpc GetReferralInfo(biconom.types.ReferralLink.Id) returns (biconom.types.ReferralLink.View);
 }
 
 message Contact {
