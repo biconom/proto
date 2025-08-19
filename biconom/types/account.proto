@@ -31,9 +31,8 @@ message Account {
 		biconom.types.User user = 2;           // Ссылка на пользователя
 		biconom.types.Community community = 3; // Ссылка на сообщество
 	}
-	
-	uint64 trace_id = 4;
-	uint32 policy_id = 5; // Политика, управляющая поведением аккаунта (включая права доступа).
-	google.protobuf.Timestamp created_at = 6;
-	google.protobuf.Timestamp updated_at = 7;
+
+	uint32 policy_id = 4; // Политика, управляющая поведением аккаунта (включая права доступа).
+	google.protobuf.Timestamp created_at = 5;
+	google.protobuf.Timestamp updated_at = 6;
 }

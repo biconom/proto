@@ -121,14 +121,12 @@ pub struct User {
     pub id: u32,
     #[prost(enumeration = "presence::Status", tag = "2")]
     pub presence_status: i32,
-    #[prost(uint64, tag = "3")]
-    pub trace_id: u64,
     /// Политика, управляющая поведением пользователя.
-    #[prost(uint32, tag = "4")]
+    #[prost(uint32, tag = "3")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "5")]
+    #[prost(message, optional, tag = "4")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "5")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `User`.
@@ -193,27 +191,40 @@ pub mod community_policy {
     }
 }
 /// Модель данных для сообществ системы
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Community {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    #[prost(uint64, tag = "2")]
-    pub trace_id: u64,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(enumeration = "community::Status", tag = "3")]
+    pub status: i32,
     /// Политика, управляющая поведением сообщества.
-    #[prost(uint32, tag = "3")]
+    #[prost(uint32, tag = "4")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "4")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `Community`.
 pub mod community {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
-        /// Глобальный ID сообщества
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID сообщества
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное название сообщества
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
     }
     /// Список сообществ
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -221,6 +232,51 @@ pub mod community {
         /// Элементы списка (сообщества)
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Community>,
+    }
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Сообщество активно
+        Active = 1,
+        /// Временно заблокировано (например, нарушено правило)
+        Suspended = 2,
+        /// Архивировано, не допускает изменений и новых участников
+        Archived = 3,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Active => "ACTIVE",
+                Self::Suspended => "SUSPENDED",
+                Self::Archived => "ARCHIVED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "ACTIVE" => Some(Self::Active),
+                "SUSPENDED" => Some(Self::Suspended),
+                "ARCHIVED" => Some(Self::Archived),
+                _ => None,
+            }
+        }
     }
 }
 /// AccountPolicy определяет набор правил для группы аккаунтов.
@@ -272,18 +328,16 @@ pub mod account_policy {
 /// Account является универсальной учетной записью в системе.
 /// Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),
 /// либо на сообщество (Community), позволяя им выступать в роли владельцев других сущностей.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Account {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
     /// Политика, управляющая поведением аккаунта (включая права доступа).
-    #[prost(uint32, tag = "5")]
+    #[prost(uint32, tag = "4")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "5")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     /// Тип владельца аккаунта
     #[prost(oneof = "account::Owner", tags = "2, 3")]
@@ -317,7 +371,7 @@ pub mod account {
         pub items: ::prost::alloc::vec::Vec<super::Account>,
     }
     /// Тип владельца аккаунта
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Owner {
         /// Ссылка на пользователя
         #[prost(message, tag = "2")]
@@ -1015,6 +1069,242 @@ pub mod session {
         }
     }
 }
+/// Network представляет собой основную партнерскую или дистрибьюторскую сеть.
+/// Она служит контейнером для дистрибьюторов и их иерархических связей.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Network {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное строковое имя для идентификации сети
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// ID корневой партиции (NetworkPartition) для данной сети
+    #[prost(uint32, tag = "3")]
+    pub root_partition_id: u32,
+    /// Политика, управляющая поведением всей сети.
+    #[prost(uint32, tag = "4")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Network`.
+pub mod network {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        /// Различные способы идентификации сети
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        /// Различные способы идентификации сети
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID сети
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя сети
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Network>,
+    }
+}
+/// DistributorPolicy определяет набор правил для группы дистрибьюторов.
+/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DistributorPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `DistributorPolicy`.
+pub mod distributor_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::DistributorPolicy>,
+    }
+}
+/// Distributor представляет участника или узел в партнерской или дистрибьюторской сети.
+/// Эта сущность связана с системным аккаунтом (Account) и может иметь иерархические связи.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Distributor {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное, человекочитаемое имя (псевдоним, бренд).
+    #[prost(string, optional, tag = "2")]
+    pub username: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "3")]
+    pub invite_code: ::prost::alloc::string::String,
+    /// ID вышестоящего дистрибьютора
+    #[prost(uint32, tag = "4")]
+    pub parent_id: u32,
+    /// Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
+    #[prost(uint32, tag = "5")]
+    pub parent_entity_id: u32,
+    /// Идентификатор ответвления от вышестоящего дистрибьютора (parent_id)
+    #[prost(uint32, tag = "6")]
+    pub parent_branch_id: u32,
+    /// ID сети, к которому относится дистрибьютор
+    #[prost(uint32, tag = "7")]
+    pub network_id: u32,
+    /// Порядковый идентификатор дистрибьютора в рамках сети (network_id)
+    #[prost(uint32, tag = "8")]
+    pub network_entity_id: u32,
+    /// ID аккаунта, владеющего дистрибьютором
+    #[prost(uint32, tag = "9")]
+    pub account_id: u32,
+    /// Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
+    #[prost(uint32, tag = "10")]
+    pub account_entity_id: u32,
+    /// Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
+    #[prost(uint32, tag = "11")]
+    pub network_account_entity_id: u32,
+    /// ID партиции, к которому относится дистрибьютор
+    #[prost(uint32, tag = "12")]
+    pub network_partition_id: u32,
+    /// Глобальный уровень глубины
+    #[prost(uint32, tag = "13")]
+    pub level: u32,
+    /// Количество дочерних дистрибьюторов
+    #[prost(uint32, tag = "14")]
+    pub children_quantity: u32,
+    /// Количество дистрибьюторов в структуре
+    #[prost(uint32, tag = "15")]
+    pub structure_quantity: u32,
+    /// Максимальный уровень дистрибьютора в структуре
+    #[prost(uint32, tag = "16")]
+    pub structure_level_max: u32,
+    /// ID политики, применяемой к этому дистрибьютору.
+    #[prost(uint32, tag = "17")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "18")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "19")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Distributor`.
+pub mod distributor {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        /// Различные способы идентификации дистрибьютора
+        #[prost(oneof = "id::Identifier", tags = "1, 2, 3, 4, 5, 6, 7")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ParentBranch {
+            /// ID вышестоящего дистрибьютора
+            #[prost(uint32, tag = "1")]
+            pub parent_id: u32,
+            /// Числовой идентификатор ветки
+            #[prost(uint32, tag = "2")]
+            pub parent_branch_number: u32,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ParentEntity {
+            /// ID вышестоящего дистрибьютора
+            #[prost(uint32, tag = "1")]
+            pub parent_id: u32,
+            /// Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора
+            #[prost(uint32, tag = "2")]
+            pub parent_entity_id: u32,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct NetworkEntity {
+            /// ID сети, к которому относится дистрибьютор
+            #[prost(uint32, tag = "1")]
+            pub network_id: u32,
+            /// Порядковый идентификатор дистрибьютора в рамках сети (network_id)
+            #[prost(uint32, tag = "2")]
+            pub network_entity_id: u32,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct AccountEntity {
+            /// ID аккаунта, владеющего дистрибьютором
+            #[prost(uint32, tag = "1")]
+            pub account_id: u32,
+            /// Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
+            #[prost(uint32, tag = "2")]
+            pub account_entity_id: u32,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct NetworkAccountEntity {
+            /// ID сети, к которому относится дистрибьютор
+            #[prost(uint32, tag = "1")]
+            pub network_id: u32,
+            /// ID аккаунта, владеющего дистрибьютором
+            #[prost(uint32, tag = "2")]
+            pub account_id: u32,
+            /// Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
+            #[prost(uint32, tag = "3")]
+            pub network_account_entity_id: u32,
+        }
+        /// Различные способы идентификации дистрибьютора
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID дистрибьютора
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя дистрибьютора/бренда
+            #[prost(string, tag = "2")]
+            Username(::prost::alloc::string::String),
+            #[prost(message, tag = "3")]
+            ParentBranch(ParentBranch),
+            #[prost(message, tag = "4")]
+            ParentEntity(ParentEntity),
+            #[prost(message, tag = "5")]
+            NetworkEntity(NetworkEntity),
+            #[prost(message, tag = "6")]
+            AccountEntity(AccountEntity),
+            #[prost(message, tag = "7")]
+            NetworkAccountEntity(NetworkAccountEntity),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Distributor>,
+    }
+}
 /// Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
 ///
 /// --- Вложенные типы и сообщения ----
@@ -1362,18 +1652,20 @@ pub mod confirmation {
                     ),
                 }
             }
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            #[derive(Clone, PartialEq, ::prost::Message)]
             pub struct Metadata {
-                #[prost(oneof = "metadata::Identifier", tags = "1")]
-                pub identifier: ::core::option::Option<metadata::Identifier>,
-            }
-            /// Nested message and enum types in `Metadata`.
-            pub mod metadata {
-                #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-                pub enum Identifier {
-                    #[prost(string, tag = "1")]
-                    AuthorizationBearer(::prost::alloc::string::String),
-                }
+                #[prost(string, optional, tag = "1")]
+                pub authorization_bearer: ::core::option::Option<
+                    ::prost::alloc::string::String,
+                >,
+                #[prost(message, optional, tag = "2")]
+                pub account: ::core::option::Option<super::super::super::Account>,
+                #[prost(message, repeated, tag = "3")]
+                pub networks: ::prost::alloc::vec::Vec<super::super::super::Network>,
+                #[prost(message, repeated, tag = "4")]
+                pub distributors: ::prost::alloc::vec::Vec<
+                    super::super::super::Distributor,
+                >,
             }
             /// Общий статус ответа на запрос подтверждения.
             #[derive(
@@ -1803,195 +2095,6 @@ pub mod currency_pair {
         }
     }
 }
-/// DistributorPolicy определяет набор правил для группы дистрибьюторов.
-/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DistributorPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `DistributorPolicy`.
-pub mod distributor_policy {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::DistributorPolicy>,
-    }
-}
-/// Distributor представляет участника или узел в партнерской или дистрибьюторской сети.
-/// Эта сущность связана с системным аккаунтом (Account) и может иметь иерархические связи.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct Distributor {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное, человекочитаемое имя (псевдоним, бренд).
-    #[prost(string, optional, tag = "2")]
-    pub username: ::core::option::Option<::prost::alloc::string::String>,
-    /// ID вышестоящего дистрибьютора
-    #[prost(uint32, tag = "3")]
-    pub parent_id: u32,
-    /// Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
-    #[prost(uint32, tag = "4")]
-    pub parent_entity_id: u32,
-    /// Идентификатор ответвления от вышестоящего дистрибьютора (parent_id)
-    #[prost(uint32, tag = "5")]
-    pub parent_branch_id: u32,
-    /// ID сети, к которому относится дистрибьютор
-    #[prost(uint32, tag = "6")]
-    pub network_id: u32,
-    /// Порядковый идентификатор дистрибьютора в рамках сети (network_id)
-    #[prost(uint32, tag = "7")]
-    pub network_entity_id: u32,
-    /// ID аккаунта, владеющего дистрибьютором
-    #[prost(uint32, tag = "8")]
-    pub account_id: u32,
-    /// Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
-    #[prost(uint32, tag = "9")]
-    pub account_entity_id: u32,
-    /// Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
-    #[prost(uint32, tag = "10")]
-    pub network_account_entity_id: u32,
-    /// ID партиции, к которому относится дистрибьютор
-    #[prost(uint32, tag = "11")]
-    pub network_partition_id: u32,
-    /// Глобальный уровень глубины
-    #[prost(uint32, tag = "12")]
-    pub level: u32,
-    /// Количество дочерних дистрибьюторов
-    #[prost(uint32, tag = "13")]
-    pub children_quantity: u32,
-    /// Количество дистрибьюторов в структуре
-    #[prost(uint32, tag = "14")]
-    pub structure_quantity: u32,
-    /// Максимальный уровень дистрибьютора в структуре
-    #[prost(uint32, tag = "15")]
-    pub structure_level_max: u32,
-    /// ID политики, применяемой к этому дистрибьютору.
-    #[prost(uint32, tag = "16")]
-    pub policy_id: u32,
-    #[prost(message, optional, tag = "17")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "18")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "19")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `Distributor`.
-pub mod distributor {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        /// Различные способы идентификации дистрибьютора
-        #[prost(oneof = "id::Identifier", tags = "1, 2, 3, 4, 5, 6, 7")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ParentBranch {
-            /// ID вышестоящего дистрибьютора
-            #[prost(uint32, tag = "1")]
-            pub parent_id: u32,
-            /// Числовой идентификатор ветки
-            #[prost(uint32, tag = "2")]
-            pub parent_branch_number: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ParentEntity {
-            /// ID вышестоящего дистрибьютора
-            #[prost(uint32, tag = "1")]
-            pub parent_id: u32,
-            /// Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора
-            #[prost(uint32, tag = "2")]
-            pub parent_entity_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct NetworkEntity {
-            /// ID сети, к которому относится дистрибьютор
-            #[prost(uint32, tag = "1")]
-            pub network_id: u32,
-            /// Порядковый идентификатор дистрибьютора в рамках сети (network_id)
-            #[prost(uint32, tag = "2")]
-            pub network_entity_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct AccountEntity {
-            /// ID аккаунта, владеющего дистрибьютором
-            #[prost(uint32, tag = "1")]
-            pub account_id: u32,
-            /// Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
-            #[prost(uint32, tag = "2")]
-            pub account_entity_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct NetworkAccountEntity {
-            /// ID сети, к которому относится дистрибьютор
-            #[prost(uint32, tag = "1")]
-            pub network_id: u32,
-            /// ID аккаунта, владеющего дистрибьютором
-            #[prost(uint32, tag = "2")]
-            pub account_id: u32,
-            /// Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
-            #[prost(uint32, tag = "3")]
-            pub network_account_entity_id: u32,
-        }
-        /// Различные способы идентификации дистрибьютора
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID дистрибьютора
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя дистрибьютора/бренда
-            #[prost(string, tag = "2")]
-            Username(::prost::alloc::string::String),
-            #[prost(message, tag = "3")]
-            ParentBranch(ParentBranch),
-            #[prost(message, tag = "4")]
-            ParentEntity(ParentEntity),
-            #[prost(message, tag = "5")]
-            NetworkEntity(NetworkEntity),
-            #[prost(message, tag = "6")]
-            AccountEntity(AccountEntity),
-            #[prost(message, tag = "7")]
-            NetworkAccountEntity(NetworkAccountEntity),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Distributor>,
-    }
-}
 /// DistributorBranchPolicy определяет набор правил для группы веток дистрибьюторов.
 /// Конкретная логика политики реализуется на бэкенде.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2297,56 +2400,6 @@ pub mod mnemonic {
             #[prost(message, repeated, tag = "1")]
             pub items: ::prost::alloc::vec::Vec<super::Word>,
         }
-    }
-}
-/// Network представляет собой основную партнерскую или дистрибьюторскую сеть.
-/// Она служит контейнером для дистрибьюторов и их иерархических связей.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct Network {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное строковое имя для идентификации сети
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// ID корневой партиции (NetworkPartition) для данной сети
-    #[prost(uint32, tag = "3")]
-    pub root_partition_id: u32,
-    /// Политика, управляющая поведением всей сети.
-    #[prost(uint32, tag = "4")]
-    pub policy_id: u32,
-    /// Уникальный идентификатор операции, в рамках которой был создан объект
-    #[prost(uint64, tag = "5")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-/// Nested message and enum types in `Network`.
-pub mod network {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        /// Различные способы идентификации сети
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        /// Различные способы идентификации сети
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID сети
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя сети
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Network>,
     }
 }
 /// NetworkPolicy определяет набор правил для группы сетей.
@@ -2670,31 +2723,36 @@ pub mod referral_link_policy {
     }
 }
 /// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InviteLink {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
     /// Уникальный код, используемый в URL (например, "REF123XYZ").
     #[prost(string, tag = "2")]
     pub invite_code: ::prost::alloc::string::String,
     /// Имя ссылки, видимое ее создателю.
     #[prost(string, tag = "3")]
     pub name: ::prost::alloc::string::String,
-    /// Статус ссылки (активна/неактивна).
+    /// Не изменяемая ссылка, которая не может быть изменена.
     #[prost(bool, tag = "4")]
+    pub fixed: bool,
+    /// Статус ссылки (активна/неактивна).
+    #[prost(bool, tag = "5")]
     pub enabled: bool,
-    #[prost(uint32, tag = "7")]
+    #[prost(uint32, tag = "6")]
     pub account_id: u32,
-    #[prost(uint32, tag = "8")]
+    #[prost(uint32, tag = "7")]
     pub account_entity_id: u32,
-    #[prost(uint32, tag = "9")]
+    #[prost(uint32, tag = "8")]
     pub used_quantity: u32,
-    #[prost(message, optional, tag = "10")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "9")]
+    pub cursor_pool_id: u64,
+    #[prost(message, repeated, tag = "10")]
+    pub pools: ::prost::alloc::vec::Vec<invite_link::Pool>,
     #[prost(message, optional, tag = "11")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(oneof = "invite_link::Target", tags = "5, 6")]
-    pub target: ::core::option::Option<invite_link::Target>,
 }
 /// Nested message and enum types in `InviteLink`.
 pub mod invite_link {
@@ -2707,8 +2765,8 @@ pub mod invite_link {
     pub mod id {
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Identifier {
-            #[prost(uint32, tag = "1")]
-            Id(u32),
+            #[prost(uint64, tag = "1")]
+            Id(u64),
             /// Уникальный код ссылки.
             #[prost(string, tag = "2")]
             InviteCode(::prost::alloc::string::String),
@@ -2719,28 +2777,82 @@ pub mod invite_link {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::InviteLink>,
     }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct View {
-        /// Тип ссылки (персональная или коллективная).
-        #[prost(enumeration = "Kind", tag = "1")]
-        pub kind: i32,
-        /// Статус ссылки (активна/неактивна).
-        #[prost(enumeration = "Status", tag = "2")]
-        pub status: i32,
-        /// Аккаунт, который является создателем и владельцем этой ссылки.
-        #[prost(message, optional, tag = "3")]
-        pub account: ::core::option::Option<super::Account>,
+        /// Аккаунт, который является создателем и владельцем InviteLink.
+        #[prost(uint32, tag = "1")]
+        pub owner_account_id: u32,
+        /// Аккаунты (который является владельцем InviteLink и Distributor).
+        #[prost(message, repeated, tag = "2")]
+        pub accounts: ::prost::alloc::vec::Vec<super::Account>,
         /// Сеть, к которой относится ссылка.
-        #[prost(message, optional, tag = "4")]
+        #[prost(message, optional, tag = "3")]
         pub network: ::core::option::Option<super::Network>,
         /// Дистрибьютор-наставник.
-        #[prost(message, optional, tag = "5")]
+        #[prost(message, optional, tag = "4")]
         pub distributor: ::core::option::Option<super::Distributor>,
+        /// Найденный дистрибьютор, является статичным результатом или динамичным.
+        #[prost(bool, tag = "5")]
+        pub is_dynamic: bool,
     }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Pool {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+        #[prost(uint64, tag = "2")]
+        pub invite_link_id: u64,
+        #[prost(uint32, tag = "3")]
+        pub invite_link_order_id: u32,
+        #[prost(bool, tag = "4")]
+        pub enabled: bool,
+        #[prost(uint32, tag = "5")]
+        pub cycle_used: u32,
+        #[prost(uint32, optional, tag = "6")]
+        pub cycle_limit: ::core::option::Option<u32>,
+        #[prost(uint64, tag = "7")]
+        pub cursor_entity_id: u64,
+        #[prost(uint32, tag = "8")]
+        pub cursor_usage_value: u32,
+        #[prost(message, repeated, tag = "9")]
+        pub entities: ::prost::alloc::vec::Vec<pool::Entity>,
+        #[prost(message, optional, tag = "10")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "11")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `Pool`.
+    pub mod pool {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct Entity {
+            #[prost(uint64, tag = "1")]
+            pub id: u64,
+            #[prost(uint64, tag = "2")]
+            pub invite_link_pool_id: u64,
+            #[prost(uint32, tag = "3")]
+            pub distributor_id: u32,
+            #[prost(uint32, optional, tag = "4")]
+            pub usage_limit: ::core::option::Option<u32>,
+            #[prost(message, repeated, tag = "5")]
+            pub logs: ::prost::alloc::vec::Vec<entity::Log>,
+        }
+        /// Nested message and enum types in `Entity`.
+        pub mod entity {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct Log {
+                #[prost(uint64, tag = "1")]
+                pub id: u64,
+                #[prost(uint64, tag = "2")]
+                pub invite_link_pool_entity_id: u64,
+                #[prost(uint32, tag = "3")]
+                pub cycle_id: u32,
+                #[prost(uint32, tag = "4")]
+                pub usage_id: u32,
+                #[prost(uint32, tag = "5")]
+                pub distributor_id: u32,
+                #[prost(message, optional, tag = "6")]
+                pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+            }
+        }
     }
     /// Тип реферальной ссылки.
     #[derive(
@@ -2825,13 +2937,6 @@ pub mod invite_link {
                 _ => None,
             }
         }
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Target {
-        #[prost(message, tag = "5")]
-        Distributor(super::Distributor),
-        #[prost(message, tag = "6")]
-        Pool(Pool),
     }
 }
 /// Relationship представляет собой результат проверки иерархической связи между двумя объектами.

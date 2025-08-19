@@ -18,25 +18,14 @@ service InviteLinkService {
     // Получает список реферальных ссылок с полной информацией.
     rpc List(ListRequest) returns (biconom.types.InviteLink.List);
 
-    rpc CreateDistributorLink(CreateDistributorLinkRequest) returns (biconom.types.InviteLink);
+    rpc Create(CreateRequest) returns (biconom.types.InviteLink);
 
-//    rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
-//    rpc UpdateLinkTarget(UpdateLinkTargetRequest) returns (UpdateLinkTargetResponse);
-//    rpc SetLinkStatus(SetLinkStatusRequest) returns (SetLinkStatusResponse);
-//
-//    rpc Resolve(ResolveRequest) returns (ResolveResponse);
-//    rpc LogVisit(LogVisitRequest) returns (LogVisitResponse);
-//    rpc RegisterReferral(RegisterReferralRequest) returns (RegisterReferralResponse);
-//    rpc GetLink(GetLinkRequest) returns (GetLinkResponse);
-//    rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
-//    rpc GetLinkStats(GetLinkStatsRequest) returns (GetLinkStatsResponse);
-//    rpc GetDistributorStats(GetDistributorStatsRequest) returns (GetDistributorStatsResponse);
-//
-//    rpc CreatePool(CreatePoolRequest) returns (CreatePoolResponse);
-//    rpc UpdatePool(UpdatePoolRequest) returns (UpdatePoolResponse);
-//    rpc SetPoolStatus(SetPoolStatusRequest) returns (SetPoolStatusResponse);
-//    rpc GetPool(GetPoolRequest) returns (GetPoolResponse);
-//    rpc ListPools(ListPoolsRequest) returns (ListPoolsResponse);
+    rpc EnabledSet(EnabledSetRequest) returns (biconom.types.InviteLink);
+
+    // TODO: Добавить метод для добавления блоков
+    // TODO: Добавить метод для смены очередностью блоков
+    // TODO: Добавить метод для смены курсора
+    // TODO: Добавить метод чтоб отобразить чужие ссылки в которых участвует дистрибьютор
 }
 
 message ListRequest {
@@ -47,8 +36,21 @@ message ListRequest {
     optional biconom.types.Sort sort = 3;
 }
 
-message CreateDistributorLinkRequest {
+message CreateRequest {
+    message Pool {
+        message Entity {
+            uint32 distributor_id = 1; // ID дистрибьютора, связанного с пулом
+            uint32 usage_limit = 2; // Лимит использования для данного дистрибьютора
+        }
+        uint32 cycle_limit = 1;
+        repeated Entity entities = 2;
+    }
     string name = 1;
     bool enabled = 2;
-    uint32 distributor_id = 3;
+    repeated Pool pools = 3;
+}
+
+message EnabledSetRequest {
+    biconom.types.InviteLink.Id invite_link_id = 1; // ID реферальной ссылки
+    bool enabled = 2; // Новый статус ссылки (активна/неактивна)
 }

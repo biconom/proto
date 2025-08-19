@@ -11,11 +11,16 @@ pub struct ConfirmationResponse {
     #[prost(string, tag = "2")]
     pub authorization_bearer: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CheckDistributorUsernameRequest {
+    #[prost(string, tag = "1")]
+    pub username: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckResponse {
-    /// `true`, если контакт уже используется.
+    /// `true`, если уже используется.
     #[prost(bool, tag = "1")]
-    pub is_registered: bool,
+    pub is_busy: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterRequest {
@@ -25,9 +30,23 @@ pub struct RegisterRequest {
     /// Локаль, выбранная пользователем при регистрации.
     #[prost(message, optional, tag = "2")]
     pub locale: ::core::option::Option<super::super::types::locale::Id>,
-    /// Уникальный код ссылки.
-    #[prost(string, optional, tag = "3")]
-    pub invite_code: ::core::option::Option<::prost::alloc::string::String>,
+    /// Данные для регистрации нового дистрибьютора, если это необходимо.
+    #[prost(message, optional, tag = "3")]
+    pub distributor_request: ::core::option::Option<
+        register_request::DistributorRequest,
+    >,
+}
+/// Nested message and enum types in `RegisterRequest`.
+pub mod register_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct DistributorRequest {
+        /// Уникальный код ссылки.
+        #[prost(string, tag = "1")]
+        pub invite_code: ::prost::alloc::string::String,
+        /// Уникальное имя для новой учетной записи дистрибьютора.
+        #[prost(string, tag = "2")]
+        pub distributor_username: ::prost::alloc::string::String,
+    }
 }
 /// Generated server implementations.
 pub mod auth_service_server {
@@ -43,9 +62,14 @@ pub mod auth_service_server {
     #[async_trait]
     pub trait AuthService: std::marker::Send + std::marker::Sync + 'static {
         /// Проверяет, зарегистрирован ли уже указанный контакт.
-        async fn check(
+        async fn check_contact(
             &self,
             request: tonic::Request<super::Contact>,
+        ) -> std::result::Result<tonic::Response<super::CheckResponse>, tonic::Status>;
+        /// Проверяет, забронирован ли username у дистрибьютора
+        async fn check_distributor_username(
+            &self,
+            request: tonic::Request<super::CheckDistributorUsernameRequest>,
         ) -> std::result::Result<tonic::Response<super::CheckResponse>, tonic::Status>;
         /// Инициирует процесс входа в систему.
         async fn authorize(
@@ -150,11 +174,11 @@ pub mod auth_service_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
-                "/biconom.client.auth.AuthService/Check" => {
+                "/biconom.client.auth.AuthService/CheckContact" => {
                     #[allow(non_camel_case_types)]
-                    struct CheckSvc<T: AuthService>(pub Arc<T>);
+                    struct CheckContactSvc<T: AuthService>(pub Arc<T>);
                     impl<T: AuthService> tonic::server::UnaryService<super::Contact>
-                    for CheckSvc<T> {
+                    for CheckContactSvc<T> {
                         type Response = super::CheckResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -166,7 +190,7 @@ pub mod auth_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as AuthService>::check(&inner, request).await
+                                <T as AuthService>::check_contact(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -177,7 +201,58 @@ pub mod auth_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = CheckSvc(inner);
+                        let method = CheckContactSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.auth.AuthService/CheckDistributorUsername" => {
+                    #[allow(non_camel_case_types)]
+                    struct CheckDistributorUsernameSvc<T: AuthService>(pub Arc<T>);
+                    impl<
+                        T: AuthService,
+                    > tonic::server::UnaryService<super::CheckDistributorUsernameRequest>
+                    for CheckDistributorUsernameSvc<T> {
+                        type Response = super::CheckResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::CheckDistributorUsernameRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AuthService>::check_distributor_username(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CheckDistributorUsernameSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

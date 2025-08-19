@@ -49,24 +49,24 @@ message Distributor {
 	
 	uint32 id = 1;
 	optional string username = 2; // Уникальное, человекочитаемое имя (псевдоним, бренд).
-	uint32 parent_id = 3; // ID вышестоящего дистрибьютора
-	uint32 parent_entity_id = 4; // Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
-	uint32 parent_branch_id = 5; // Идентификатор ответвления от вышестоящего дистрибьютора (parent_id)
-	uint32 network_id = 6; // ID сети, к которому относится дистрибьютор
-	uint32 network_entity_id = 7; // Порядковый идентификатор дистрибьютора в рамках сети (network_id)
-	uint32 account_id = 8; // ID аккаунта, владеющего дистрибьютором
-	uint32 account_entity_id = 9; // Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
-	uint32 network_account_entity_id = 10; // Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
-	uint32 network_partition_id = 11; // ID партиции, к которому относится дистрибьютор
-	uint32 level = 12; // Глобальный уровень глубины
+	string invite_code = 3;
+	uint32 parent_id = 4; // ID вышестоящего дистрибьютора
+	uint32 parent_entity_id = 5; // Порядковый идентификатор дистрибьютора в рамках вышестоящего дистрибьютора (parent_id)
+	uint32 parent_branch_id = 6; // Идентификатор ответвления от вышестоящего дистрибьютора (parent_id)
+	uint32 network_id = 7; // ID сети, к которому относится дистрибьютор
+	uint32 network_entity_id = 8; // Порядковый идентификатор дистрибьютора в рамках сети (network_id)
+	uint32 account_id = 9; // ID аккаунта, владеющего дистрибьютором
+	uint32 account_entity_id = 10; // Порядковый идентификатор дистрибьютора в рамках аккаунта (account_id)
+	uint32 network_account_entity_id = 11; // Порядковый идентификатор дистрибьютора в рамках пары (network_id и account_id)
+	uint32 network_partition_id = 12; // ID партиции, к которому относится дистрибьютор
+	uint32 level = 13; // Глобальный уровень глубины
 	
-	uint32 children_quantity = 13; // Количество дочерних дистрибьюторов
+	uint32 children_quantity = 14; // Количество дочерних дистрибьюторов
 	
-	uint32 structure_quantity = 14; // Количество дистрибьюторов в структуре
-	uint32 structure_level_max = 15; // Максимальный уровень дистрибьютора в структуре
+	uint32 structure_quantity = 15; // Количество дистрибьюторов в структуре
+	uint32 structure_level_max = 16; // Максимальный уровень дистрибьютора в структуре
 
-	uint32 policy_id = 16; // ID политики, применяемой к этому дистрибьютору.
-	google.protobuf.Timestamp created_at = 17;
-	google.protobuf.Timestamp updated_at = 18;
-	optional google.protobuf.Any additional_data = 19;
+	uint32 policy_id = 17; // ID политики, применяемой к этому дистрибьютору.
+	google.protobuf.Timestamp created_at = 18;
+	google.protobuf.Timestamp updated_at = 19;
 }

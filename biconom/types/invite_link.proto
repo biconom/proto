@@ -30,7 +30,7 @@ message InviteLink {
 
     message Id {
         oneof identifier {
-            uint32 id = 1;
+            uint64 id = 1;
             string invite_code = 2; // Уникальный код ссылки.
         }
     }
@@ -40,28 +40,52 @@ message InviteLink {
     }
 
     message View {
-        Kind kind = 1; // Тип ссылки (персональная или коллективная).
-        Status status = 2; // Статус ссылки (активна/неактивна).
-        optional biconom.types.Account account = 3; // Аккаунт, который является создателем и владельцем этой ссылки.
-        optional biconom.types.Network network = 4; // Сеть, к которой относится ссылка.
-        optional biconom.types.Distributor distributor = 5; // Дистрибьютор-наставник.
+        uint32 owner_account_id = 1; // Аккаунт, который является создателем и владельцем InviteLink.
+        repeated biconom.types.Account accounts = 2; // Аккаунты (который является владельцем InviteLink и Distributor).
+        biconom.types.Network network = 3; // Сеть, к которой относится ссылка.
+        biconom.types.Distributor distributor = 4; // Дистрибьютор-наставник.
+        bool is_dynamic = 5; // Найденный дистрибьютор, является статичным результатом или динамичным.
     }
 
     message Pool {
-        uint32 id = 1;
+        message Entity {
+            message Log {
+                uint64 id = 1;
+                uint64 invite_link_pool_entity_id = 2;
+                uint32 cycle_id = 3;
+                uint32 usage_id = 4;
+                uint32 distributor_id = 5;
+                google.protobuf.Timestamp created_at = 6;
+            }
+            uint64 id = 1;
+            uint64 invite_link_pool_id = 2;
+            uint32 distributor_id = 3;
+            optional uint32 usage_limit = 4;
+            repeated Log logs = 5;
+        }
+        uint64 id = 1;
+        uint64 invite_link_id = 2;
+        uint32 invite_link_order_id = 3;
+        bool enabled = 4;
+        uint32 cycle_used = 5;
+        optional uint32 cycle_limit = 6;
+        uint64 cursor_entity_id = 7;
+        uint32 cursor_usage_value = 8;
+        repeated Entity entities = 9;
+        google.protobuf.Timestamp created_at = 10;
+        google.protobuf.Timestamp updated_at = 11;
     }
 
-    uint32 id = 1;
+    uint64 id = 1;
     string invite_code = 2; // Уникальный код, используемый в URL (например, "REF123XYZ").
     string name = 3; // Имя ссылки, видимое ее создателю.
-    bool enabled = 4; // Статус ссылки (активна/неактивна).
-    oneof target {
-        biconom.types.Distributor distributor = 5;
-        Pool pool = 6;
-    }
-    uint32 account_id = 7;
-    uint32 account_entity_id = 8;
-    uint32 used_quantity = 9;
-    google.protobuf.Timestamp created_at = 10;
-    google.protobuf.Timestamp updated_at = 11;
+    bool fixed = 4; // Не изменяемая ссылка, которая не может быть изменена.
+    bool enabled = 5; // Статус ссылки (активна/неактивна).
+    uint32 account_id = 6;
+    uint32 account_entity_id = 7;
+    uint32 used_quantity = 8;
+    uint64 cursor_pool_id = 9;
+    repeated Pool pools = 10;
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
 }

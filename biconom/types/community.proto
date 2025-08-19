@@ -9,7 +9,17 @@ import "biconom/types/community_policy.proto";
 // Модель данных для сообществ системы
 message Community {
 	message Id {
-		uint32 id = 1; // Глобальный ID сообщества
+		oneof identifier {
+			uint32 id = 1;      // Глобальный ID сообщества
+			string name = 2;    // Уникальное название сообщества
+		}
+	}
+
+	enum Status {
+		UNSPECIFIED = 0;
+		ACTIVE = 1; // Сообщество активно
+		SUSPENDED = 2; // Временно заблокировано (например, нарушено правило)
+		ARCHIVED = 3; // Архивировано, не допускает изменений и новых участников
 	}
 
 	// Список сообществ
@@ -18,8 +28,9 @@ message Community {
 	}
 
 	uint32 id = 1;
-	uint64 trace_id = 2;
-	uint32 policy_id = 3; // Политика, управляющая поведением сообщества.
-	google.protobuf.Timestamp created_at = 4;
-	google.protobuf.Timestamp updated_at = 5;
+	string name = 2;
+	Status status = 3;
+	uint32 policy_id = 4; // Политика, управляющая поведением сообщества.
+	google.protobuf.Timestamp created_at = 5;
+	google.protobuf.Timestamp updated_at = 6;
 }

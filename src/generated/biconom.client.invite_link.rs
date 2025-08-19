@@ -16,14 +16,45 @@ pub mod list_request {
         AccountEntityId(u32),
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CreateDistributorLinkRequest {
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
     #[prost(bool, tag = "2")]
     pub enabled: bool,
-    #[prost(uint32, tag = "3")]
-    pub distributor_id: u32,
+    #[prost(message, repeated, tag = "3")]
+    pub pools: ::prost::alloc::vec::Vec<create_request::Pool>,
+}
+/// Nested message and enum types in `CreateRequest`.
+pub mod create_request {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Pool {
+        #[prost(uint32, tag = "1")]
+        pub cycle_limit: u32,
+        #[prost(message, repeated, tag = "2")]
+        pub entities: ::prost::alloc::vec::Vec<pool::Entity>,
+    }
+    /// Nested message and enum types in `Pool`.
+    pub mod pool {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Entity {
+            /// ID дистрибьютора, связанного с пулом
+            #[prost(uint32, tag = "1")]
+            pub distributor_id: u32,
+            /// Лимит использования для данного дистрибьютора
+            #[prost(uint32, tag = "2")]
+            pub usage_limit: u32,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnabledSetRequest {
+    /// ID реферальной ссылки
+    #[prost(message, optional, tag = "1")]
+    pub invite_link_id: ::core::option::Option<super::super::types::invite_link::Id>,
+    /// Новый статус ссылки (активна/неактивна)
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
 }
 /// Generated server implementations.
 pub mod invite_link_service_server {
@@ -62,9 +93,16 @@ pub mod invite_link_service_server {
             tonic::Response<super::super::super::types::invite_link::List>,
             tonic::Status,
         >;
-        async fn create_distributor_link(
+        async fn create(
             &self,
-            request: tonic::Request<super::CreateDistributorLinkRequest>,
+            request: tonic::Request<super::CreateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::InviteLink>,
+            tonic::Status,
+        >;
+        async fn enabled_set(
+            &self,
+            request: tonic::Request<super::EnabledSetRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::InviteLink>,
             tonic::Status,
@@ -287,13 +325,13 @@ pub mod invite_link_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/biconom.client.invite_link.InviteLinkService/CreateDistributorLink" => {
+                "/biconom.client.invite_link.InviteLinkService/Create" => {
                     #[allow(non_camel_case_types)]
-                    struct CreateDistributorLinkSvc<T: InviteLinkService>(pub Arc<T>);
+                    struct CreateSvc<T: InviteLinkService>(pub Arc<T>);
                     impl<
                         T: InviteLinkService,
-                    > tonic::server::UnaryService<super::CreateDistributorLinkRequest>
-                    for CreateDistributorLinkSvc<T> {
+                    > tonic::server::UnaryService<super::CreateRequest>
+                    for CreateSvc<T> {
                         type Response = super::super::super::types::InviteLink;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -301,15 +339,11 @@ pub mod invite_link_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::CreateDistributorLinkRequest>,
+                            request: tonic::Request<super::CreateRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as InviteLinkService>::create_distributor_link(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as InviteLinkService>::create(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -320,7 +354,52 @@ pub mod invite_link_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = CreateDistributorLinkSvc(inner);
+                        let method = CreateSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.invite_link.InviteLinkService/EnabledSet" => {
+                    #[allow(non_camel_case_types)]
+                    struct EnabledSetSvc<T: InviteLinkService>(pub Arc<T>);
+                    impl<
+                        T: InviteLinkService,
+                    > tonic::server::UnaryService<super::EnabledSetRequest>
+                    for EnabledSetSvc<T> {
+                        type Response = super::super::super::types::InviteLink;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::EnabledSetRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as InviteLinkService>::enabled_set(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = EnabledSetSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

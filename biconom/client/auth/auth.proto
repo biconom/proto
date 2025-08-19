@@ -12,7 +12,10 @@ import "biconom/types/locale.proto";
 // Все методы сервиса являются публичными и не требуют аутентификации.
 service AuthService {
     // Проверяет, зарегистрирован ли уже указанный контакт.
-    rpc Check(Contact) returns (CheckResponse);
+    rpc CheckContact(Contact) returns (CheckResponse);
+
+    // Проверяет, забронирован ли username у дистрибьютора
+    rpc CheckDistributorUsername(CheckDistributorUsernameRequest) returns (CheckResponse);
 
     // Инициирует процесс входа в систему.
     rpc Authorize(Contact) returns (ConfirmationResponse);
@@ -33,12 +36,19 @@ message ConfirmationResponse {
     string authorization_bearer = 2;
 }
 
+message CheckDistributorUsernameRequest {
+    string username = 1;
+}
 message CheckResponse {
-    bool is_registered = 1; // `true`, если контакт уже используется.
+    bool is_busy = 1; // `true`, если уже используется.
 }
 
 message RegisterRequest {
+    message DistributorRequest {
+        string invite_code = 1; // Уникальный код ссылки.
+        string distributor_username = 2; // Уникальное имя для новой учетной записи дистрибьютора.
+    }
     Contact contact = 1; // Контакт для регистрации нового пользователя.
     biconom.types.Locale.Id locale = 2; // Локаль, выбранная пользователем при регистрации.
-    optional string invite_code = 3; // Уникальный код ссылки.
+    optional DistributorRequest distributor_request = 3; // Данные для регистрации нового дистрибьютора, если это необходимо.
 }

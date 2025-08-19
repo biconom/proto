@@ -7,6 +7,9 @@ import "google/protobuf/timestamp.proto";
 import "biconom/types/confirmation_policy.proto";
 import "biconom/types/password_policy.proto";
 import "biconom/types/session.proto";
+import "biconom/types/account.proto";
+import "biconom/types/network.proto";
+import "biconom/types/distributor.proto";
 
 // Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
 message Confirmation {
@@ -144,9 +147,10 @@ message Confirmation {
 			}
 
 			message Metadata {
-				oneof identifier {
-					string authorization_bearer = 1;
-				}
+				optional string authorization_bearer = 1;
+				biconom.types.Account account = 2;
+				repeated biconom.types.Network networks = 3;
+				repeated biconom.types.Distributor distributors = 4;
 			}
 
 			Status status = 1;		        			// Общий статус подтверждения.
