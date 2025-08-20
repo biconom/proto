@@ -1843,11 +1843,12 @@ pub struct Currency {
     /// Количество знаков после запятой для отображения и расчетов
     #[prost(uint32, tag = "4")]
     pub precision: u32,
+    /// Вид валюты (крипто/фиат/балл).
+    #[prost(enumeration = "currency::kind::Id", tag = "5")]
+    pub kind: i32,
     /// Текущий операционный статус валюты
-    #[prost(enumeration = "currency::Status", tag = "5")]
+    #[prost(enumeration = "currency::status::Id", tag = "6")]
     pub status: i32,
-    #[prost(uint64, tag = "6")]
-    pub trace_id: u64,
     /// Политика, управляющая поведением валюты
     #[prost(uint32, tag = "7")]
     pub policy_id: u32,
@@ -1855,11 +1856,129 @@ pub struct Currency {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "9")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `Currency`.
 pub mod currency {
+    /// Определяет операционный статус валюты.
+    /// Эта модель-обертка позволяет в будущем расширять статус дополнительными полями (например, `reason`).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {
+        #[prost(enumeration = "status::Id", tag = "1")]
+        pub id: i32,
+    }
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            /// Статус не определен.
+            Unspecified = 0,
+            /// Активна. Доступна для всех операций.
+            Active = 1,
+            /// Только просмотр/вывод. Новые депозиты и торговые операции невозможны.
+            ViewOnly = 2,
+            /// Тех. обслуживание. Операции временно приостановлены.
+            Maintenance = 3,
+            /// Неактивна. Полностью отключена, но может быть активирована.
+            Inactive = 4,
+            /// Устарела. Валюта больше не поддерживается и сохранена только для истории.
+            Deprecated = 5,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::ViewOnly => "VIEW_ONLY",
+                    Self::Maintenance => "MAINTENANCE",
+                    Self::Inactive => "INACTIVE",
+                    Self::Deprecated => "DEPRECATED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "VIEW_ONLY" => Some(Self::ViewOnly),
+                    "MAINTENANCE" => Some(Self::Maintenance),
+                    "INACTIVE" => Some(Self::Inactive),
+                    "DEPRECATED" => Some(Self::Deprecated),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Определяет основной вид валюты для применения общей логики.
+    /// Имя `Kind` выбрано, чтобы избежать конфликтов с зарезервированным словом `Type`.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Kind {
+        #[prost(enumeration = "kind::Id", tag = "1")]
+        pub id: i32,
+    }
+    /// Nested message and enum types in `Kind`.
+    pub mod kind {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            /// Вид не указан.
+            Unspecified = 0,
+            /// Криптовалюта.
+            Crypto = 1,
+            /// Фиатная валюта.
+            Fiat = 2,
+            /// Внутренний балл.
+            Point = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Crypto => "CRYPTO",
+                    Self::Fiat => "FIAT",
+                    Self::Point => "POINT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "CRYPTO" => Some(Self::Crypto),
+                    "FIAT" => Some(Self::Fiat),
+                    "POINT" => Some(Self::Point),
+                    _ => None,
+                }
+            }
+        }
+    }
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
         #[prost(oneof = "id::Identifier", tags = "1, 2")]
@@ -1881,61 +2000,6 @@ pub mod currency {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Currency>,
-    }
-    /// Определяет операционный статус валюты.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        /// Статус не определен.
-        Unspecified = 0,
-        /// Активна. Доступна для всех операций.
-        Active = 1,
-        /// Только просмотр/вывод. Новые депозиты и торговые операции невозможны.
-        ViewOnly = 2,
-        /// Тех. обслуживание. Операции временно приостановлены.
-        Maintenance = 3,
-        /// Неактивна. Полностью отключена, но может быть активирована.
-        Inactive = 4,
-        /// Устарела. Валюта больше не поддерживается и сохранена только для истории.
-        Deprecated = 5,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "UNSPECIFIED",
-                Self::Active => "ACTIVE",
-                Self::ViewOnly => "VIEW_ONLY",
-                Self::Maintenance => "MAINTENANCE",
-                Self::Inactive => "INACTIVE",
-                Self::Deprecated => "DEPRECATED",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "UNSPECIFIED" => Some(Self::Unspecified),
-                "ACTIVE" => Some(Self::Active),
-                "VIEW_ONLY" => Some(Self::ViewOnly),
-                "MAINTENANCE" => Some(Self::Maintenance),
-                "INACTIVE" => Some(Self::Inactive),
-                "DEPRECATED" => Some(Self::Deprecated),
-                _ => None,
-            }
-        }
     }
 }
 /// CurrencyPairPolicy определяет набор правил для группы валютных пар.
@@ -2006,14 +2070,10 @@ pub struct CurrencyPair {
     /// Политика, управляющая правилами для этой пары.
     #[prost(uint32, tag = "6")]
     pub policy_id: u32,
-    #[prost(uint64, tag = "7")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "7")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "8")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `CurrencyPair`.
 pub mod currency_pair {

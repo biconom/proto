@@ -16,11 +16,12 @@ service CurrencyService {
 }
 
 message ListRequest {
-	// Необязательный фильтр по статусу.
-	// По умолчанию могут возвращаться только активные валюты.
-	optional biconom.types.Currency.Status status = 1;
+	// Необязательный фильтр по видам валют.
+	repeated biconom.types.Currency.Kind.Id filter_kinds = 1;
+	// Необязательный фильтр по статусам.
+	repeated biconom.types.Currency.Status.Id filter_statuses = 2;
 	// "Курсор", с которого начинать выборку. Указывается идентификатор валюты.
-	optional biconom.types.Currency.Id cursor = 2;
+	optional biconom.types.Currency.Id cursor = 3;
 	// Необязательные параметры сортировки и лимита.
-	optional biconom.types.Sort sort = 3;
+	optional biconom.types.Sort sort = 4;
 }

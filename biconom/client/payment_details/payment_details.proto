@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package biconom.client.payment_details;
+
+import "biconom/types/payment_details.proto";
+
+// Сервис для управления платежными реквизитами (белым списком).
+service PaymentDetailsService {
+    // Получает список платежных реквизитов с возможностью фильтрации.
+    rpc List(ListRequest) returns (ListResponse);
+
+    // Создает новый платежный реквизит.
+    rpc Create(CreateRequest) returns (biconom.types.PaymentDetails);
+
+    // Обновляет имя существующего платежного реквизита.
+    rpc Update(UpdateRequest) returns (biconom.types.PaymentDetails);
+
+    // Архивирует платежный реквизит, убирая его из активных списков.
+    rpc Archive(ArchiveRequest) returns (biconom.types.PaymentDetails);
+}
+
+message ListRequest {
+    // Если поля фильтра не указаны, возвращаются все неархивированные реквизиты.
+    optional biconom.types.PaymentDetails.Kind.Id kind = 1; // Фильтр по типу реквизита.
+    optional biconom.types.PaymentDetails.Status.Id status = 2; // Фильтр по статусу реквизита.
+}
+
+message ListResponse {
+    repeated biconom.types.PaymentDetails items = 1;
+}
+
+message CreateRequest {
+    string name = 1; // Пользовательское название реквизита.
+    oneof details {
+        biconom.types.PaymentDetails.CryptoWallet crypto_wallet = 2;
+    }
+}
+
+message UpdateRequest {
+    uint64 payment_details_id = 1; // ID реквизита для обновления.
+    string name = 2;               // Новое имя для реквизита.
+}
+
+message ArchiveRequest {
+    uint64 payment_details_id = 1; // ID реквизита для архивации.
+}

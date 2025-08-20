@@ -16,9 +16,8 @@ service CurrencyPairService {
 }
 
 message ListRequest {
-	// Необязательный фильтр по статусу.
-	// По умолчанию могут возвращаться только активные пары.
-	optional biconom.types.CurrencyPair.Status status = 1;
+	// Необязательный фильтр по статусам.
+	repeated biconom.types.CurrencyPair.Status filter_statuses = 1;
 	// "Курсор", с которого начинать выборку. Указывается идентификатор пары.
 	optional biconom.types.CurrencyPair.Id cursor = 2;
 	// Необязательные параметры сортировки и лимита.
