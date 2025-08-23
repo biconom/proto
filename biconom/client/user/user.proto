@@ -6,6 +6,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "biconom/types/google_authenticator.proto";
 import "biconom/types/payment_details_registry.proto";
+import "biconom/types/locale.proto";
 
 // Сервис для получения информации о текущем авторизованном пользователе.
 service UserService {
@@ -27,17 +28,10 @@ message UserView {
         optional google.protobuf.Timestamp set_at = 2; // Дата последней смены пароля.
     }
 
-    // Локаль пользователя.
-    enum Locale {
-        LOCALE_UNSPECIFIED = 0;
-        RU_RU = 1; // Русский (Россия)
-        EN_UK = 2; // Английский (Великобритания)
-        EN_US = 3; // Английский (США)
-    }
-
     Email email = 1; // Информация о почте.
     Password password = 2; // Информация о пароле.
-    Locale locale = 3; // Текущая локаль.
-    biconom.types.PaymentDetailsRegistry payment_details_registry = 4; // Реестр платежных реквизитов.
-    biconom.types.GoogleAuthenticator google_authenticator = 5; // Состояние 2FA.
+    uint32 locale_id = 3; // Текущая локаль.
+    biconom.types.GoogleAuthenticator google_authenticator = 4; // Состояние 2FA.
+    biconom.types.PaymentDetailsRegistry payment_details_registry = 5; // Реестр платежных реквизитов.
 }
+//TOOD: отобразить политику паролей

@@ -114,6 +114,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/client/google_authenticator/google_authenticator.proto",
                 "biconom/client/locale/locale.proto",
                 "biconom/client/mnemonic/mnemonic.proto",
+                "biconom/client/password_policy/password_policy.proto",
                 "biconom/client/invite_link/invite_link.proto",
                 "biconom/client/session/session.proto",
         ], &["proto"])

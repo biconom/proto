@@ -73,6 +73,9 @@ pub mod biconom {
         pub mod invite_link {
             include!("generated/biconom.client.invite_link.rs");
         }
+        pub mod password_policy {
+            include!("generated/biconom.client.password_policy.rs");
+        }
         pub mod session {
             include!("generated/biconom.client.session.rs");
         }
