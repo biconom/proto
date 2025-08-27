@@ -2002,52 +2002,6 @@ pub mod currency {
         pub items: ::prost::alloc::vec::Vec<super::Currency>,
     }
 }
-/// CurrencyPairPolicy определяет набор правил для группы валютных пар.
-/// Конкретная логика политики (например, лимиты на торговлю, требования к марже) реализуется на бэкенде.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CurrencyPairPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `CurrencyPairPolicy`.
-pub mod currency_pair_policy {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::CurrencyPairPolicy>,
-    }
-}
 /// CurrencyPair представляет собой декларативную связь между двумя валютами.
 /// Эта модель является справочной, но несет в себе операционный статус и ссылку на политику,
 /// которые определяют правила для других систем, использующих эту пару (например, торговых).
@@ -2055,9 +2009,9 @@ pub mod currency_pair_policy {
 pub struct CurrencyPair {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    /// Уникальное имя пары (например, "BTC_USDT")
+    /// Уникальный символ пары (например, "BTCUSDT")
     #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
+    pub symbol: ::prost::alloc::string::String,
     /// ID базовой валюты (например, BTC)
     #[prost(uint32, tag = "3")]
     pub base_currency_id: u32,
@@ -2089,9 +2043,9 @@ pub mod currency_pair {
             /// Глобальный ID пары
             #[prost(uint32, tag = "1")]
             Id(u32),
-            /// Уникальное имя пары, например, "BTC_USDT"
+            /// Уникальный символ пары, например, "BTCUSDT"
             #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
+            Symbol(::prost::alloc::string::String),
         }
     }
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -2153,6 +2107,52 @@ pub mod currency_pair {
                 _ => None,
             }
         }
+    }
+}
+/// CurrencyPairPolicy определяет набор правил для группы валютных пар.
+/// Конкретная логика политики (например, лимиты на торговлю, требования к марже) реализуется на бэкенде.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CurrencyPairPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `CurrencyPairPolicy`.
+pub mod currency_pair_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::CurrencyPairPolicy>,
     }
 }
 /// DistributorBranchPolicy определяет набор правил для группы веток дистрибьюторов.

@@ -3,8 +3,6 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
-import "biconom/types/currency_pair_policy.proto";
 
 // CurrencyPair представляет собой декларативную связь между двумя валютами.
 // Эта модель является справочной, но несет в себе операционный статус и ссылку на политику,
@@ -29,7 +27,7 @@ message CurrencyPair {
 	message Id {
 		oneof identifier {
 			uint32 id = 1;		// Глобальный ID пары
-			string name = 2;	// Уникальное имя пары, например, "BTC_USDT"
+			string symbol = 2;	// Уникальный символ пары, например, "BTCUSDT"
 		}
 	}
 
@@ -38,7 +36,7 @@ message CurrencyPair {
 	}
 
 	uint32 id = 1;
-	string name = 2;				// Уникальное имя пары (например, "BTC_USDT")
+	string symbol = 2;				// Уникальный символ пары (например, "BTCUSDT")
 	uint32 base_currency_id = 3;	// ID базовой валюты (например, BTC)
 	uint32 quote_currency_id = 4;	// ID котируемой валюты (например, USDT)
 	Status status = 5;				// Текущий операционный статус пары.
