@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package biconom.client.account;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/mnemonic.proto";
+import "biconom/types/google_authenticator.proto";
+import "biconom/types/payment_details_registry.proto";
+
+option go_package = "github.com/biconom/biconom-proto/gen/go/biconom/client/account;account_client_pb";
+
+// AccountService предоставляет информацию о текущем аутентифицированном аккаунте.
+service AccountService {
+	// Получает сводную информацию о текущем (авторизованном) аккаунте, включая список его дистрибьюторов.
+	rpc GetCurrent(GetCurrentRequest) returns (AccountView);
+}
+
+message GetCurrentRequest {
+	optional uint32 distributor_upline_visibility_depth = 1;
+}
+
+// AccountView представляет собой сводную информацию о текущем аккаунте.
+message AccountView {
+	message Distributor {
+		biconom.types.Distributor value = 1;
+		repeated biconom.types.Distributor upline_distributors = 2;
+	}
+	uint32 executor_account_id = 1;
+	repeated biconom.types.Account accounts = 2;
+	// Список дистрибьюторов, принадлежащих авторизованному аккаунту.
+	repeated Distributor distributors = 3;
+
+	oneof profile {
+		// Профиль user, связанном с этим аккаунтом.
+		UserProfile user_profile = 4;
+		// Информация о community, связанном с этим аккаунтом.
+		google.protobuf.Empty community_profile = 5;
+	}
+}
+
+message UserProfile {
+	// Информация об электронной почте пользователя.
+	message Email {
+		string value = 1; // Email адрес.
+		google.protobuf.Timestamp created_at = 2; // Дата установки email.
+	}
+
+	// Информация о пароле пользователя.
+	message Password {
+		uint32 password_policy_id = 1; // ID политики
+		google.protobuf.Timestamp created_at = 2; // Дата последней смены пароля.
+	}
+
+	optional Email email = 1; // Информация о почте.
+	optional Password password = 2; // Информация о пароле.
+	biconom.types.Mnemonic mnemonic = 3; // Состояние mnemonic.
+	biconom.types.GoogleAuthenticator google_authenticator = 4; // Состояние 2FA.
+	biconom.types.PaymentDetailsRegistry payment_details_registry = 5; // Реестр платежных реквизитов.
+	uint32 locale_id = 6; // Текущая локаль.
+}

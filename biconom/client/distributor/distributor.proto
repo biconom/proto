@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package biconom.client.distributor;
+
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/relationship.proto";
+import "biconom/types/sort.proto";
+
+
+// DistributorService предоставляет клиентский функционал для работы с дистрибьюторами.
+service DistributorService {
+	// Получает дистрибьютора по его идентификатору.
+	rpc Get(biconom.types.Distributor.Id) returns (Response);
+
+	// Получает список дистрибьюторов, принадлежащих аутентифицированному пользователю.
+	// Если указан `parent_id`, возвращает список прямых партнеров (первую линию) для указанного родителя.
+	rpc ListPartners(ListPartnersRequest) returns (ListResponse);
+
+	// Осуществляет поиск дистрибьюторов по префиксу их username.
+	rpc Search(SearchRequest) returns (SearchResponse);
+
+	// Получает агрегированную статистику по структуре дистрибьютора.
+	rpc GetStructureOverview(GetStructureOverviewRequest) returns (GetStructureOverviewResponse);
+}
+
+// Response - это ответ для одиночной сущности, который включает в себя связанные данные.
+// Такой подход (Data Transfer Object) позволяет клиенту получить всю необходимую информацию
+// (дистрибьютор, его владелец-аккаунт и сеть) за один запрос, избегая дополнительных обращений.
+message Response {
+	// Аккаунт-владелец дистрибьютора.
+	biconom.types.Account account = 1;
+	// Сам дистрибьютор.
+	biconom.types.Distributor distributor = 2;
+}
+
+// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
+// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их
+// без дополнительных запросов.
+message ListResponse {
+	// Список аккаунтов-владельцев найденных дистрибьюторов.
+	repeated biconom.types.Account accounts = 1;
+	// Список найденных дистрибьюторов.
+	repeated biconom.types.Distributor distributors = 2;
+	// ID дистрибьютора, который выполняет запрос (авторизованный пользователь).
+	uint32 executor_distributor_id = 3;
+	// ID дистрибьютора, чья структура просматривается в данный момент (например, parent_id из запроса ListPartners).
+	uint32 view_distributor_id = 4;
+	// Список идентификаторов партнеров (прямых потомков) для `view_distributor_id`.
+	repeated uint32 partner_ids = 5;
+	// Список идентификаторов вышестоящих дистрибьюторов для `view_distributor_id`.
+	repeated uint32 upline_ids = 6;
+}
+
+message SearchResponse {
+	// Список аккаунтов-владельцев найденных дистрибьюторов.
+	repeated biconom.types.Account accounts = 1;
+	// Список найденных дистрибьюторов.
+	repeated biconom.types.Distributor distributors = 2;
+	// ID дистрибьютора, который выполняет запрос (авторизованный пользователь).
+	optional uint32 executor_distributor_id = 3;
+}
+
+// Сообщение-запрос для метода List.
+message ListPartnersRequest {
+	// Опционально: фильтрация по ID родительского дистрибьютора для получения прямых потомков.
+	optional uint32 parent_id = 1;
+
+	// Курсор для пагинации.
+	optional biconom.types.Distributor.Id cursor = 2;
+	// Параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 3;
+
+	// Опционально: глубина видимости иерархии вышестоящих, разрешенная для `executor_distributor_id`.
+	// Если не указано, значение по умолчанию 0.
+	// Значение 0 означает, что `executor_distributor_id` является самым верхним видимым дистрибьютором в иерархии.
+	// Значение 1 позволит видеть на один уровень выше `executor_distributor_id`, и так далее.
+	optional uint32 executor_upline_visibility_depth = 4;
+	// Опционально: ограничивает общее количество возвращаемых вышестоящих для `view_distributor_id`. Полезно, если иерархия очень глубокая.
+	// Если поле отсутствует - ограничение не применяется. Если значение равно 0 - вышестоящие не возвращаются.
+	optional uint32 upline_limit = 5;
+}
+
+// Запрос на получение агрегированной статистики по структуре дистрибьютора.
+message GetStructureOverviewRequest {
+	// ID дистрибьютора, для которого запрашивается состояние структуры.
+	optional biconom.types.Distributor.Id distributor_id = 1;
+
+	// Опционально: ограничивает глубину запрашиваемой статистики по уровням.
+	// Если поле отсутствует, возвращается статистика по всем уровням.
+	// Если значение равно 0, статистика по уровням не возвращается.
+	optional uint32 level_limit = 2;
+
+	// Опционально: ограничивает количество последних дистрибьюторов, возвращаемых в каждой группе (общей и по уровням).
+	optional uint32 distributors_per_group_limit = 3;
+}
+
+// Ответ с агрегированной статистикой по структуре дистрибьютора.
+message GetStructureOverviewResponse {
+	message Group {
+		// Общее количество дистрибьюторов в группе.
+		uint32 quantity = 1;
+		// Список ID последних дистрибьюторов в группе, ограниченный `distributors_per_group_limit`.
+		repeated uint32 distributor_ids = 2;
+	}
+
+	message LevelGroup {
+		// Номер уровня.
+		uint32 level = 1;
+		// Статистика для данного уровня.
+		Group group = 2;
+	}
+
+	// Общая статистика по всей структуре.
+	Group total = 1;
+	// Статистика по каждому уровню в глубину.
+	repeated LevelGroup levels = 2;
+	// Дедуплицированный список аккаунтов-владельцев для всех возвращенных дистрибьюторов.
+	repeated biconom.types.Account accounts = 3;
+	// Дедуплицированный список дистрибьюторов, на которые ссылаются `distributor_ids` в группах.
+	repeated biconom.types.Distributor distributors = 4;
+	// ID дистрибьютора, чья структура просматривается в данный момент (например, distributor_id из запроса GetStructureOverviewRequest).
+	uint32 view_distributor_id = 5;
+}
+
+// Сообщение-запрос для метода Search.
+message SearchRequest {
+	// Префикс username для поиска.
+	string username_prefix = 1;
+
+	// Опционально: ограничение количества результатов.
+	optional uint32 limit = 2;
+
+	// Опционально: фильтр для поиска только в одной указанной сети.
+	// Если поле не заполнено, поиск производится по всем сетям, доступным пользователю.
+	optional uint32 network_id = 3;
+
+	// Фильтр по типу иерархической связи относительно текущего пользователя.
+	// Если поле не заполнено, поиск производится без учета иерархической связи.
+	repeated biconom.types.Relationship.State.Kind filter_relationship_state_kinds = 4;
+}

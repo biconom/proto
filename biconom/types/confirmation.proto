@@ -148,9 +148,6 @@ message Confirmation {
 
 			message Metadata {
 				optional string authorization_bearer = 1;
-				biconom.types.Account account = 2;
-				repeated biconom.types.Network networks = 3;
-				repeated biconom.types.Distributor distributors = 4;
 			}
 
 			Status status = 1;		        			// Общий статус подтверждения.
@@ -164,6 +161,7 @@ message Confirmation {
 			string google_authenticator_secret = 1;
 			biconom.types.Session session = 2;
 			string mnemonic_words = 3;
+			string authorization_bearer = 4;
 		}
 	}
 

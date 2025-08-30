@@ -107,10 +107,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/user.proto",
                 "biconom/types/user_policy.proto",
 
+                "biconom/client/account/account.proto",
                 "biconom/client/auth/auth.proto",
                 "biconom/client/confirmation/confirmation.proto",
                 "biconom/client/currency/currency.proto",
                 "biconom/client/currency_pair/currency_pair.proto",
+                "biconom/client/distributor/distributor.proto",
                 "biconom/client/google_authenticator/google_authenticator.proto",
                 "biconom/client/locale/locale.proto",
                 "biconom/client/mnemonic/mnemonic.proto",

@@ -1116,50 +1116,94 @@ pub mod network {
         pub items: ::prost::alloc::vec::Vec<super::Network>,
     }
 }
-/// DistributorPolicy определяет набор правил для группы дистрибьюторов.
-/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DistributorPolicy {
+/// Relationship представляет собой результат проверки иерархической связи между двумя объектами.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Relationship {
+    /// Базовый ID элемента, от которого строим отношение.
     #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "4")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
+    pub base_id: u32,
+    /// ID целевого элемента, чье отношение к базовому описывается.
+    #[prost(uint32, tag = "2")]
+    pub target_id: u32,
+    /// Состояние отношения между базовым и целевым элементами.
+    #[prost(message, optional, tag = "3")]
+    pub state: ::core::option::Option<relationship::State>,
 }
-/// Nested message and enum types in `DistributorPolicy`.
-pub mod distributor_policy {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
+/// Nested message and enum types in `Relationship`.
+pub mod relationship {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct State {
+        /// Тип отношения между объектами.
+        #[prost(enumeration = "state::Kind", tag = "1")]
+        pub kind: i32,
+        /// Разница в уровнях (для TEAM и UPLINE).
+        #[prost(uint32, optional, tag = "4")]
+        pub level_diff: ::core::option::Option<u32>,
+        /// Номер ветки, в которой находится дочерний объект (для TEAM).
+        #[prost(uint32, optional, tag = "5")]
+        pub branch_number: ::core::option::Option<u32>,
     }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
+    /// Nested message and enum types in `State`.
+    pub mod state {
+        /// Определяет тип иерархической связи.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Kind {
+            /// Отсутствие отношения между объектами.
+            None = 0,
+            /// Отношение не определено (например, один из объектов не найден).
+            Error = 1,
+            /// Тот же самый объект (сравнение объекта с самим собой).
+            Personal = 2,
+            /// Целевой объект является дочерним по отношению к базовому (в его команде).
+            Team = 3,
+            /// Целевой объект является родительским по отношению к базовому (в его спонсорской линии).
+            Upline = 4,
+            /// Объекты находятся в одной иерархии, но не связаны по вертикали (например, "братья").
+            Sideways = 5,
+            /// Объекты находятся в разных, не связанных иерархиях.
+            Separate = 6,
         }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::DistributorPolicy>,
+        impl Kind {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::None => "NONE",
+                    Self::Error => "ERROR",
+                    Self::Personal => "PERSONAL",
+                    Self::Team => "TEAM",
+                    Self::Upline => "UPLINE",
+                    Self::Sideways => "SIDEWAYS",
+                    Self::Separate => "SEPARATE",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "NONE" => Some(Self::None),
+                    "ERROR" => Some(Self::Error),
+                    "PERSONAL" => Some(Self::Personal),
+                    "TEAM" => Some(Self::Team),
+                    "UPLINE" => Some(Self::Upline),
+                    "SIDEWAYS" => Some(Self::Sideways),
+                    "SEPARATE" => Some(Self::Separate),
+                    _ => None,
+                }
+            }
+        }
     }
 }
 /// Distributor представляет участника или узел в партнерской или дистрибьюторской сети.
@@ -1219,6 +1263,8 @@ pub struct Distributor {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "19")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "20")]
+    pub relationship_state: ::core::option::Option<relationship::State>,
 }
 /// Nested message and enum types in `Distributor`.
 pub mod distributor {
@@ -1652,19 +1698,11 @@ pub mod confirmation {
                     ),
                 }
             }
-            #[derive(Clone, PartialEq, ::prost::Message)]
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct Metadata {
                 #[prost(string, optional, tag = "1")]
                 pub authorization_bearer: ::core::option::Option<
                     ::prost::alloc::string::String,
-                >,
-                #[prost(message, optional, tag = "2")]
-                pub account: ::core::option::Option<super::super::super::Account>,
-                #[prost(message, repeated, tag = "3")]
-                pub networks: ::prost::alloc::vec::Vec<super::super::super::Network>,
-                #[prost(message, repeated, tag = "4")]
-                pub distributors: ::prost::alloc::vec::Vec<
-                    super::super::super::Distributor,
                 >,
             }
             /// Общий статус ответа на запрос подтверждения.
@@ -1713,7 +1751,7 @@ pub mod confirmation {
     }
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Metadata {
-        #[prost(oneof = "metadata::Identifier", tags = "1, 2, 3")]
+        #[prost(oneof = "metadata::Identifier", tags = "1, 2, 3, 4")]
         pub identifier: ::core::option::Option<metadata::Identifier>,
     }
     /// Nested message and enum types in `Metadata`.
@@ -1726,6 +1764,8 @@ pub mod confirmation {
             Session(super::super::Session),
             #[prost(string, tag = "3")]
             MnemonicWords(::prost::alloc::string::String),
+            #[prost(string, tag = "4")]
+            AuthorizationBearer(::prost::alloc::string::String),
         }
     }
     /// Статус формы подтверждения.
@@ -2153,6 +2193,52 @@ pub mod currency_pair_policy {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::CurrencyPairPolicy>,
+    }
+}
+/// DistributorPolicy определяет набор правил для группы дистрибьюторов.
+/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DistributorPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `DistributorPolicy`.
+pub mod distributor_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::DistributorPolicy>,
     }
 }
 /// DistributorBranchPolicy определяет набор правил для группы веток дистрибьюторов.
@@ -2999,96 +3085,6 @@ pub mod invite_link {
         }
     }
 }
-/// Relationship представляет собой результат проверки иерархической связи между двумя объектами.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct Relationship {
-    /// Базовый ID элемента, от которого строим отношение.
-    #[prost(uint32, tag = "1")]
-    pub base_id: u32,
-    /// ID целевого элемента, чье отношение к базовому описывается.
-    #[prost(uint32, tag = "2")]
-    pub target_id: u32,
-    /// Состояние отношения между базовым и целевым элементами.
-    #[prost(message, optional, tag = "3")]
-    pub state: ::core::option::Option<relationship::State>,
-}
-/// Nested message and enum types in `Relationship`.
-pub mod relationship {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct State {
-        /// Тип отношения между объектами.
-        #[prost(enumeration = "state::Kind", tag = "1")]
-        pub kind: i32,
-        /// Разница в уровнях (для TEAM и UPLINE).
-        #[prost(uint32, optional, tag = "4")]
-        pub level_diff: ::core::option::Option<u32>,
-        /// Номер ветки, в которой находится дочерний объект (для TEAM).
-        #[prost(uint32, optional, tag = "5")]
-        pub branch_number: ::core::option::Option<u32>,
-    }
-    /// Nested message and enum types in `State`.
-    pub mod state {
-        /// Определяет тип иерархической связи.
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Kind {
-            /// Отсутствие отношения между объектами.
-            None = 0,
-            /// Отношение не определено (например, один из объектов не найден).
-            Error = 1,
-            /// Тот же самый объект (сравнение объекта с самим собой).
-            Personal = 2,
-            /// Целевой объект является дочерним по отношению к базовому (в его команде).
-            Team = 3,
-            /// Целевой объект является родительским по отношению к базовому (в его спонсорской линии).
-            Upline = 4,
-            /// Объекты находятся в одной иерархии, но не связаны по вертикали (например, "братья").
-            Sideways = 5,
-            /// Объекты находятся в разных, не связанных иерархиях.
-            Separate = 6,
-        }
-        impl Kind {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::None => "NONE",
-                    Self::Error => "ERROR",
-                    Self::Personal => "PERSONAL",
-                    Self::Team => "TEAM",
-                    Self::Upline => "UPLINE",
-                    Self::Sideways => "SIDEWAYS",
-                    Self::Separate => "SEPARATE",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "NONE" => Some(Self::None),
-                    "ERROR" => Some(Self::Error),
-                    "PERSONAL" => Some(Self::Personal),
-                    "TEAM" => Some(Self::Team),
-                    "UPLINE" => Some(Self::Upline),
-                    "SIDEWAYS" => Some(Self::Sideways),
-                    "SEPARATE" => Some(Self::Separate),
-                    _ => None,
-                }
-            }
-        }
-    }
-}
 /// SlotPolicy определяет набор правил для группы слотов.
 /// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -3893,5 +3889,217 @@ pub mod tree_partition {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::TreePartition>,
+    }
+}
+/// PaymentDetails представляет собой универсальную структуру для хранения
+/// одного экземпляра платежных реквизитов.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PaymentDetails {
+    /// Уникальный ID реквизита в реестре пользователя.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// Пользовательское название реквизита (например, "Мой основной кошелек").
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Тип реквизитов.
+    #[prost(enumeration = "payment_details::kind::Id", tag = "3")]
+    pub kind: i32,
+    /// Статус реквизита (активен/архивирован).
+    #[prost(enumeration = "payment_details::status::Id", tag = "4")]
+    pub status: i32,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Конкретные данные, зависящие от типа.
+    #[prost(oneof = "payment_details::Details", tags = "5")]
+    pub details: ::core::option::Option<payment_details::Details>,
+}
+/// Nested message and enum types in `PaymentDetails`.
+pub mod payment_details {
+    /// Пространство имен для типа платежных реквизитов.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Kind {}
+    /// Nested message and enum types in `Kind`.
+    pub mod kind {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Криптовалютный кошелек.
+            CryptoWallet = 1,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::CryptoWallet => "CRYPTO_WALLET",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "CRYPTO_WALLET" => Some(Self::CryptoWallet),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Пространство имен для статуса жизненного цикла реквизита.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Реквизит активен и отображается в списках.
+            Active = 1,
+            /// Реквизит архивирован, не отображается в общих списках,
+            /// но доступен по прямому идентификатору.
+            Archived = 2,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Archived => "ARCHIVED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "ARCHIVED" => Some(Self::Archived),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Реквизиты криптовалютного кошелька.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct CryptoWallet {
+        /// Тип сети.
+        #[prost(enumeration = "crypto_wallet::NetworkType", tag = "1")]
+        pub network_type: i32,
+        /// Адрес кошелька.
+        #[prost(string, tag = "2")]
+        pub address: ::prost::alloc::string::String,
+    }
+    /// Nested message and enum types in `CryptoWallet`.
+    pub mod crypto_wallet {
+        /// Тип сети кошелька.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum NetworkType {
+            Unspecified = 0,
+            /// Адрес, совместимый с EVM (Ethereum, BNB Chain и т.д.).
+            EvmHex = 1,
+        }
+        impl NetworkType {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::EvmHex => "EVM_HEX",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "EVM_HEX" => Some(Self::EvmHex),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Конкретные данные, зависящие от типа.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Details {
+        #[prost(message, tag = "5")]
+        CryptoWallet(CryptoWallet),
+    }
+}
+/// PaymentDetailsRegistry представляет собой реестр (белый список) платежных
+/// реквизитов, сохраненных пользователем, вместе с лимитами.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PaymentDetailsRegistry {
+    /// Список сохраненных платежных реквизитов.
+    #[prost(message, repeated, tag = "1")]
+    pub entries: ::prost::alloc::vec::Vec<PaymentDetails>,
+    /// Лимиты на количество записей.
+    #[prost(message, optional, tag = "2")]
+    pub limit: ::core::option::Option<payment_details_registry::Limit>,
+}
+/// Nested message and enum types in `PaymentDetailsRegistry`.
+pub mod payment_details_registry {
+    /// Лимиты на количество записей в реестре.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Limit {
+        /// Общий лимит на количество записей в реестре.
+        #[prost(uint32, optional, tag = "1")]
+        pub total: ::core::option::Option<u32>,
+        /// Лимиты для каждого типа реквизитов.
+        #[prost(message, repeated, tag = "2")]
+        pub per_type: ::prost::alloc::vec::Vec<limit::PerType>,
+    }
+    /// Nested message and enum types in `Limit`.
+    pub mod limit {
+        /// Лимит для конкретного типа реквизитов.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct PerType {
+            /// Тип реквизитов.
+            #[prost(message, optional, tag = "1")]
+            pub kind: ::core::option::Option<super::super::payment_details::Kind>,
+            /// Максимальное количество записей этого типа.
+            #[prost(uint32, tag = "2")]
+            pub value: u32,
+        }
     }
 }

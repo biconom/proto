@@ -2,9 +2,8 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
-import "biconom/types/distributor_policy.proto";
+import "biconom/types/relationship.proto";
 
 // Distributor представляет участника или узел в партнерской или дистрибьюторской сети.
 // Эта сущность связана с системным аккаунтом (Account) и может иметь иерархические связи.
@@ -69,4 +68,6 @@ message Distributor {
 	uint32 policy_id = 17; // ID политики, применяемой к этому дистрибьютору.
 	google.protobuf.Timestamp created_at = 18;
 	google.protobuf.Timestamp updated_at = 19;
+
+	biconom.types.Relationship.State relationship_state = 20;
 }
