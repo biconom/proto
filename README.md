@@ -9,46 +9,75 @@
 - **Код для стейджинга:** Для целей тестирования на стейджинговой среде код, генерируемый для подтверждения по электронной почте, равен "123456".
 
 - **Возможные ошибки:** Ниже приведен список возможных кодов ошибок, с которыми вы можете столкнуться:
-    - `GUEST_ACCESS_DENIED`: Доступ запрещен для гостевых пользователей.
-    - `UNIMPLEMENTED`: Запрошенная функциональность не реализована.
-    - `UNAUTHENTICATED`: Запрос требует аутентификации.
+    - `ACCESS_SCOPE_DENIED`: Доступ к запрошенной области запрещен.
+    - `ACCOUNT_INVALID_FORMAT`: Аккаунт имеет неверный формат.
+    - `ACCOUNT_NOT_FOUND`: Аккаунт не найден.
     - `AUTHORIZATION_EMPTY`: Заголовок авторизации пуст.
     - `AUTHORIZATION_WRONG`: Заголовок авторизации имеет некорректный формат или содержит недействительный токен.
+    - `COMMUNITY_UNSUPPORTED`: Указанное сообщество не поддерживается.
+    - `CONFIRMATION_CURSOR_INVALID`: Курсор подтверждения недействителен.
+    - `CONFIRMATION_FIELD_ATTEMPT_DURATION`: Прошло время для попыток подтверждения поля.
+    - `CONFIRMATION_FIELD_ATTEMPT_LIMITED`: Количество попыток для поля подтверждения ограничено.
+    - `CONFIRMATION_FIELD_DUPLICATE`: Поле подтверждения является дубликатом.
+    - `CONFIRMATION_FIELD_NOT_CHANEL`: Поле подтверждения не является допустимым каналом.
+    - `CONFIRMATION_FIELD_NOT_FOUND`: Поле подтверждения не найдено.
+    - `CONFIRMATION_INVALID_FILTER_STATUS`: Статус фильтра подтверждения недействителен.
+    - `CONFIRMATION_NOT_FOUND`: Подтверждение не найдено.
+    - `CONFIRMATION_STATUS_NOT_ACTIVE`: Статус подтверждения неактивен.
+    - `CURRENCY_INVALID_FILTER_KIND`: Неверный тип фильтра для валюты.
+    - `CURRENCY_INVALID_FILTER_STATUS`: Неверный статус фильтра для валюты.
+    - `CURRENCY_NOT_FOUND`: Валюта не найдена.
+    - `CURRENCY_PAIR_INVALID_FILTER_STATUS`: Неверный статус фильтра для валютной пары.
+    - `CURRENCY_PAIR_NOT_FOUND`: Валютная пара не найдена.
+    - `DISTRIBUTOR_CURSOR_NOT_FOUND`: Курсор для дистрибьютора не найден.
+    - `DISTRIBUTOR_CURSOR_WRONG`: Неверный курсор для дистрибьютора.
+    - `DISTRIBUTOR_INVALID_FORMAT`: Неверный формат дистрибьютора.
+    - `DISTRIBUTOR_NOT_FOUND`: Дистрибьютор не найден.
+    - `DISTRIBUTOR_PERMISSION_DENIED`: Доступ к дистрибьютору запрещен.
+    - `DISTRIBUTOR_USERNAME_BUSY`: Имя пользователя дистрибьютора уже занято.
+    - `DISTRIBUTOR_USERNAME_DISALLOWED_SEQUENCE`: Имя пользователя дистрибьютора содержит запрещенную последовательность символов.
+    - `DISTRIBUTOR_USERNAME_EMPTY`: Имя пользователя дистрибьютора не может быть пустым.
+    - `DISTRIBUTOR_USERNAME_ENDS_WITH_INVALID`: Имя пользователя дистрибьютора заканчивается недопустимым символом.
+    - `DISTRIBUTOR_USERNAME_FORMAT_INVALID`: Неверный формат имени пользователя дистрибьютора.
+    - `DISTRIBUTOR_USERNAME_INVALID_CHAR`: Имя пользователя дистрибьютора содержит недопустимые символы.
+    - `DISTRIBUTOR_USERNAME_STARTS_WITH_INVALID`: Имя пользователя дистрибьютора начинается с недопустимого символа.
+    - `DISTRIBUTOR_USERNAME_TOO_LONG`: Имя пользователя дистрибьютора слишком длинное.
+    - `DISTRIBUTOR_USERNAME_TOO_SHORT`: Имя пользователя дистрибьютора слишком короткое.
+    - `DISTRIBUTOR_VIEW_NOT_FOUND`: Просмотр дистрибьютора не найден.
+    - `DISTRIBUTOR_VIEW_PERMISSION_DENIED`: Доступ к просмотру дистрибьютора запрещен.
+    - `GOOGLE_AUTHENTICATOR_ALREADY_ENABLED`: Google Authenticator уже включен для этого аккаунта.
+    - `GOOGLE_AUTHENTICATOR_NOT_ENABLED`: Google Authenticator не включен для этого аккаунта.
+    - `GUEST_ACCESS_DENIED`: Доступ запрещен для гостевых пользователей.
     - `INTERNAL_ERROR`: Произошла непредвиденная внутренняя ошибка.
+    - `INVITE_LINK_DISABLED`: Пригласительная ссылка отключена.
+    - `INVITE_LINK_EXHAUSTED`: Лимит пригласительной ссылки исчерпан.
+    - `INVITE_LINK_NOT_FOUND`: Пригласительная ссылка не найдена.
+    - `INVITE_LINK_PERMISSION_DENIED`: Доступ к пригласительной ссылке запрещен.
+    - `INVITE_LINK_POOLS_REQUEST_EMPTY`: Запрос на пулы пригласительной ссылки пуст.
+    - `INVITE_LINK_POOLS_REQUEST_INVALID`: Запрос на пулы пригласительной ссылки недействителен.
     - `LIST_LIMIT_MAX_EXCEEDED`: Запрошенный лимит списка превышает максимально допустимый.
-    - `SORT_INVALID_DIRECTION`: Указано неверное направление сортировки.
-    - `SORT_DIRECTION_UNSPECIFIED`: Направление сортировки не указано, когда это требуется.
+    - `LOCALE_NOT_FOUND`: Локаль не найдена.
+    - `MNEMONIC_ALREADY_ENABLED`: Мнемоника уже включена для этого аккаунта.
+    - `MNEMONIC_NOT_ENABLED`: Мнемоника не включена для этого аккаунта.
+    - `NETWORK_NOT_FOUND`: Сеть не найдена.
+    - `PASSWORD_POLICY_NOT_FOUND`: Политика паролей не найдена.
+    - `SESSION_CURSOR_INVALID`: Курсор сессии недействителен.
+    - `SESSION_INACTIVE_CANCELLED`: Сессия неактивна из-за отмены.
+    - `SESSION_INACTIVE_EXPIRED`: Сессия неактивна из-за истечения срока действия.
+    - `SESSION_INACTIVE_REVOKED`: Сессия неактивна из-за отзыва.
+    - `SESSION_INACTIVE_TERMINATED`: Сессия неактивна из-за завершения.
+    - `SESSION_INVALID_FILTER_STATUS`: Статус фильтра сессии недействителен.
     - `SESSION_IS_ACTIVE`: Сессия уже активна.
     - `SESSION_IS_PENDING`: Сессия находится в состоянии ожидания.
     - `SESSION_NOT_FOUND`: Сессия не найдена.
-    - `SESSION_NOT_PRESENT`: Сессия отсутствует.
-    - `SESSION_INVALID_FORMAT`: Сессия имеет неверный формат.
-    - `SESSION_INACTIVE_CANCELLED`: Сессия неактивна из-за отмены.
-    - `SESSION_INACTIVE_REVOKED`: Сессия неактивна из-за отзыва.
-    - `SESSION_INACTIVE_EXPIRED`: Сессия неактивна из-за истечения срока действия.
-    - `SESSION_INACTIVE_TERMINATED`: Сессия неактивна из-за завершения.
-    - `SESSION_INVALID_FILTER_STATUS`: Статус фильтра сессии недействителен.
-    - `SESSION_CURSOR_INVALID`: Курсор сессии недействителен.
+    - `SLOT_INVALID_FORMAT`: Неверный формат слота.
+    - `SORT_DIRECTION_UNSPECIFIED`: Направление сортировки не указано, когда это требуется.
+    - `SORT_INVALID_DIRECTION`: Указано неверное направление сортировки.
+    - `UNAUTHENTICATED`: Запрос требует аутентификации.
+    - `UNIMPLEMENTED`: Запрошенная функциональность не реализована.
     - `USER_BANNED`: Пользователь заблокирован.
-    - `USER_PASSWORD_NOT_SET`: Пароль пользователя не установлен.
     - `USER_EMAIL_BUSY`: Указанный адрес электронной почты уже используется.
-    - `USER_EMAIL_ALREADY_EXISTS`: Аккаунт с такой почтой уже существует.
-    - `USER_NOT_AVAILABLE`: Пользователь недоступен.
-    - `ACCESS_SCOPE_DENIED`: Доступ к запрошенной области запрещен.
-    - `ACCOUNT_NOT_FOUND`: Аккаунт не найден.
-    - `ACCOUNT_NOT_AVAILABLE`: Аккаунт недоступен.
-    - `ACCOUNT_INVALID_FORMAT`: Аккаунт имеет неверный формат.
-    - `COMMUNITY_UNSUPPORTED`: Указанное сообщество не поддерживается.
-    - `GOOGLE_AUTHENTICATOR_NOT_ENABLED`: Google Authenticator не включен для этого аккаунта.
-    - `GOOGLE_AUTHENTICATOR_ALREADY_ENABLED`: Google Authenticator уже включен для этого аккаунта.
-    - `MNEMONIC_NOT_ENABLED`: Мнемоника не включена для этого аккаунта.
-    - `MNEMONIC_ALREADY_ENABLED`: Мнемоника уже включена для этого аккаунта.
-    - `CONFIRMATION_NOT_FOUND`: Подтверждение не найдено.
-    - `CONFIRMATION_STATUS_NOT_ACTIVE`: Статус подтверждения неактивен.
-    - `CONFIRMATION_INVALID_FILTER_STATUS`: Статус фильтра подтверждения недействителен.
-    - `CONFIRMATION_CURSOR_INVALID`: Курсор подтверждения недействителен.
-    - `CONFIRMATION_FIELD_NOT_FOUND`: Поле подтверждения не найдено.
-    - `CONFIRMATION_FIELD_NOT_CHANEL`: Поле подтверждения не является допустимым каналом.
-    - `CONFIRMATION_FIELD_ATTEMPT_LIMITED`: Количество попыток для поля подтверждения ограничено.
-    - `CONFIRMATION_FIELD_ATTEMPT_DURATION`: Прошло время для попыток подтверждения поля.
-    - `CONFIRMATION_FIELD_DUPLICATE`: Поле подтверждения является дубликатом.
+    - `USER_EMAIL_EMPTY`: Адрес электронной почты не может быть пустым.
+    - `USER_EMAIL_FORMAT_INVALID`: Неверный формат адреса электронной почты.
+    - `USER_EMAIL_TOO_LONG`: Адрес электронной почты слишком длинный.
+    - `USER_PASSWORD_NOT_SET`: Пароль пользователя не установлен.
