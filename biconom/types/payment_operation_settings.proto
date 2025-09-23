@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/calculation.proto";
+import "biconom/types/payment_network_operation_settings.proto";
+
+// === Универсальные настройки операции (депозит/вывод) ===
+message PaymentOperationSettings {
+	// Политика при выходе за пределы лимита
+	enum OutOfRangePolicy {
+		UNSPECIFIED = 0;
+		REJECT = 1;			// отклонить
+		HOLD = 2;			// зависает, требует ручной обработки
+		PARTIAL_ACCEPT = 3;	// принять частично (до max)
+		ACCEPT_FULL = 4;	// принять всю сумму (игнорировать max)
+	}
+
+	optional string min_amount = 1;				// Минимальная сумма (null = без лимита)
+	optional string max_amount = 2;				// Максимальная сумма (null = без лимита)
+
+	OutOfRangePolicy below_min_policy = 3;		// Политика для min
+	OutOfRangePolicy above_max_policy = 4;		// Политика для max
+
+	bool enabled = 5;							// Разрешена ли операция
+	biconom.types.CalculationGroup fee = 6;		// Комиссии
+
+	optional biconom.types.PaymentNetworkOperationSettings network_settings = 7; // Сетевые параметры
+}

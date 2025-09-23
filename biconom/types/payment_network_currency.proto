@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/payment_operation_settings.proto";
+import "google/protobuf/timestamp.proto";
+
+// Определяет, что платежная сеть поддерживает конкретную валюту,
+// и описывает статус этой поддержки.
+// Логическим ключом является пара (payment_network_id, currency_id).
+message PaymentNetworkCurrency {
+	// Составной идентификатор.
+	message Id {
+		uint32 payment_network_id = 1; // ID платежной сети.
+		uint32 currency_id = 2;        // ID валюты.
+	}
+
+	// Список связей.
+	message List {
+		repeated PaymentNetworkCurrency items = 1;
+	}
+
+	// Статус поддержки валюты в платежной сети.
+	message Status {
+		enum Id {
+			UNSPECIFIED = 0;
+			ACTIVE = 1;				// Связка "платежная сеть-валюта" активна и работает штатно.
+			INACTIVE = 2;			// Связка отключена администратором.
+			MAINTENANCE = 3;		// Временные ограничения (тех. работы). Операции могут быть недоступны.
+			RETIRED = 4;			// Поддержка прекращена и больше не будет возобновлена.
+		}
+	}
+
+	uint32 payment_network_id = 1;		// ID платежной сети (часть ключа).
+	uint32 currency_id = 2;				// ID валюты (часть ключа).
+	Status.Id status = 3;				// Статус поддержки валюты в платежной сети.
+
+	biconom.types.PaymentOperationSettings deposit_settings = 4;  // Настройки депозитов
+	biconom.types.PaymentOperationSettings withdraw_settings = 5; // Настройки выводов
+
+	google.protobuf.Timestamp created_at = 6;		// Время создания этой связи.
+	google.protobuf.Timestamp updated_at = 7;		// Время последнего обновления.
+}

@@ -10,7 +10,7 @@ message PaymentNetwork {
 	// Идентификатор для поиска платежной сети.
 	message Id {
 		oneof identifier {
-			uint32 id = 1;		// Глобальный числовой ID сети.
+			uint32 id = 1;		// Глобальный числовой ID платежной сети.
 			string code = 2;	// Уникальный строковый код (напр., "tron", "ethereum").
 		}
 	}
@@ -24,10 +24,10 @@ message PaymentNetwork {
 	message Status {
 		enum Id {
 			UNSPECIFIED = 0;	// Неопределенный статус.
-			ACTIVE = 1;			// Сеть работает в штатном режиме.
-			INACTIVE = 2;		// Сеть отключена администратором.
-			SUSPENDED = 3;		// Работа сети временно приостановлена (например, из-за проблем с сетью).
-			RETIRED = 4;		// Устаревшая сеть, не рекомендуется к использованию.
+			ACTIVE = 1;			// Платежная сеть работает в штатном режиме.
+			INACTIVE = 2;		// Платежная сеть отключена администратором.
+			SUSPENDED = 3;		// Работа платежной сети временно приостановлена (например, из-за проблем с ней).
+			RETIRED = 4;		// Устаревшая платежная сеть, не рекомендуется к использованию.
 		}
 	}
 
@@ -42,12 +42,12 @@ message PaymentNetwork {
 		}
 	}
 
-	uint32 id = 1;					// Глобальный числовой ID сети.
+	uint32 id = 1;					// Глобальный числовой ID платежной сети.
 	string code = 2;				// Уникальный код (tron, ethereum, sepa)
 	string name = 3;				// Человекочитаемое имя (Ethereum, SEPA)
-	Status.Id status = 4;			// Статус сети.
-	NetworkType.Id network_type = 5;	// Тип сети.
+	Status.Id status = 4;			// Статус платежной сети.
+	NetworkType.Id network_type = 5;	// Тип платежной сети.
 
-	google.protobuf.Timestamp created_at = 6;	// Время создания записи о сети.
+	google.protobuf.Timestamp created_at = 6;	// Время создания записи о платежной сети.
 	google.protobuf.Timestamp updated_at = 7;	// Время последнего обновления.
 }
