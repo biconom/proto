@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// === Сетевые параметры ===
+// NetworkOperationSettings инкапсулирует технические параметры, специфичные
+// для конкретного типа платежной сети (блокчейн, банк и т.д.).
+// Эта модель используется внутри PaymentOperationSettings для детализации
+// настроек ввода и вывода средств.
+message NetworkOperationSettings {
+	// === Настройки для блокчейнов ===
+	message Blockchain {
+		// --- Безопасность ---
+		// Количество подтверждений сети, после которого депозит считается успешным.
+		// Критически важный параметр для защиты от реорганизации блокчейна.
+		optional uint32 required_confirmations = 1;
+		// Альтернативный механизм определения финализации, основанный на вероятности (0..1).
+		// Используется в некоторых PoS-сетях, где нет строгих "подтверждений".
+		optional double finality_threshold = 2;
+
+		// --- Memo / Tag / Message ---
+		// Определяет, требуется ли для транзакций дополнительный идентификатор (Memo/Tag) и какого он типа.
+		enum MemoType {
+			MEMO_TYPE_UNSPECIFIED = 0;
+			NONE = 1;
+			TEXT = 2;
+			NUMBER = 3;
+			HASH = 4;
+		}
+		MemoType memo_type = 3;
+
+		// --- Форматы адресов ---
+		// Список форматов адресов, которые валидны для данной сети.
+		// Позволяет проводить валидацию на стороне клиента и сервера.
+		message AddressFormat {
+			enum Id {
+				UNSPECIFIED = 0;
+				EVM_HEX = 1;
+				BASE58 = 2;
+				BECH32 = 3;
+				BECH32M = 4;
+				COSMOS_BECH32 = 5;
+				SUBSTRATE_SS58 = 6;
+				SOLANA_BASE58 = 7;
+				CARDANO_BECH32 = 8;
+			}
+			Id id = 1;
+		}
+		repeated AddressFormat.Id supported_address_formats = 4;
+
+		// --- Типы контрактов / кошельков ---
+		// Список специфичных для блокчейна типов контрактов или кошельков, которые поддерживаются системой.
+		message ContractType {
+			enum Id {
+				UNSPECIFIED = 0;
+
+				// TON
+				TON_V3R1 = 1;
+				TON_V3R2 = 2;
+				TON_V4R2 = 3;
+				TON_HIGHLOAD = 4;
+				TON_JETTON = 5;
+
+				// EVM
+				EVM_ERC20 = 6;
+				EVM_ERC721 = 7;
+				EVM_ERC1155 = 8;
+
+				// BTC
+				BTC_MULTISIG = 9;
+			}
+			Id id = 1;
+		}
+		repeated ContractType.Id supported_contract_types = 5;
+
+		// --- Стандарты токенов ---
+		// Список стандартов токенов, поддерживаемых в этой сети.
+		message TokenStandard {
+			enum Id {
+				UNSPECIFIED = 0;
+				// ERC20 и его аналоги (BEP20, TRC20 и т.д.).
+				ERC20 = 1;
+				ERC721 = 2;
+				ERC1155 = 3;
+				// Solana Program Library (SPL).
+				SPL = 4;
+				// TON Jettons.
+				JETTON = 5;
+				// CosmWasm (CW20).
+				CW20 = 6;
+			}
+			Id id = 1;
+		}
+		repeated TokenStandard.Id supported_token_standards = 6;
+
+		// --- Оптимизации ---
+		// Поддержка пакетной отправки (одна транзакция с несколькими получателями).
+		bool supports_batching = 7;
+		// Поддержка мульти-пакетной отправки (одна бизнес-операция может породить несколько транзакций).
+		bool supports_multi_batching = 8;
+
+		// --- Нативная валюта ---
+		// ID нативной валюты сети, которая используется для оплаты комиссий (газа).
+		uint32 native_currency_id = 9;
+	}
+
+	oneof kind {
+		Blockchain blockchain = 1;
+	}
+}
