@@ -3,11 +3,9 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
 import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/network.proto";
-import "biconom/types/invite_link_policy.proto";
 
 // InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
 message InviteLink {

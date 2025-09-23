@@ -3,9 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "biconom/types/distributor.proto";
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
-import "biconom/types/distributor_branch_policy.proto";
 
 // DistributorBranch представляет собой иерархическую связь или "ветку" между дистрибьюторами.
 message DistributorBranch {
@@ -29,5 +27,4 @@ message DistributorBranch {
 	uint32 policy_id = 6; // Политика, управляющая поведением ветки.
 	google.protobuf.Timestamp created_at = 7;
 	google.protobuf.Timestamp updated_at = 8;
-	optional google.protobuf.Any additional_data = 9;
 }

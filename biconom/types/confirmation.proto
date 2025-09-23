@@ -2,14 +2,9 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
-import "biconom/types/confirmation_policy.proto";
 import "biconom/types/password_policy.proto";
 import "biconom/types/session.proto";
-import "biconom/types/account.proto";
-import "biconom/types/network.proto";
-import "biconom/types/distributor.proto";
 
 // Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
 message Confirmation {

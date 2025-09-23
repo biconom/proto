@@ -2,11 +2,9 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 import "biconom/types/user.proto";
 import "biconom/types/community.proto";
-import "biconom/types/account_policy.proto";
 
 // Account является универсальной учетной записью в системе.
 // Он представляет собой абстракцию, которая может ссылаться либо на пользователя (User),

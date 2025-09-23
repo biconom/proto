@@ -4,7 +4,6 @@ package biconom.types;
 
 import "google/protobuf/timestamp.proto";
 import "biconom/types/confirmation.proto";
-import "biconom/types/confirmation_policy.proto";
 
 // Mnemonic представляет конфигурацию для мнемонических фраз.
 message Mnemonic {

@@ -2,9 +2,7 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
-import "biconom/types/tree_policy.proto";
 
 // Tree представляет собой основную иерархическую структуру или сеть.
 // Она служит контейнером для слотов, дистрибьюторов и партиций.
@@ -39,5 +37,4 @@ message Tree {
 	uint32 policy_id = 8;						// Политика, управляющая поведением всего дерева.
 	google.protobuf.Timestamp created_at = 9;
 	google.protobuf.Timestamp updated_at = 10;
-	optional google.protobuf.Any additional_data = 11;
 }

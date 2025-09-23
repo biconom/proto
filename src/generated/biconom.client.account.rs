@@ -56,8 +56,8 @@ pub struct UserProfile {
     >,
     /// Реестр платежных реквизитов.
     #[prost(message, optional, tag = "5")]
-    pub payment_details_registry: ::core::option::Option<
-        super::super::types::PaymentDetailsRegistry,
+    pub payment_destination_registry: ::core::option::Option<
+        super::super::types::PaymentDestinationRegistry,
     >,
     /// Текущая локаль.
     #[prost(uint32, tag = "6")]

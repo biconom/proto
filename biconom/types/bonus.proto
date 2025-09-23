@@ -3,8 +3,6 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
-import "biconom/types/bonus_policy.proto";
 
 // Bonus представляет собой справочную информацию о бонусе, существующем в системе.
 // Вся логика его расчета и начисления определяется в связанной BonusPolicy.
@@ -29,5 +27,4 @@ message Bonus {
 	uint32 policy_id = 6;		// Политика, определяющая правила расчета и начисления бонуса.
 	google.protobuf.Timestamp created_at = 7;
 	google.protobuf.Timestamp updated_at = 8;
-	optional google.protobuf.Any additional_data = 9;
 }

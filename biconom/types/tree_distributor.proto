@@ -2,9 +2,7 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
-import "biconom/types/tree_distributor_policy.proto";
 
 // TreeDistributor представляет собой связь между деревом (Tree) и дистрибьютором (Distributor).
 message TreeDistributor {
@@ -36,5 +34,4 @@ message TreeDistributor {
 	uint64 trace_id = 7;
 	google.protobuf.Timestamp created_at = 8;
 	google.protobuf.Timestamp updated_at = 9;
-	optional google.protobuf.Any additional_data = 10;
 }

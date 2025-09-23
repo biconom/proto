@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "biconom/types/tree_partition_policy.proto";
-import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 // TreePartition представляет собой выделенную часть или "партицию" внутри дерева (Tree).
@@ -37,5 +35,4 @@ message TreePartition {
 	uint64 trace_id = 7;
 	google.protobuf.Timestamp created_at = 8;
 	google.protobuf.Timestamp updated_at = 9;
-	optional google.protobuf.Any additional_data = 10;
 }
