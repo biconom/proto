@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/payment_network_operation_settings.proto";
+import "google/protobuf/timestamp.proto";
+
+// PaymentDestination представляет собой запись в "адресной книге" пользователя.
+// Она хранит статичные, переиспользуемые реквизиты получателя средств (назначение платежа),
+// которые пользователь добавил в свой "белый список" для многократного использования,
+// как правило, для операций вывода.
+message PaymentDestination {
+    // Идентификатор для поиска назначения.
+    // Тип инструмента, используемый для установки лимитов по типам.
+    message InstrumentType {
+        enum Id {
+            UNSPECIFIED = 0;
+            BLOCKCHAIN = 1;
+            // BANK_ACCOUNT = 2; // Для будущего использования
+        }
+    }
+
+    message Id {
+        uint64 id = 1; // Уникальный ID записи в реестре пользователя.
+    }
+
+    // Статус жизненного цикла записи.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            // Запись активна и может быть использована для операций.
+            ACTIVE = 1;
+            // Запись архивирована, не отображается в общих списках,
+            // но доступен по прямому идентификатору.
+            ARCHIVED = 2;
+        }
+    }
+
+    message List {
+        repeated PaymentDestination items = 1;
+    }
+
+    // --- Основные данные ---
+    uint64 id = 1;         // Уникальный ID записи в реестре пользователя.
+    string name = 2;       // Пользовательское название (например, "Мой основной кошелек ETH").
+    Status.Id status = 3;  // Статус записи (активна/архивирована).
+
+    // --- Реквизиты инструмента ---
+
+    // Реквизиты для блокчейн-транзакции.
+    message Blockchain {
+        // Формат адреса кошелька. Используется для валидации и фильтрации
+        // совместимых платежных сетей при выводе.
+        biconom.types.PaymentNetworkOperationSettings.Blockchain.AddressFormat.Id address_format = 1;
+
+        // Адрес.
+        string address = 2;
+        
+        // Поле `memo` (или Tag/Message) намеренно отсутствует.
+        // Оно является специфичным для конкретной транзакции и должно запрашиваться
+        // у пользователя в момент создания вывода, если это требуется для выбранной платежной сети.
+    }
+
+    // Конкретные реквизиты, зависящие от типа инструмента.
+    oneof instrument_details {
+        Blockchain blockchain = 4; // В будущем здесь могут быть BankAccount и т.д.
+    }
+
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}

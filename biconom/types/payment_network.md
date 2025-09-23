@@ -32,4 +32,4 @@
 ## 5. Связи с другими моделями
 
 - **`PaymentNetworkCurrency`**: `PaymentNetwork` **используется** в этой модели для указания, какая платежная сеть (`payment_network_id`) поддерживает какую валюту (`currency_id`).
-- **`PaymentInstrument`**: Хотя прямой связи нет, `PaymentNetwork` предоставляет контекст для реквизитов в `PaymentInstrument`. Например, `CryptoWallet` с адресом `0x...` будет логически связан с платежной сетью (`PaymentNetwork`), у которой `code="ethereum"` или `code="bsc"`.
+- **`PaymentDestination`**: Прямой связи нет, но `PaymentNetwork` предоставляет контекст для реквизитов в `PaymentDestination`. Например, запись с реквизитами типа `Blockchain` и адресом `0x...` будет логически связана с платежной сетью (`PaymentNetwork`), у которой `code="ethereum"` или `code="bsc"`, через совпадение форматов адресов.

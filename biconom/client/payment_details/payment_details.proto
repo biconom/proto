@@ -3,11 +3,12 @@ syntax = "proto3";
 package biconom.client.payment_details;
 
 import "biconom/types/payment_details.proto";
+import "biconom/types/payment_instrument.proto";
 
 // Сервис для управления платежными реквизитами (белым списком).
 service PaymentDetailsService {
     // Получает список платежных реквизитов с возможностью фильтрации.
-    rpc List(ListRequest) returns (ListResponse);
+    rpc List(ListRequest) returns (biconom.types.PaymentDetails.List);
 
     // Создает новый платежный реквизит.
     rpc Create(CreateRequest) returns (biconom.types.PaymentDetails);
@@ -25,15 +26,9 @@ message ListRequest {
     optional biconom.types.PaymentDetails.Status.Id status = 2; // Фильтр по статусу реквизита.
 }
 
-message ListResponse {
-    repeated biconom.types.PaymentDetails items = 1;
-}
-
 message CreateRequest {
     string name = 1; // Пользовательское название реквизита.
-    oneof details {
-        biconom.types.PaymentDetails.CryptoWallet crypto_wallet = 2;
-    }
+    biconom.types.PaymentInstrument instrument = 2; // Конкретные данные реквизита.
 }
 
 message UpdateRequest {

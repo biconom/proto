@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/payment_destination.proto";
+
+// PaymentDestinationRegistry представляет собой "адресную книгу" (реестр)
+// назначений платежей, сохраненных пользователем, вместе с лимитами.
+message PaymentDestinationRegistry {
+    // Лимиты на количество записей в реестре.
+    message Limit {
+        // Лимит для конкретного типа назначений.
+        message PerType {
+            biconom.types.PaymentDestination.InstrumentType.Id type = 1; // Тип назначения.
+            // Максимальное количество записей этого типа. Если поле отсутствует, лимит не применяется.
+            optional uint32 value = 2;
+        }
+
+        optional uint32 total = 1; // Общий лимит на количество записей в реестре.
+        repeated PerType per_type = 2; // Лимиты для каждого типа назначений.
+    }
+
+    repeated biconom.types.PaymentDestination entries = 1; // Список сохраненных назначений платежей.
+    optional Limit limit = 2; // Лимиты на количество записей.
+}

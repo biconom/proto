@@ -20,14 +20,16 @@ message PaymentNetworkOperationSettings {
 
 		// --- Memo / Tag / Message ---
 		// Определяет, требуется ли для транзакций дополнительный идентификатор (Memo/Tag) и какого он типа.
-		enum MemoType {
-			UNSPECIFIED = 0;
-			NONE = 1;
-			TEXT = 2;
-			NUMBER = 3;
-			HASH = 4;
+		message MemoType {
+			enum Id {
+				UNSPECIFIED = 0;
+				NONE = 1;
+				TEXT = 2;
+				NUMBER = 3;
+				HASH = 4;
+			}
 		}
-		MemoType memo_type = 3;
+		MemoType.Id memo_type = 3;
 
 		// --- Форматы адресов ---
 		// Список форматов адресов, которые валидны для данной сети.
