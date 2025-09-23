@@ -7,43 +7,47 @@ import "google/protobuf/timestamp.proto";
 // Модель, описывающая платежную сеть или расчетную схему.
 // Пример: блокчейн (Tron, Ethereum), банковская система (SEPA, SWIFT), внешняя платежная система (PayPal, Stripe).
 message PaymentNetwork {
-	// Идентификатор для поиска платежного шлюза.
+	// Идентификатор для поиска платежной сети.
 	message Id {
 		oneof identifier {
-			uint32 id = 1;		// Глобальный числовой ID шлюза.
+			uint32 id = 1;		// Глобальный числовой ID сети.
 			string code = 2;	// Уникальный строковый код (напр., "tron", "ethereum").
 		}
 	}
 
-	// Список платежных шлюзов.
+	// Список платежных сетей.
 	message List {
 		repeated PaymentNetwork items = 1;
 	}
 
-	// Статус платежного шлюза.
-	enum Status {
-		STATUS_UNSPECIFIED = 0;			// Неопределенный статус.
-		STATUS_ACTIVE = 1;				// Шлюз работает в штатном режиме.
-		STATUS_INACTIVE = 2;			// Шлюз отключен администратором.
-		STATUS_SUSPENDED = 3;			// Работа шлюза временно приостановлена (например, из-за проблем с сетью).
-		STATUS_RETIRED = 4;				// Устаревший шлюз, не рекомендуется к использованию.
+	// Статус платежной сети.
+	message Status {
+		enum Id {
+			UNSPECIFIED = 0;	// Неопределенный статус.
+			ACTIVE = 1;			// Сеть работает в штатном режиме.
+			INACTIVE = 2;		// Сеть отключена администратором.
+			SUSPENDED = 3;		// Работа сети временно приостановлена (например, из-за проблем с сетью).
+			RETIRED = 4;		// Устаревшая сеть, не рекомендуется к использованию.
+		}
 	}
 
-	// Тип платежного шлюза, помогает группировать и применять общую логику.
-	enum NetworkType {
-		NETWORK_TYPE_UNSPECIFIED = 0;		// Тип не определен.
-		NETWORK_TYPE_BLOCKCHAIN = 1;		// Сеть блокчейна (напр., Tron, Ethereum).
-		NETWORK_TYPE_BANK = 2;				// Банковская система (напр., SWIFT, SEPA).
-		NETWORK_TYPE_PAYMENT_SYSTEM = 3;	// Внешняя платежная система (напр., PayPal, Stripe).
-		NETWORK_TYPE_MANUAL = 4;			// Внутренняя операция, проводимая вручную (напр., зачисление/выдача наличных).
+	// Тип платежной сети, помогает группировать и применять общую логику.
+	message NetworkType {
+		enum Id {
+			UNSPECIFIED = 0;		// Тип не определен.
+			BLOCKCHAIN = 1;			// Сеть блокчейна (напр., Tron, Ethereum).
+			BANK = 2;				// Банковская система (напр., SWIFT, SEPA).
+			PAYMENT_SYSTEM = 3;		// Внешняя платежная система (напр., PayPal, Stripe).
+			MANUAL = 4;				// Внутренняя операция, проводимая вручную (напр., зачисление/выдача наличных).
+		}
 	}
 
-	uint32 id = 1;					// Глобальный числовой ID шлюза.
+	uint32 id = 1;					// Глобальный числовой ID сети.
 	string code = 2;				// Уникальный код (tron, ethereum, sepa)
 	string name = 3;				// Человекочитаемое имя (Ethereum, SEPA)
-	Status status = 4;				// Статус сети.
-	NetworkType network_type = 5;	// Тип сети.
+	Status.Id status = 4;			// Статус сети.
+	NetworkType.Id network_type = 5;	// Тип сети.
 
-	google.protobuf.Timestamp created_at = 6;	// Время создания записи о шлюзе.
+	google.protobuf.Timestamp created_at = 6;	// Время создания записи о сети.
 	google.protobuf.Timestamp updated_at = 7;	// Время последнего обновления.
 }
