@@ -28,6 +28,11 @@ message PaymentNetworkOperationSettings {
 				NUMBER = 3;
 				HASH = 4;
 			}
+			// Список типов Memo.
+			message List {
+				repeated Id items = 1;
+			}
+			Id id = 1;
 		}
 		MemoType.Id memo_type = 3;
 
@@ -45,6 +50,10 @@ message PaymentNetworkOperationSettings {
 				SUBSTRATE_SS58 = 6;
 				SOLANA_BASE58 = 7;
 				CARDANO_BECH32 = 8;
+			}
+			// Список форматов адресов.
+			message List {
+				repeated Id items = 1;
 			}
 			Id id = 1;
 		}
@@ -71,6 +80,10 @@ message PaymentNetworkOperationSettings {
 				// BTC
 				BTC_MULTISIG = 9;
 			}
+			// Список типов контрактов.
+			message List {
+				repeated Id items = 1;
+			}
 			Id id = 1;
 		}
 		repeated ContractType.Id supported_contract_types = 5;
@@ -90,6 +103,10 @@ message PaymentNetworkOperationSettings {
 				JETTON = 5;
 				// CosmWasm (CW20).
 				CW20 = 6;
+			}
+			// Список стандартов токенов.
+			message List {
+				repeated Id items = 1;
 			}
 			Id id = 1;
 		}

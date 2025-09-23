@@ -18,6 +18,10 @@ message PaymentDestination {
             BLOCKCHAIN = 1;
             // BANK_ACCOUNT = 2; // Для будущего использования
         }
+        message List {
+            repeated Id items = 1;
+        }
+        Id id = 1;
     }
 
     message Id {
@@ -34,6 +38,7 @@ message PaymentDestination {
             // но доступен по прямому идентификатору.
             ARCHIVED = 2;
         }
+        Id id = 1;
     }
 
     message List {

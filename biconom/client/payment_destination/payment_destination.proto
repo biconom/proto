@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package biconom.client.payment_destination;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/payment_destination_registry.proto";
+import "biconom/types/payment_destination.proto";
+import "biconom/types/payment_network_operation_settings.proto";
+
+// Сервис для управления "адресной книгой" пользователя (списком назначений платежей).
+service PaymentDestinationService {
+    // Получает весь реестр (адресную книгу) пользователя, включая список записей и лимиты.
+    rpc GetRegistry(google.protobuf.Empty) returns (biconom.types.PaymentDestinationRegistry);
+
+    // Получает одно сохраненное назначение платежа по его ID.
+    rpc Get(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+
+    // Получает список сохраненных назначений платежей с возможностью гибкой фильтрации.
+    rpc List(ListRequest) returns (biconom.types.PaymentDestination.List);
+
+    // Создает новое назначение платежа.
+    rpc Create(CreateRequest) returns (biconom.types.PaymentDestination);
+
+    // Обновляет имя существующего назначения.
+    rpc UpdateName(UpdateNameRequest) returns (biconom.types.PaymentDestination);
+
+    // Архивирует назначение, убирая его из активных списков.
+    rpc Archive(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+
+    // Активирует (восстанавливает из архива) назначение.
+    rpc Activate(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+}
+
+message ListRequest {
+    // Фильтр по статусу. Если не указан, возвращаются только ACTIVE.
+    optional biconom.types.PaymentDestination.Status.Id status = 1;
+
+    // Фильтр по типу инструмента.
+    optional biconom.types.PaymentDestination.InstrumentType.Id instrument_type = 2;
+
+    // Фильтр по формату, специфичному для типа инструмента.
+    // Должен использоваться только вместе с соответствующим `instrument_type`.
+    oneof format_filter {
+        biconom.types.PaymentNetworkOperationSettings.Blockchain.AddressFormat.List blockchain_formats = 3;
+    }
+}
+
+message CreateRequest {
+    // Пользовательское название для нового назначения.
+    string name = 1;
+
+    // Конкретные реквизиты, зависящие от типа инструмента.
+    oneof instrument_details {
+        biconom.types.PaymentDestination.Blockchain blockchain = 2;
+    }
+}
+
+message UpdateNameRequest {
+    // ID назначения, которое нужно обновить.
+    uint64 destination_id = 1;
+    // Новое имя.
+    string name = 2;
+}
