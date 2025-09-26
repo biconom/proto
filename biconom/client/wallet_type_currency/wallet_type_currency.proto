@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package biconom.client.wallet_type_currency;
+
+import "biconom/types/currency.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/wallet_type.proto";
+import "biconom/types/wallet_type_currency.proto";
+
+// Сервис для получения информации о поддержке валют в типах кошельков.
+service WalletTypeCurrencyService {
+    // Получить информацию о конкретной связке "тип кошелька-валюта" по ее составному ключу.
+    rpc Get(biconom.types.WalletTypeCurrency.Id) returns (biconom.types.WalletTypeCurrency);
+
+    // Получить список связок "тип кошелька-валюта" с фильтрацией и пагинацией.
+    rpc List(ListRequest) returns (biconom.types.WalletTypeCurrency.List);
+}
+
+// Запрос на получение списка связок.
+message ListRequest {
+    // Фильтр по одному или нескольким типам кошельков.
+    repeated biconom.types.WalletType.Id filter_wallet_type_ids = 1;
+
+    // Фильтр по одной или нескольким валютам.
+    repeated biconom.types.Currency.Id filter_currency_ids = 2;
+
+    // Курсор для пагинации.
+    optional biconom.types.WalletTypeCurrency.Id cursor = 3;
+
+    optional biconom.types.Sort sort = 4;
+}

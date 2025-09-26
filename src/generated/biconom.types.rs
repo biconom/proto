@@ -243,6 +243,25 @@ pub mod account {
         Community(super::Community),
     }
 }
+/// Asset представляет собой любой тип актива, который может быть учтен на счете (Ledger).
+/// Это может быть как финансовая единица, так и инвентарный объект.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Asset {
+    #[prost(oneof = "asset::Kind", tags = "1, 2")]
+    pub kind: ::core::option::Option<asset::Kind>,
+}
+/// Nested message and enum types in `Asset`.
+pub mod asset {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Kind {
+        /// ID валюты.
+        #[prost(uint32, tag = "1")]
+        CurrencyId(u32),
+        /// ID инвентарной единицы (для будущего использования).
+        #[prost(uint64, tag = "2")]
+        InventoryId(u64),
+    }
+}
 /// AccountPolicy определяет набор правил для группы аккаунтов.
 /// Конкретная логика политики (например, блокировка всех операций) реализуется на бэкенде.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -3901,44 +3920,32 @@ pub mod referral_link_policy {
         pub items: ::prost::alloc::vec::Vec<super::ReferralLinkPolicy>,
     }
 }
-/// Модель, представляющая собой "Хранилище" или "Счет" (Ledger).
-/// Это атомарная единица для хранения средств одной валюты, принадлежащая одному Владельцу.
-/// Каждый Ledger подчиняется определенному набору правил (LedgerPolicy).
+/// Ledger - это атомарный счет для учета активов одной валюты.
+/// Он хранит общую сумму зачислений и списаний, из которых вычисляется текущий баланс.
+/// Поведение счета регулируется набором флагов.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Ledger {
     #[prost(uint64, tag = "1")]
     pub id: u64,
-    /// Глобальный ID сущности-владельца (User, Account, etc.).
-    #[prost(string, tag = "2")]
-    pub owner_object_id: ::prost::alloc::string::String,
-    /// ID Политики, которой подчиняется это Хранилище.
-    #[prost(uint32, tag = "3")]
-    pub ledger_policy_id: u32,
-    /// ID валюты, которая хранится здесь.
-    #[prost(uint32, tag = "4")]
-    pub currency_id: u32,
-    /// --- Балансы ---
-    ///
-    /// Фактическое количество средств, которое хранится на счете.
+    /// Актив, который учитывается на этом счете.
+    #[prost(message, optional, tag = "2")]
+    pub asset: ::core::option::Option<Asset>,
+    /// Общая сумма всех кредитовых операций (зачислений).
+    #[prost(string, tag = "3")]
+    pub credit_total: ::prost::alloc::string::String,
+    /// Общая сумма всех дебетовых операций (списаний).
+    #[prost(string, tag = "4")]
+    pub debit_total: ::prost::alloc::string::String,
+    /// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
     #[prost(string, tag = "5")]
-    pub total_balance: ::prost::alloc::string::String,
-    /// Баланс, которым можно распоряжаться. Рассчитывается как: total_balance - on_hold_outgoing_balance.
-    #[prost(string, tag = "6")]
-    pub available_balance: ::prost::alloc::string::String,
-    /// Сумма, заблокированная под ИСХОДЯЩИЕ операции.
-    #[prost(string, tag = "7")]
-    pub on_hold_outgoing_balance: ::prost::alloc::string::String,
-    /// Сумма, ожидающая ЗАЧИСЛЕНИЯ. НЕ является частью total_balance.
-    #[prost(string, tag = "8")]
-    pub on_hold_incoming_balance: ::prost::alloc::string::String,
-    #[prost(enumeration = "ledger::Status", tag = "9")]
-    pub status: i32,
-    #[prost(message, optional, tag = "10")]
+    pub overdraft_limit: ::prost::alloc::string::String,
+    /// Бинарная маска флагов из `Ledger.Flags.Id`.
+    #[prost(uint32, tag = "6")]
+    pub flags: u32,
+    #[prost(message, optional, tag = "7")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
+    #[prost(message, optional, tag = "8")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "12")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
 /// Nested message and enum types in `Ledger`.
 pub mod ledger {
@@ -3947,50 +3954,64 @@ pub mod ledger {
         #[prost(uint64, tag = "1")]
         pub id: u64,
     }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Ledger>,
-    }
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        Unspecified = 0,
-        Active = 1,
-        Frozen = 2,
-        Closed = 3,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "STATUS_UNSPECIFIED",
-                Self::Active => "ACTIVE",
-                Self::Frozen => "FROZEN",
-                Self::Closed => "CLOSED",
-            }
+    /// Флаги, управляющие поведением счета. Представлены в виде битовой маски.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Flags {}
+    /// Nested message and enum types in `Flags`.
+    pub mod flags {
+        /// Id представляет собой порядковый номер бита в маске.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            /// Разрешить дебет (списания).
+            AllowDebit = 0,
+            /// Разрешить кредит (зачисления).
+            AllowCredit = 1,
+            /// Разрешить сторнирование (отмену) проведённых транзакций.
+            AllowReversal = 2,
+            /// Разрешить отрицательный баланс (уйти в минус).
+            AllowNegative = 3,
+            /// Разрешить использовать лимит овердрафта.
+            AllowOverdraftLimit = 4,
+            /// Блокировать любые новые транзакции (счёт заморожен).
+            Locked = 5,
         }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-                "ACTIVE" => Some(Self::Active),
-                "FROZEN" => Some(Self::Frozen),
-                "CLOSED" => Some(Self::Closed),
-                _ => None,
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::AllowDebit => "ALLOW_DEBIT",
+                    Self::AllowCredit => "ALLOW_CREDIT",
+                    Self::AllowReversal => "ALLOW_REVERSAL",
+                    Self::AllowNegative => "ALLOW_NEGATIVE",
+                    Self::AllowOverdraftLimit => "ALLOW_OVERDRAFT_LIMIT",
+                    Self::Locked => "LOCKED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "ALLOW_DEBIT" => Some(Self::AllowDebit),
+                    "ALLOW_CREDIT" => Some(Self::AllowCredit),
+                    "ALLOW_REVERSAL" => Some(Self::AllowReversal),
+                    "ALLOW_NEGATIVE" => Some(Self::AllowNegative),
+                    "ALLOW_OVERDRAFT_LIMIT" => Some(Self::AllowOverdraftLimit),
+                    "LOCKED" => Some(Self::Locked),
+                    _ => None,
+                }
             }
         }
     }
@@ -4275,6 +4296,40 @@ pub mod ledger_transaction {
                 _ => None,
             }
         }
+    }
+}
+/// Модель, определяющая "Политику" или "набор правил" для Хранилища (Ledger).
+/// Она задает, какие операции разрешены для счетов, подчиняющихся этой политике.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LedgerPolicy {
+    /// Глобальный числовой ID Политики.
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики (например, "Standard User Policy", "System Pool Policy").
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Список типов транзакций, которые РАЗРЕШЕНЫ для счетов с этой политикой.
+    /// Если список пуст, могут быть разрешены все операции (зависит от логики сервера).
+    #[prost(enumeration = "ledger_transaction::Kind", repeated, tag = "3")]
+    pub allowed_transaction_kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, optional, tag = "4")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "5")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `LedgerPolicy`.
+pub mod ledger_policy {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::LedgerPolicy>,
     }
 }
 /// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
@@ -5172,5 +5227,338 @@ pub mod user_policy {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::UserPolicy>,
+    }
+}
+/// WalletOperation определяет типы операций, которые могут быть разрешены или запрещены.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WalletOperation {}
+/// Nested message and enum types in `WalletOperation`.
+pub mod wallet_operation {
+    /// Id представляет собой порядковый номер бита в маске.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Id {
+        /// Депозиты (ввод средств).
+        Deposit = 0,
+        /// Выводы (вывод средств).
+        Withdraw = 1,
+        /// Отправка внутреннего перевода.
+        InternalTransferSend = 2,
+        /// Получение внутреннего перевода.
+        InternalTransferReceive = 3,
+        /// Платежи (оплата внутренних услуг, подписок).
+        Payment = 4,
+    }
+    impl Id {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Deposit => "DEPOSIT",
+                Self::Withdraw => "WITHDRAW",
+                Self::InternalTransferSend => "INTERNAL_TRANSFER_SEND",
+                Self::InternalTransferReceive => "INTERNAL_TRANSFER_RECEIVE",
+                Self::Payment => "PAYMENT",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "DEPOSIT" => Some(Self::Deposit),
+                "WITHDRAW" => Some(Self::Withdraw),
+                "INTERNAL_TRANSFER_SEND" => Some(Self::InternalTransferSend),
+                "INTERNAL_TRANSFER_RECEIVE" => Some(Self::InternalTransferReceive),
+                "PAYMENT" => Some(Self::Payment),
+                _ => None,
+            }
+        }
+    }
+}
+/// WalletType - тип кошелька (например, "Спотовый", "Маржинальный").
+/// Определяет, какие валюты в принципе могут быть в кошельках данного типа.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WalletType {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальный код типа ("SPOT", "MARGIN")
+    #[prost(string, tag = "2")]
+    pub code: ::prost::alloc::string::String,
+    /// Человекочитаемое имя ("Спотовый кошелек")
+    #[prost(string, tag = "3")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    /// Статус жизненного цикла.
+    #[prost(enumeration = "wallet_type::status::Id", tag = "5")]
+    pub status: i32,
+    /// Битовая маска флагов разрешенных операций. Позиции битов определяются в `WalletOperation.Id`.
+    #[prost(uint32, tag = "6")]
+    pub allowed_operations_flags: u32,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `WalletType`.
+pub mod wallet_type {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальный код, например "SPOT", "MARGIN"
+            #[prost(string, tag = "2")]
+            Code(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::WalletType>,
+    }
+    /// Статус жизненного цикла типа кошелька.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Тип кошелька активен и доступен.
+            Active = 1,
+            /// Временно на тех. обслуживании.
+            Maintenance = 2,
+            /// Устарел и больше не используется.
+            Retired = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Maintenance => "MAINTENANCE",
+                    Self::Retired => "RETIRED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "MAINTENANCE" => Some(Self::Maintenance),
+                    "RETIRED" => Some(Self::Retired),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+/// WalletTypeCurrency - связь между типом кошелька и валютой.
+/// Определяет, доступна ли валюта в данном типе кошелька и с какими ограничениями.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WalletTypeCurrency {
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<wallet_type_currency::Id>,
+    /// "Мастер-выключатель". Если true, валюта полностью отключена в этом типе кошелька.
+    #[prost(bool, tag = "2")]
+    pub disabled: bool,
+    /// Битовая маска флагов запрещенных операций. Позиции битов определяются в `WalletOperation.Id`.
+    #[prost(uint32, tag = "3")]
+    pub disabled_operations_flags: u32,
+}
+/// Nested message and enum types in `WalletTypeCurrency`.
+pub mod wallet_type_currency {
+    /// Составной идентификатор.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub wallet_type_id: u32,
+        #[prost(uint32, tag = "2")]
+        pub currency_id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::WalletTypeCurrency>,
+    }
+}
+/// WalletBalance - это подробное представление баланса одного актива в кошельке пользователя.
+/// Оно объединяет данные из Ledger (фактический, "бухгалтерский" баланс) с агрегированными
+/// данными о транзакциях в ожидании, которые еще не отражены на счете.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WalletBalance {
+    /// Фактический бухгалтерский счет.
+    /// Содержит asset, credit_total, debit_total, из которых вычисляется текущий подтвержденный баланс.
+    #[prost(message, optional, tag = "1")]
+    pub ledger: ::core::option::Option<Ledger>,
+    /// Сводка по всем внутренним операциям в ожидании для данного актива.
+    #[prost(message, optional, tag = "2")]
+    pub pending_internal_operations: ::core::option::Option<
+        wallet_balance::PendingInternalOperations,
+    >,
+    /// Сводка по всем внешним (сетевым) операциям в ожидании для данного актива.
+    #[prost(message, optional, tag = "3")]
+    pub pending_payment_network_operations: ::core::option::Option<
+        wallet_balance::PendingPaymentNetworkOperations,
+    >,
+}
+/// Nested message and enum types in `WalletBalance`.
+pub mod wallet_balance {
+    /// Сводка по операциям в определенном статусе.
+    /// Эта модель переиспользуется для всех типов ожидающих операций.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct StatusSummary {
+        /// Статус транзакции (например, "PENDING", "EXECUTED").
+        /// Используется числовое значение из `biconom.types.LedgerTransaction.Status`.
+        #[prost(uint32, tag = "1")]
+        pub status_id: u32,
+        /// Общая сумма транзакций в этом статусе.
+        #[prost(string, tag = "2")]
+        pub total_amount: ::prost::alloc::string::String,
+        /// Количество транзакций в этом статусе.
+        #[prost(uint32, tag = "3")]
+        pub transaction_count: u32,
+    }
+    /// Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PendingInternalOperations {
+        /// Сводка по всем ожидающим входящим операциям (получение переводов, будущие бонусы), сгруппированная по статусам.
+        #[prost(message, repeated, tag = "1")]
+        pub incoming: ::prost::alloc::vec::Vec<StatusSummary>,
+        /// Сводка по всем ожидающим исходящим операциям (отправка переводов, заморозка под оплату), сгруппированная по статусам.
+        #[prost(message, repeated, tag = "2")]
+        pub outgoing: ::prost::alloc::vec::Vec<StatusSummary>,
+    }
+    /// Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PendingPaymentNetworkOperations {
+        /// Сводка по всем ожидающим депозитам, сгруппированная по статусам.
+        #[prost(message, repeated, tag = "1")]
+        pub deposits: ::prost::alloc::vec::Vec<StatusSummary>,
+        /// Сводка по всем ожидающим выводам, сгруппированная по статусам.
+        #[prost(message, repeated, tag = "2")]
+        pub withdrawals: ::prost::alloc::vec::Vec<StatusSummary>,
+    }
+}
+/// Wallet - это экземпляр кошелька, принадлежащий конкретному владельцу (Account).
+/// Он создается на основе WalletType и содержит набор счетов (Ledger) для каждой валюты.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Wallet {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// ID владельца (ссылка на biconom.types.Account).
+    #[prost(uint32, tag = "2")]
+    pub account_id: u32,
+    /// ID типа, на основе которого создан кошелек.
+    #[prost(uint32, tag = "3")]
+    pub wallet_type_id: u32,
+    /// Текущий статус этого экземпляра кошелька.
+    #[prost(enumeration = "wallet::status::Id", tag = "4")]
+    pub status: i32,
+    /// Битовая маска флагов операций, принудительно запрещенных для этого конкретного экземпляра кошелька.
+    /// Позиции битов определяются в `WalletOperation.Id`.
+    #[prost(uint32, tag = "5")]
+    pub disabled_operations_flags: u32,
+    /// Список счетов (Ledger) внутри этого кошелька.
+    /// Каждый счет соответствует одной уникальной валюте.
+    #[prost(message, repeated, tag = "6")]
+    pub balances: ::prost::alloc::vec::Vec<WalletBalance>,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Wallet`.
+pub mod wallet {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Wallet>,
+    }
+    /// Статус жизненного цикла экземпляра кошелька.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Кошелек активен и работает штатно.
+            Active = 1,
+            /// Кошелек заморожен администратором. Все операции заблокированы.
+            Frozen = 2,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Frozen => "FROZEN",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "FROZEN" => Some(Self::Frozen),
+                    _ => None,
+                }
+            }
+        }
     }
 }

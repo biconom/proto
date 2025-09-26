@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// WalletTypeCurrency - связь между типом кошелька и валютой.
+// Определяет, доступна ли валюта в данном типе кошелька и с какими ограничениями.
+message WalletTypeCurrency {
+    // Составной идентификатор.
+    message Id {
+        uint32 wallet_type_id = 1;
+        uint32 currency_id = 2;
+    }
+
+    message List {
+        repeated WalletTypeCurrency items = 1;
+    }
+
+    Id id = 1;
+    // "Мастер-выключатель". Если true, валюта полностью отключена в этом типе кошелька.
+    bool disabled = 2;
+    // Битовая маска флагов запрещенных операций. Позиции битов определяются в `WalletOperation.Id`.
+    uint32 disabled_operations_flags = 3;
+}

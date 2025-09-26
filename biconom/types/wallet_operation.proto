@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// WalletOperation определяет типы операций, которые могут быть разрешены или запрещены.
+message WalletOperation {
+    // Id представляет собой порядковый номер бита в маске.
+    enum Id {
+        DEPOSIT = 0;                   // Депозиты (ввод средств).
+        WITHDRAW = 1;                  // Выводы (вывод средств).
+        INTERNAL_TRANSFER_SEND = 2;    // Отправка внутреннего перевода.
+        INTERNAL_TRANSFER_RECEIVE = 3; // Получение внутреннего перевода.
+        PAYMENT = 4;                   // Платежи (оплата внутренних услуг, подписок).
+    }
+}

@@ -2,42 +2,47 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/any.proto";
+import "biconom/types/asset.proto";
 import "google/protobuf/timestamp.proto";
 
-// Модель, представляющая собой "Хранилище" или "Счет" (Ledger).
-// Это атомарная единица для хранения средств одной валюты, принадлежащая одному Владельцу.
-// Каждый Ledger подчиняется определенному набору правил (LedgerPolicy).
+// Ledger - это атомарный счет для учета активов одной валюты.
+// Он хранит общую сумму зачислений и списаний, из которых вычисляется текущий баланс.
+// Поведение счета регулируется набором флагов.
 message Ledger {
 	message Id {
 		uint64 id = 1;
 	}
 
-	message List {
-		repeated Ledger items = 1;
-	}
-
-	enum Status {
-		STATUS_UNSPECIFIED = 0;
-		ACTIVE = 1;
-		FROZEN = 2;
-		CLOSED = 3;
+	// Флаги, управляющие поведением счета. Представлены в виде битовой маски.
+	message Flags {
+		// Id представляет собой порядковый номер бита в маске.
+		enum Id {
+			ALLOW_DEBIT = 0;           // Разрешить дебет (списания).
+			ALLOW_CREDIT = 1;          // Разрешить кредит (зачисления).
+			ALLOW_REVERSAL = 2;        // Разрешить сторнирование (отмену) проведённых транзакций.
+			ALLOW_NEGATIVE = 3;        // Разрешить отрицательный баланс (уйти в минус).
+			ALLOW_OVERDRAFT_LIMIT = 4; // Разрешить использовать лимит овердрафта.
+			LOCKED = 5;                // Блокировать любые новые транзакции (счёт заморожен).
+		}
 	}
 
 	uint64 id = 1;
-	string owner_object_id = 2;				// Глобальный ID сущности-владельца (User, Account, etc.).
-	uint32 ledger_policy_id = 3;			// ID Политики, которой подчиняется это Хранилище.
-	uint32 currency_id = 4;					// ID валюты, которая хранится здесь.
+	// Актив, который учитывается на этом счете.
+	Asset asset = 2;
 
-	// --- Балансы ---
-	string total_balance = 5;				// Фактическое количество средств, которое хранится на счете.
-	string available_balance = 6;			// Баланс, которым можно распоряжаться. Рассчитывается как: total_balance - on_hold_outgoing_balance.
-	string on_hold_outgoing_balance = 7;	// Сумма, заблокированная под ИСХОДЯЩИЕ операции.
-	string on_hold_incoming_balance = 8;	// Сумма, ожидающая ЗАЧИСЛЕНИЯ. НЕ является частью total_balance.
+	// --- Основные балансовые показатели ---
+	// Все значения хранятся как строки для поддержки высокой точности.
 
-	Status status = 9;
+	// Общая сумма всех кредитовых операций (зачислений).
+	string credit_total = 3;
+	// Общая сумма всех дебетовых операций (списаний).
+	string debit_total = 4;
+	// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
+	string overdraft_limit = 5;
 
-	google.protobuf.Timestamp created_at = 10;
-	google.protobuf.Timestamp updated_at = 11;
-	optional google.protobuf.Any additional_data = 12;
+	// Бинарная маска флагов из `Ledger.Flags.Id`.
+	uint32 flags = 6;
+
+	google.protobuf.Timestamp created_at = 7;
+	google.protobuf.Timestamp updated_at = 8;
 }

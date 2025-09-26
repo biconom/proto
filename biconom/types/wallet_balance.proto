@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/ledger.proto";
+
+// WalletBalance - это подробное представление баланса одного актива в кошельке пользователя.
+// Оно объединяет данные из Ledger (фактический, "бухгалтерский" баланс) с агрегированными
+// данными о транзакциях в ожидании, которые еще не отражены на счете.
+message WalletBalance {
+    // Сводка по операциям в определенном статусе.
+    // Эта модель переиспользуется для всех типов ожидающих операций.
+    message StatusSummary {
+        // Статус транзакции (например, "PENDING", "EXECUTED").
+        // Используется числовое значение из `biconom.types.LedgerTransaction.Status`.
+        uint32 status_id = 1;
+        string total_amount = 2;    // Общая сумма транзакций в этом статусе.
+        uint32 transaction_count = 3; // Количество транзакций в этом статусе.
+    }
+
+    // Фактический бухгалтерский счет.
+    // Содержит asset, credit_total, debit_total, из которых вычисляется текущий подтвержденный баланс.
+    Ledger ledger = 1;
+
+    // Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
+    message PendingInternalOperations {
+        // Сводка по всем ожидающим входящим операциям (получение переводов, будущие бонусы), сгруппированная по статусам.
+        repeated StatusSummary incoming = 1;
+
+        // Сводка по всем ожидающим исходящим операциям (отправка переводов, заморозка под оплату), сгруппированная по статусам.
+        repeated StatusSummary outgoing = 2;
+    }
+
+    // Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
+    message PendingPaymentNetworkOperations {
+        // Сводка по всем ожидающим депозитам, сгруппированная по статусам.
+        repeated StatusSummary deposits = 1;
+
+        // Сводка по всем ожидающим выводам, сгруппированная по статусам.
+        repeated StatusSummary withdrawals = 2;
+    }
+
+    // Сводка по всем внутренним операциям в ожидании для данного актива.
+    optional PendingInternalOperations pending_internal_operations = 2;
+
+    // Сводка по всем внешним (сетевым) операциям в ожидании для данного актива.
+    optional PendingPaymentNetworkOperations pending_payment_network_operations = 3;
+}

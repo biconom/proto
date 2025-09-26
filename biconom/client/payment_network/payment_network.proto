@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package biconom.client.payment_network;
+
+import "biconom/types/payment_network.proto";
+import "biconom/types/sort.proto";
+
+// Сервис для получения справочной информации о платежных сетях.
+service PaymentNetworkService {
+	// Получить информацию о платежной сети по ее идентификатору.
+	rpc Get(biconom.types.PaymentNetwork.Id) returns (biconom.types.PaymentNetwork);
+
+	// Получить список платежных сетей с пагинацией.
+	rpc List(ListRequest) returns (biconom.types.PaymentNetwork.List);
+}
+
+// Запрос на получение списка платежных сетей.
+message ListRequest {
+	// Фильтр по статусу платежной сети.
+	// Если не указан, возвращаются сети со всеми статусами.
+	repeated biconom.types.PaymentNetwork.Status.Id filter_statuses = 1;
+
+	// Фильтр по типу платежной сети.
+	repeated biconom.types.PaymentNetwork.NetworkType.Id filter_network_types = 2;
+
+	// Курсор для пагинации.
+	// В качестве значения используется `id` последней полученной записи.
+	optional biconom.types.PaymentNetwork.Id cursor = 3;
+
+	// Параметры сортировки и лимита.
+	optional biconom.types.Sort sort = 4;
+}

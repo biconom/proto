@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package biconom.client.wallet_type;
+
+import "biconom/types/sort.proto";
+import "biconom/types/wallet_type.proto";
+
+// Сервис для получения справочной информации о типах кошельков.
+service WalletTypeService {
+    // Получить информацию о типе кошелька по его идентификатору.
+    rpc Get(biconom.types.WalletType.Id) returns (biconom.types.WalletType);
+
+    // Получить список типов кошельков с пагинацией.
+    rpc List(ListRequest) returns (biconom.types.WalletType.List);
+}
+
+// Запрос на получение списка типов кошельков.
+message ListRequest {
+    // Фильтр по статусу типа кошелька.
+    // Если не указан, возвращаются типы со всеми статусами.
+    repeated biconom.types.WalletType.Status.Id filter_statuses = 1;
+
+    // Курсор для пагинации.
+    // В качестве значения используется `id` последней полученной записи.
+    optional biconom.types.WalletType.Id cursor = 2;
+
+    // Параметры сортировки и лимита.
+    optional biconom.types.Sort sort = 3;
+}

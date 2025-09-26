@@ -1,51 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Compiling proto files...");
 
-    /*tonic_build::configure()
-        .out_dir("src/generated")
-        .build_server(true)
-        .build_client(true)
-        .file_descriptor_set_path("src/generated/private_file_descriptor_set.bin")
-        .compile_protos(&[
-            "proto/mlmbox/private/gen_event_img/gen_event_img.proto",
-        ], &["proto"])
-        .unwrap_or_else(|e| panic!("Failed to compile protos: {:?}", e));*/
-
-    /*tonic_build::configure()
-        .out_dir("src/generated")
-        .type_attribute(".", "#[derive(serde::Serialize)]")
-        .build_server(false)
-        .build_client(false)
-        .compile_protos(&[
-            "proto/mlmbox/local/types/account.proto",
-            "proto/mlmbox/local/types/asset.proto",
-            "proto/mlmbox/local/types/asset_pair.proto",
-            "proto/mlmbox/local/types/distribution.proto",
-            "proto/mlmbox/local/types/error.proto",
-            "proto/mlmbox/local/types/google_authenticator.proto",
-            "proto/mlmbox/local/types/processing.proto",
-            "proto/mlmbox/local/types/telegram_bot_events.proto",
-            "proto/mlmbox/local/types/uploader.proto",
-            "proto/mlmbox/local/types/wallet.proto",
-
-            "proto/mlmbox/local/account/account.proto",
-            "proto/mlmbox/local/app/app.proto",
-            "proto/mlmbox/local/asset/asset.proto",
-            "proto/mlmbox/local/asset/coin_market_cap.proto",
-            "proto/mlmbox/local/asset_pair/asset_pair.proto",
-            "proto/mlmbox/local/binary/binary.proto",
-            "proto/mlmbox/local/distribution/distribution.proto",
-            "proto/mlmbox/local/exchanger/exchanger.proto",
-            "proto/mlmbox/local/finance/pool_hunter.proto",
-            "proto/mlmbox/local/finance/wallet.proto",
-            "proto/mlmbox/local/gift_shop/gift_shop.proto",
-            "proto/mlmbox/local/google_authenticator/google_authenticator.proto",
-            "proto/mlmbox/local/locale/locale.proto",
-            "proto/mlmbox/local/matrix/matrix.proto",
-            "proto/mlmbox/local/product/product.proto",
-        ], &["proto"])
-        .unwrap_or_else(|e| panic!("Failed to compile protos: {:?}", e));*/
-
     tonic_prost_build::configure()
         // .out_dir(std::path::Path::new("src/generated").as_ref())
         .out_dir("src/generated")
@@ -56,6 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .file_descriptor_set_path("src/generated/biconom_file_descriptor.bin")
         .compile_protos(&[
                 "biconom/types/account.proto",
+                "biconom/types/asset.proto",
                 "biconom/types/account_policy.proto",
                 "biconom/types/bonus.proto",
                 "biconom/types/bonus_policy.proto",
@@ -94,6 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/invite_link.proto",
                 "biconom/types/invite_link_policy.proto",
                 "biconom/types/ledger.proto",
+                "biconom/types/ledger_policy.proto",
                 "biconom/types/ledger_transaction.proto",
                 "biconom/types/relationship.proto",
                 "biconom/types/rounding.proto",
@@ -114,6 +71,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/tree_partition_policy.proto",
                 "biconom/types/user.proto",
                 "biconom/types/user_policy.proto",
+                "biconom/types/wallet_operation.proto",
+                "biconom/types/wallet_type.proto",
+                "biconom/types/wallet_type_currency.proto",
+                "biconom/types/wallet_balance.proto",
+                "biconom/types/wallet.proto",
 
                 "biconom/client/account/account.proto",
                 "biconom/client/auth/auth.proto",
@@ -127,7 +89,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/client/mnemonic/mnemonic.proto",
                 "biconom/client/password_policy/password_policy.proto",
                 "biconom/client/payment_destination/payment_destination.proto",
+                "biconom/client/payment_network/payment_network.proto",
+                "biconom/client/payment_network_currency/payment_network_currency.proto",
                 "biconom/client/session/session.proto",
+                "biconom/client/wallet_type/wallet_type.proto",
+                "biconom/client/wallet_type_currency/wallet_type_currency.proto",
         ], &["proto"])
         .unwrap_or_else(|e| panic!("Failed to compile protos: {:?}", e));
 

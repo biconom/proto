@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// WalletType - тип кошелька (например, "Спотовый", "Маржинальный").
+// Определяет, какие валюты в принципе могут быть в кошельках данного типа.
+message WalletType {
+    message Id {
+        oneof identifier {
+            uint32 id = 1;
+            string code = 2; // Уникальный код, например "SPOT", "MARGIN"
+        }
+    }
+
+    message List {
+        repeated WalletType items = 1;
+    }
+
+    // Статус жизненного цикла типа кошелька.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            ACTIVE = 1;      // Тип кошелька активен и доступен.
+            MAINTENANCE = 2; // Временно на тех. обслуживании.
+            RETIRED = 3;     // Устарел и больше не используется.
+        }
+    }
+
+    uint32 id = 1;
+    string code = 2;        // Уникальный код типа ("SPOT", "MARGIN")
+    string name = 3;        // Человекочитаемое имя ("Спотовый кошелек")
+    string description = 4; // Описание
+    Status.Id status = 5;   // Статус жизненного цикла.
+
+    // Битовая маска флагов разрешенных операций. Позиции битов определяются в `WalletOperation.Id`.
+    uint32 allowed_operations_flags = 6;
+
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
