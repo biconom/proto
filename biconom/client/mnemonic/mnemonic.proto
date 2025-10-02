@@ -6,8 +6,16 @@ import "biconom/types/mnemonic.proto";
 import "biconom/types/confirmation.proto";
 import "google/protobuf/empty.proto";
 
+// Сервис для управления мнемонической фразой пользователя.
 service MnemonicService {
+	// Получает текущее состояние функции мнемонической фразы для пользователя.
+	// Возвращает объект Mnemonic, где поле `enabled` показывает,
+	// установлена ли фраза. Сама фраза этим методом не возвращается.
 	rpc Get(google.protobuf.Empty) returns (biconom.types.Mnemonic);
+	// Инициирует процесс создания и сохранения мнемонической фразы.
+	// Возвращает форму подтверждения, которую необходимо завершить через ConfirmationService.
 	rpc Enable(google.protobuf.Empty) returns (biconom.types.Confirmation);
+	// Инициирует процесс удаления мнемонической фразы.
+	// Возвращает форму подтверждения, которую необходимо завершить через ConfirmationService.
 	rpc Disable(google.protobuf.Empty) returns (biconom.types.Confirmation);
 }
