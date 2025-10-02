@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/client/locale/locale.proto",
                 "biconom/client/mnemonic/mnemonic.proto",
                 "biconom/client/password_policy/password_policy.proto",
-                "biconom/client/payment_destination/payment_destination.proto",
+                // "biconom/client/payment_destination/payment_destination.proto",
                 "biconom/client/payment_network/payment_network.proto",
                 "biconom/client/payment_network_currency/payment_network_currency.proto",
                 "biconom/client/session/session.proto",

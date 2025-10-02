@@ -20,6 +20,7 @@
 - `payment_network_id`: ID платежной сети.
 - `currency_id`: ID валюты.
 - `status`: Операционный статус связки "платежная сеть-валюта" (`ACTIVE`, `INACTIVE`, `MAINTENANCE`, `RETIRED`). Не зависит от статуса самой платежной сети или валюты.
+- `network_settings`: Экземпляр `PaymentNetworkOperationSettings`, содержащий технические параметры, специфичные для данной сети (например, количество подтверждений для блокчейна).
 - `deposit_settings`: Экземпляр модели `PaymentOperationSettings`, содержащий все правила для операций пополнения (лимиты, комиссии, доступность).
 - `withdraw_settings`: Экземпляр модели `PaymentOperationSettings`, содержащий все правила для операций вывода.
 - `created_at`: Время создания записи о связке.
@@ -27,7 +28,7 @@
 
 ## 4. Сценарии использования
 
-- **Настройка USDT в платежной сети Ethereum**: Администратор создает запись `PaymentNetworkCurrency` с `payment_network_id` для Ethereum и `currency_id` для USDT. В `deposit_settings` он устанавливает минимальную сумму депозита и комиссии. В `withdraw_settings` он устанавливает лимиты на вывод и включает операцию (`enabled = true`).
+- **Настройка USDT в сети Ethereum**: Администратор создает запись `PaymentNetworkCurrency` с `payment_network_id` для Ethereum и `currency_id` для USDT. В `network_settings` он указывает количество подтверждений. В `deposit_settings` он устанавливает минимальную сумму депозита. В `withdraw_settings` он устанавливает лимиты на вывод и включает операцию (`enabled = true`).
 - **Временное отключение выводов**: Если в платежной сети Ethereum высокая нагрузка и дорогие комиссии, администратор может обновить `withdraw_settings.enabled` на `false`, не затрагивая при этом возможность пополнения счета.
 
 ## 5. Связи с другими моделями
@@ -35,3 +36,4 @@
 - **`PaymentNetwork`**: `PaymentNetworkCurrency` **ссылается** на `PaymentNetwork` через поле `payment_network_id`.
 - **`Currency`**: `PaymentNetworkCurrency` **ссылается** на `Currency` через поле `currency_id`.
 - **`PaymentOperationSettings`**: `PaymentNetworkCurrency` **встраивает** два экземпляра этой модели в поля `deposit_settings` и `withdraw_settings` для детальной настройки операций.
+- **`PaymentNetworkOperationSettings`**: `PaymentNetworkCurrency` **опционально встраивает** эту модель для хранения специфичных для сети технических параметров.

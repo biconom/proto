@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package biconom.types;
 
+import "google/protobuf/timestamp.proto";
+
 // WalletTypeCurrency - связь между типом кошелька и валютой.
 // Определяет, доступна ли валюта в данном типе кошелька и с какими ограничениями.
 message WalletTypeCurrency {
@@ -20,4 +22,7 @@ message WalletTypeCurrency {
     bool disabled = 2;
     // Битовая маска флагов запрещенных операций. Позиции битов определяются в `WalletOperation.Id`.
     uint32 disabled_operations_flags = 3;
+
+	google.protobuf.Timestamp created_at = 4;
+	google.protobuf.Timestamp updated_at = 5;
 }

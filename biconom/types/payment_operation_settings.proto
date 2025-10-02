@@ -3,7 +3,6 @@ syntax = "proto3";
 package biconom.types;
 
 import "biconom/types/calculation.proto";
-import "biconom/types/payment_network_operation_settings.proto";
 
 // === Универсальные настройки операции (депозит/вывод) ===
 message PaymentOperationSettings {
@@ -26,6 +25,4 @@ message PaymentOperationSettings {
 
 	bool enabled = 5;							// Разрешена ли операция
 	biconom.types.CalculationGroup fee = 6;		// Комиссии
-
-	optional biconom.types.PaymentNetworkOperationSettings network_settings = 7; // Сетевые параметры
 }

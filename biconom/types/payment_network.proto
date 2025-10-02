@@ -45,9 +45,10 @@ message PaymentNetwork {
 	uint32 id = 1;					// Глобальный числовой ID платежной сети.
 	string code = 2;				// Уникальный код (tron, ethereum, sepa)
 	string name = 3;				// Человекочитаемое имя (Ethereum, SEPA)
-	Status.Id status = 4;			// Статус платежной сети.
-	NetworkType.Id network_type = 5;	// Тип платежной сети.
+	string description = 4;			// Описание
+	Status.Id status = 5;			// Статус платежной сети.
+	NetworkType.Id network_type = 6;	// Тип платежной сети.
 
-	google.protobuf.Timestamp created_at = 6;	// Время создания записи о платежной сети.
-	google.protobuf.Timestamp updated_at = 7;	// Время последнего обновления.
+	google.protobuf.Timestamp created_at = 7;	// Время создания записи о платежной сети.
+	google.protobuf.Timestamp updated_at = 8;	// Время последнего обновления.
 }

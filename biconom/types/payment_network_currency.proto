@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "biconom/types/payment_operation_settings.proto";
+import "biconom/types/payment_network_operation_settings.proto";
 import "google/protobuf/timestamp.proto";
 
 // Определяет, что платежная сеть поддерживает конкретную валюту,
@@ -26,15 +27,15 @@ message PaymentNetworkCurrency {
 			UNSPECIFIED = 0;
 			ACTIVE = 1;				// Связка "платежная сеть-валюта" активна и работает штатно.
 			INACTIVE = 2;			// Связка отключена администратором.
-			MAINTENANCE = 3;		// Временные ограничения (тех. работы). Операции могут быть недоступны.
+			SUSPENDED = 3;			// Временные ограничения (тех. работы). Операции могут быть недоступны.
 			RETIRED = 4;			// Поддержка прекращена и больше не будет возобновлена.
 		}
 	}
 
-	uint32 payment_network_id = 1;		// ID платежной сети (часть ключа).
-	uint32 currency_id = 2;				// ID валюты (часть ключа).
-	Status.Id status = 3;				// Статус поддержки валюты в платежной сети.
-
+    Id id = 1;
+	Status.Id status = 2;				// Статус поддержки валюты в платежной сети.
+	
+	biconom.types.PaymentNetworkOperationSettings network_settings = 3; // Технические параметры, специфичные для данной платежной сети.
 	biconom.types.PaymentOperationSettings deposit_settings = 4;  // Настройки депозитов
 	biconom.types.PaymentOperationSettings withdraw_settings = 5; // Настройки выводов
 
