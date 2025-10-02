@@ -16,6 +16,8 @@ import "biconom/types/network.proto";
 
 import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
+import "biconom/types/wallet.proto";
+import "biconom/types/wallet_currency.proto";
 
 // Сервис для получения набора всех основных справочных данных системы.
 service DictionaryService {
@@ -45,5 +47,7 @@ message PublicResponse {
 // Ответ, содержащий все данные текущего пользователя.
 message CurrentStateResponse {
     biconom.types.Account account = 1;
-    repeated biconom.types.Distributor distributors = 2;
+    repeated biconom.types.Distributor distributors = 2; // Список дистрибьюторов, принадлежащих авторизованному аккаунту.
+    repeated biconom.types.Wallet wallets = 3; // Список кошельков пользователя.
+    repeated biconom.types.WalletCurrency wallet_currencies = 4; // Плоский список всех балансов пользователя по всем кошелькам.
 }

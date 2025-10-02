@@ -27,11 +27,16 @@
       - `supports_batching`: Флаг, указывающий на поддержку пакетной отправки (одна транзакция с несколькими получателями).
       - `supports_multi_batching`: Флаг, указывающий на поддержку мульти-пакетной отправки (одна бизнес-операция может породить несколько транзакций).
     - `native_currency_id`: ID нативной валюты платежной сети, которая используется для оплаты комиссий (газа).
+    - `deposit_requisites`: **Ключевое поле для UI**. Если оно заполнено, это означает, что система использует централизованный адрес для депозитов. Содержит сам адрес, который нужно показать пользователю. Если поле `memo_type` при этом не `NONE`, клиент должен также запросить у пользователя `memo`.
 
 ## 4. Сценарии использования
 
 - **Настройка депозитов для USDT в платежной сети Tron**: Администратор настраивает `PaymentNetworkCurrency` для пары (платежная сеть Tron, валюта USDT). В `deposit_settings` он указывает `network_settings`, где `kind` установлен в `blockchain`. Внутри `Blockchain` он задает `required_confirmations = 20`, `memo_type = NONE`, `supported_address_formats = [BASE58]`, `supported_token_standards = [ERC20]` (для TRC20) и `native_currency_id` для TRX.
+- **Настройка депозитов для XRP**: Администратор настраивает пару (XRP Ledger, XRP). В `network_settings.blockchain` он указывает:
+  - `memo_type = NUMBER` (т.к. XRP использует числовые Destination Tag).
+  - `deposit_requisites.address` = "r...".
+  Теперь клиентское приложение знает, что для пополнения XRP нужно показать пользователю адрес "r..." и обязательно запросить у него числовой `Destination Tag`.
 
 ## 5. Связи с другими моделями
 
-- **`PaymentOperationSettings`**: `PaymentNetworkOperationSettings` **является встраиваемой частью** этой модели. Поле `network_settings` содержит экземпляр `PaymentNetworkOperationSettings`, детализируя технические аспекты операции.
+- **`PaymentNetworkCurrency`**: `PaymentNetworkOperationSettings` **является встраиваемой частью** этой модели. Поле `network_settings` содержит экземпляр `PaymentNetworkOperationSettings`, детализируя технические аспекты связки "сеть-валюта".

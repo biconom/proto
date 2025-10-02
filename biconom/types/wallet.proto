@@ -2,16 +2,11 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "biconom/types/wallet_balance.proto";
 import "google/protobuf/timestamp.proto";
 
 // Wallet - это экземпляр кошелька, принадлежащий конкретному владельцу (Account).
 // Он создается на основе WalletType и содержит набор счетов (Ledger) для каждой валюты.
 message Wallet {
-    message Id {
-        uint32 id = 1;
-    }
-
     message List {
         repeated Wallet items = 1;
     }
@@ -25,20 +20,14 @@ message Wallet {
         }
     }
 
-    uint32 id = 1;
-    uint32 account_id = 2;     // ID владельца (ссылка на biconom.types.Account).
-    uint32 wallet_type_id = 3;   // ID типа, на основе которого создан кошелек.
+    uint32 wallet_type_id = 1;   // ID типа, на основе которого создан кошелек.
 
-    Status.Id status = 4; // Текущий статус этого экземпляра кошелька.
+    Status.Id status = 2; // Текущий статус этого экземпляра кошелька.
 
     // Битовая маска флагов операций, принудительно запрещенных для этого конкретного экземпляра кошелька.
     // Позиции битов определяются в `WalletOperation.Id`.
-    uint32 disabled_operations_flags = 5;
+    uint32 disabled_operations_flags = 3;
 
-    // Список счетов (Ledger) внутри этого кошелька.
-    // Каждый счет соответствует одной уникальной валюте.
-    repeated biconom.types.WalletBalance balances = 6;
-
-    google.protobuf.Timestamp created_at = 7;
-    google.protobuf.Timestamp updated_at = 8;
+    google.protobuf.Timestamp created_at = 4;
+    google.protobuf.Timestamp updated_at = 5;
 }

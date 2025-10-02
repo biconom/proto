@@ -30,8 +30,15 @@ pub struct PublicResponse {
 pub struct CurrentStateResponse {
     #[prost(message, optional, tag = "1")]
     pub account: ::core::option::Option<super::super::types::Account>,
+    /// Список дистрибьюторов, принадлежащих авторизованному аккаунту.
     #[prost(message, repeated, tag = "2")]
     pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    /// Список кошельков пользователя.
+    #[prost(message, repeated, tag = "3")]
+    pub wallets: ::prost::alloc::vec::Vec<super::super::types::Wallet>,
+    /// Плоский список всех балансов пользователя по всем кошелькам.
+    #[prost(message, repeated, tag = "4")]
+    pub wallet_currencies: ::prost::alloc::vec::Vec<super::super::types::WalletCurrency>,
 }
 /// Generated server implementations.
 pub mod dictionary_service_server {

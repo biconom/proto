@@ -52,6 +52,12 @@ pub mod biconom {
 		pub mod payment_network_currency {
 			include!("generated/biconom.client.payment_network_currency.rs");
 		}
+		pub mod wallet {
+			include!("generated/biconom.client.wallet.rs");
+		}
+		pub mod wallet_currency {
+			include!("generated/biconom.client.wallet_currency.rs");
+		}
 	}
 	pub mod types {
 		include!("generated/biconom.types.rs");

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package biconom.client.wallet_currency;
+
+import "biconom/types/currency.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/wallet_type.proto";
+import "biconom/types/wallet_currency.proto";
+
+// Сервис для получения информации о балансах (валютах) в кошельках пользователя.
+service WalletCurrencyService {
+    // Получить информацию о конкретном балансе по его составному ключу.
+    // ID аккаунта берется из контекста авторизации.
+    rpc Get(biconom.types.WalletCurrency.Id) returns (biconom.types.WalletCurrency);
+
+    // Получить список балансов пользователя с фильтрацией и пагинацией.
+    // ID аккаунта берется из контекста авторизации.
+    rpc List(ListRequest) returns (biconom.types.WalletCurrency.List);
+}
+
+// Запрос на получение списка балансов.
+message ListRequest {
+    // Фильтр по одному или нескольким типам кошельков.
+    repeated biconom.types.WalletType.Id filter_wallet_type_ids = 1;
+
+    // Фильтр по одной или нескольким валютам.
+    repeated biconom.types.Currency.Id filter_currency_ids = 2;
+
+    // Курсор для пагинации.
+    optional biconom.types.WalletCurrency.Id cursor = 3;
+
+    optional biconom.types.Sort sort = 4;
+}

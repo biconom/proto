@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.
+// Оно объединяет подтвержденный баланс с агрегированными данными о транзакциях в ожидании.
+message WalletCurrency {
+    message Id {
+        uint32 wallet_type_id = 1; // ID типа кошелька.
+        uint32 currency_id = 2;    // ID валюты.
+    }
+    
+    message List {
+        repeated WalletCurrency items = 1;
+    }
+
+    // Сводка по операциям в определенном статусе.
+    // Эта модель переиспользуется для всех типов ожидающих операций.
+    message StatusSummary {
+        string total_amount = 1;    // Общая сумма транзакций в этом статусе.
+        uint32 transaction_count = 2; // Количество транзакций в этом статусе.
+    }
+
+    // Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
+    message PendingInternalOperations {
+        // Входящие операции (получение переводов, будущие бонусы).
+        optional StatusSummary incoming_pending = 1;
+        // Исходящие операции (отправка переводов, заморозка под оплату).
+        optional StatusSummary outgoing_pending = 2;
+    }
+
+    // Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
+    message PendingPaymentNetworkOperations {
+        // Депозиты, ожидающие подтверждения в сети.
+        optional StatusSummary deposits_pending = 1;
+        // Выводы, ожидающие отправки или подтверждения в сети.
+        optional StatusSummary withdrawals_pending = 2;
+    }
+
+    Id id = 1;
+    string balance = 2; // Подтвержденный баланс.
+    uint32 transactions_quantity = 3; // Общее количество подтвержденных транзакций по этому балансу.
+    optional PendingInternalOperations pending_internal_operations = 4; // Сводка по всем внутренним операциям в ожидании.
+    optional PendingPaymentNetworkOperations pending_payment_network_operations = 5; // Сводка по всем внешним (сетевым) операциям в ожидании.
+}

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package biconom.client.wallet;
+
+import "biconom/types/sort.proto";
+import "biconom/types/wallet.proto";
+import "biconom/types/wallet_type.proto";
+
+// Сервис для получения информации о кошельках текущего пользователя.
+service WalletService {
+    // Получить информацию о конкретном кошельке текущего пользователя по его типу.
+    // ID аккаунта берется из контекста авторизации.
+    rpc Get(biconom.types.WalletType.Id) returns (biconom.types.Wallet);
+
+    // Получить список кошельков текущего пользователя с фильтрацией и пагинацией.
+    // ID аккаунта берется из контекста авторизации.
+    rpc List(ListRequest) returns (biconom.types.Wallet.List);
+}
+
+// Запрос на получение списка кошельков.
+message ListRequest {
+    // Фильтр по статусу кошелька.
+    repeated biconom.types.Wallet.Status.Id filter_statuses = 1;
+    // Курсор для пагинации. В качестве значения используется `wallet_type_id` последней полученной записи.
+    optional biconom.types.WalletType.Id cursor = 2;
+    // Параметры сортировки и лимита.
+    optional biconom.types.Sort sort = 3;
+}

@@ -5475,99 +5475,27 @@ pub mod wallet_type_currency {
         pub items: ::prost::alloc::vec::Vec<super::WalletTypeCurrency>,
     }
 }
-/// WalletBalance - это подробное представление баланса одного актива в кошельке пользователя.
-/// Оно объединяет данные из Ledger (фактический, "бухгалтерский" баланс) с агрегированными
-/// данными о транзакциях в ожидании, которые еще не отражены на счете.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WalletBalance {
-    /// Фактический бухгалтерский счет.
-    /// Содержит asset, credit_total, debit_total, из которых вычисляется текущий подтвержденный баланс.
-    #[prost(message, optional, tag = "1")]
-    pub ledger: ::core::option::Option<Ledger>,
-    /// Сводка по всем внутренним операциям в ожидании для данного актива.
-    #[prost(message, optional, tag = "2")]
-    pub pending_internal_operations: ::core::option::Option<
-        wallet_balance::PendingInternalOperations,
-    >,
-    /// Сводка по всем внешним (сетевым) операциям в ожидании для данного актива.
-    #[prost(message, optional, tag = "3")]
-    pub pending_payment_network_operations: ::core::option::Option<
-        wallet_balance::PendingPaymentNetworkOperations,
-    >,
-}
-/// Nested message and enum types in `WalletBalance`.
-pub mod wallet_balance {
-    /// Сводка по операциям в определенном статусе.
-    /// Эта модель переиспользуется для всех типов ожидающих операций.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct StatusSummary {
-        /// Статус транзакции (например, "PENDING", "EXECUTED").
-        /// Используется числовое значение из `biconom.types.LedgerTransaction.Status`.
-        #[prost(uint32, tag = "1")]
-        pub status_id: u32,
-        /// Общая сумма транзакций в этом статусе.
-        #[prost(string, tag = "2")]
-        pub total_amount: ::prost::alloc::string::String,
-        /// Количество транзакций в этом статусе.
-        #[prost(uint32, tag = "3")]
-        pub transaction_count: u32,
-    }
-    /// Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct PendingInternalOperations {
-        /// Сводка по всем ожидающим входящим операциям (получение переводов, будущие бонусы), сгруппированная по статусам.
-        #[prost(message, repeated, tag = "1")]
-        pub incoming: ::prost::alloc::vec::Vec<StatusSummary>,
-        /// Сводка по всем ожидающим исходящим операциям (отправка переводов, заморозка под оплату), сгруппированная по статусам.
-        #[prost(message, repeated, tag = "2")]
-        pub outgoing: ::prost::alloc::vec::Vec<StatusSummary>,
-    }
-    /// Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct PendingPaymentNetworkOperations {
-        /// Сводка по всем ожидающим депозитам, сгруппированная по статусам.
-        #[prost(message, repeated, tag = "1")]
-        pub deposits: ::prost::alloc::vec::Vec<StatusSummary>,
-        /// Сводка по всем ожидающим выводам, сгруппированная по статусам.
-        #[prost(message, repeated, tag = "2")]
-        pub withdrawals: ::prost::alloc::vec::Vec<StatusSummary>,
-    }
-}
 /// Wallet - это экземпляр кошелька, принадлежащий конкретному владельцу (Account).
 /// Он создается на основе WalletType и содержит набор счетов (Ledger) для каждой валюты.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Wallet {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// ID владельца (ссылка на biconom.types.Account).
-    #[prost(uint32, tag = "2")]
-    pub account_id: u32,
     /// ID типа, на основе которого создан кошелек.
-    #[prost(uint32, tag = "3")]
+    #[prost(uint32, tag = "1")]
     pub wallet_type_id: u32,
     /// Текущий статус этого экземпляра кошелька.
-    #[prost(enumeration = "wallet::status::Id", tag = "4")]
+    #[prost(enumeration = "wallet::status::Id", tag = "2")]
     pub status: i32,
     /// Битовая маска флагов операций, принудительно запрещенных для этого конкретного экземпляра кошелька.
     /// Позиции битов определяются в `WalletOperation.Id`.
-    #[prost(uint32, tag = "5")]
+    #[prost(uint32, tag = "3")]
     pub disabled_operations_flags: u32,
-    /// Список счетов (Ledger) внутри этого кошелька.
-    /// Каждый счет соответствует одной уникальной валюте.
-    #[prost(message, repeated, tag = "6")]
-    pub balances: ::prost::alloc::vec::Vec<WalletBalance>,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "4")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "5")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `Wallet`.
 pub mod wallet {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
@@ -5619,5 +5547,76 @@ pub mod wallet {
                 }
             }
         }
+    }
+}
+/// WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.
+/// Оно объединяет подтвержденный баланс с агрегированными данными о транзакциях в ожидании.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WalletCurrency {
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<wallet_currency::Id>,
+    /// Подтвержденный баланс.
+    #[prost(string, tag = "2")]
+    pub balance: ::prost::alloc::string::String,
+    /// Общее количество подтвержденных транзакций по этому балансу.
+    #[prost(uint32, tag = "3")]
+    pub transactions_quantity: u32,
+    /// Сводка по всем внутренним операциям в ожидании.
+    #[prost(message, optional, tag = "4")]
+    pub pending_internal_operations: ::core::option::Option<
+        wallet_currency::PendingInternalOperations,
+    >,
+    /// Сводка по всем внешним (сетевым) операциям в ожидании.
+    #[prost(message, optional, tag = "5")]
+    pub pending_payment_network_operations: ::core::option::Option<
+        wallet_currency::PendingPaymentNetworkOperations,
+    >,
+}
+/// Nested message and enum types in `WalletCurrency`.
+pub mod wallet_currency {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        /// ID типа кошелька.
+        #[prost(uint32, tag = "1")]
+        pub wallet_type_id: u32,
+        /// ID валюты.
+        #[prost(uint32, tag = "2")]
+        pub currency_id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::WalletCurrency>,
+    }
+    /// Сводка по операциям в определенном статусе.
+    /// Эта модель переиспользуется для всех типов ожидающих операций.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct StatusSummary {
+        /// Общая сумма транзакций в этом статусе.
+        #[prost(string, tag = "1")]
+        pub total_amount: ::prost::alloc::string::String,
+        /// Количество транзакций в этом статусе.
+        #[prost(uint32, tag = "2")]
+        pub transaction_count: u32,
+    }
+    /// Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct PendingInternalOperations {
+        /// Входящие операции (получение переводов, будущие бонусы).
+        #[prost(message, optional, tag = "1")]
+        pub incoming_pending: ::core::option::Option<StatusSummary>,
+        /// Исходящие операции (отправка переводов, заморозка под оплату).
+        #[prost(message, optional, tag = "2")]
+        pub outgoing_pending: ::core::option::Option<StatusSummary>,
+    }
+    /// Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct PendingPaymentNetworkOperations {
+        /// Депозиты, ожидающие подтверждения в сети.
+        #[prost(message, optional, tag = "1")]
+        pub deposits_pending: ::core::option::Option<StatusSummary>,
+        /// Выводы, ожидающие отправки или подтверждения в сети.
+        #[prost(message, optional, tag = "2")]
+        pub withdrawals_pending: ::core::option::Option<StatusSummary>,
     }
 }

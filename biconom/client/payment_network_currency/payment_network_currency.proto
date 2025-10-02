@@ -14,6 +14,25 @@ service PaymentNetworkCurrencyService {
 
 	// Получить список связок "сеть-валюта" с фильтрацией и пагинацией.
 	rpc List(ListRequest) returns (biconom.types.PaymentNetworkCurrency.List);
+
+	// Получить или сгенерировать реквизиты для пополнения для текущего пользователя.
+	// ID аккаунта берется из контекста авторизации.
+	rpc GetDepositAddress(biconom.types.PaymentNetworkCurrency.Id) returns (DepositAddress);
+}
+
+// DepositAddress представляет собой набор реквизитов для пополнения счета.
+message DepositAddress {
+    // Реквизиты для пополнения через блокчейн.
+    message Blockchain {
+        // Адрес для пополнения.
+        string address = 1;
+        // Значение memo/tag, если оно было сгенерировано для пользователя.
+        optional string memo = 2;
+    }
+
+    oneof kind {
+        Blockchain blockchain = 1;
+    }
 }
 
 // Запрос на получение списка связок "сеть-валюта".
