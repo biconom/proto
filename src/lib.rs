@@ -16,6 +16,9 @@ pub mod biconom {
 		pub mod currency_pair {
 			include!("generated/biconom.client.currency_pair.rs");
 		}
+		pub mod dictionary {
+			include!("generated/biconom.client.dictionary.rs");
+		}
 		pub mod distributor {
 			include!("generated/biconom.client.distributor.rs");
 		}

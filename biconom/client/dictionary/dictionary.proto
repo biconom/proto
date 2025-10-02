@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package biconom.client.dictionary;
+
+import "google/protobuf/empty.proto";
+
+import "biconom/types/currency.proto";
+import "biconom/types/currency_pair.proto";
+import "biconom/types/locale.proto";
+import "biconom/types/password_policy.proto";
+import "biconom/types/payment_network.proto";
+import "biconom/types/payment_network_currency.proto";
+import "biconom/types/wallet_type.proto";
+import "biconom/types/wallet_type_currency.proto";
+import "biconom/types/network.proto";
+
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+
+// Сервис для получения набора всех основных справочных данных системы.
+service DictionaryService {
+    // Возвращает полный набор публичных справочных данных системы.
+    // Этот метод не требует авторизации и предназначен для получения данных,
+    // которые редко меняются и могут быть закэшированы клиентом.
+    rpc GetPublic(google.protobuf.Empty) returns (PublicResponse);
+
+    // Возвращает полный набор данных, специфичных для текущего авторизованного пользователя.
+    // Позволяет клиенту получить все необходимые персональные данные одним запросом после входа.
+    rpc GetCurrentState(google.protobuf.Empty) returns (CurrentStateResponse);
+}
+
+// Ответ, содержащий все основные публичные справочные данные.
+message PublicResponse {
+    repeated biconom.types.Currency currencies = 1;
+    repeated biconom.types.CurrencyPair currency_pairs = 2;
+    repeated biconom.types.Locale locales = 3;
+    repeated biconom.types.PasswordPolicy password_policies = 4;
+    repeated biconom.types.PaymentNetwork payment_networks = 5;
+    repeated biconom.types.PaymentNetworkCurrency payment_network_currencies = 6;
+    repeated biconom.types.WalletType wallet_types = 7;
+    repeated biconom.types.WalletTypeCurrency wallet_type_currencies = 8;
+    repeated biconom.types.Network networks = 9;
+}
+
+// Ответ, содержащий все данные текущего пользователя.
+message CurrentStateResponse {
+    biconom.types.Account account = 1;
+    repeated biconom.types.Distributor distributors = 2;
+}
