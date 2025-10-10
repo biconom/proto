@@ -24,6 +24,12 @@ pub struct PublicResponse {
     >,
     #[prost(message, repeated, tag = "9")]
     pub networks: ::prost::alloc::vec::Vec<super::super::types::Network>,
+    #[prost(message, repeated, tag = "10")]
+    pub exchanges: ::prost::alloc::vec::Vec<super::super::types::Exchange>,
+    #[prost(message, repeated, tag = "11")]
+    pub exchange_currency_pairs: ::prost::alloc::vec::Vec<
+        super::super::types::ExchangeCurrencyPair,
+    >,
 }
 /// Ответ, содержащий все данные текущего пользователя.
 #[derive(Clone, PartialEq, ::prost::Message)]

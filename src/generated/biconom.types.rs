@@ -675,9 +675,6 @@ pub struct CalculationGroup {
         ::prost::alloc::string::String,
         Calculation,
     >,
-    /// Правила постобработки, применяемые к ИТОГОВОЙ сумме.
-    #[prost(message, optional, tag = "2")]
-    pub post_processing: ::core::option::Option<calculation::PostProcessing>,
 }
 /// CommunityPolicy определяет набор правил для группы сообществ.
 /// Конкретная логика политики реализуется на бэкенде.
@@ -2249,6 +2246,368 @@ pub mod google_authenticator {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::GoogleAuthenticator>,
+    }
+}
+/// Exchange - это высокоуровневая модель, представляющая собой торговую площадку или биржу.
+/// Она определяет общее пространство и правила, в рамках которых происходят торговые операции.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Exchange {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя биржи.
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание.
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    /// Текущий операционный статус.
+    #[prost(enumeration = "exchange::status::Id", tag = "4")]
+    pub status: i32,
+    /// ID политики, управляющей биржей (ExchangePolicy).
+    #[prost(uint32, tag = "5")]
+    pub policy_id: u32,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Exchange`.
+pub mod exchange {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя биржи
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Exchange>,
+    }
+    /// Операционный статус биржи.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Биржа активна и торги разрешены.
+            Active = 1,
+            /// Биржа на тех. обслуживании, торги приостановлены.
+            Maintenance = 2,
+            /// Биржа закрыта и больше не используется.
+            Retired = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Maintenance => "MAINTENANCE",
+                    Self::Retired => "RETIRED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "MAINTENANCE" => Some(Self::Maintenance),
+                    "RETIRED" => Some(Self::Retired),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+/// ExchangeCurrencyPair - это операционная модель, которая связывает валютную пару (CurrencyPair)
+/// с торговой площадкой (Exchange) и определяет правила торгов для этой пары на этой площадке.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExchangeCurrencyPair {
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<exchange_currency_pair::Id>,
+    /// Текущий операционный статус.
+    #[prost(enumeration = "exchange_currency_pair::status::Id", tag = "2")]
+    pub status: i32,
+    /// Настройки для операции покупки базовой валюты.
+    #[prost(message, optional, tag = "3")]
+    pub buy_settings: ::core::option::Option<exchange_currency_pair::OperationSettings>,
+    /// Настройки для операции продажи базовой валюты.
+    #[prost(message, optional, tag = "4")]
+    pub sell_settings: ::core::option::Option<exchange_currency_pair::OperationSettings>,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `ExchangeCurrencyPair`.
+pub mod exchange_currency_pair {
+    /// Составной идентификатор.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub exchange_id: u32,
+        #[prost(uint32, tag = "2")]
+        pub currency_pair_id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::ExchangeCurrencyPair>,
+    }
+    /// Операционный статус пары на данной бирже.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Торги по паре активны.
+            Active = 1,
+            /// Торги временно приостановлены для тех. обслуживания.
+            Maintenance = 2,
+            /// Новые ордера не принимаются, но можно просматривать историю.
+            ViewOnly = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Maintenance => "MAINTENANCE",
+                    Self::ViewOnly => "VIEW_ONLY",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "MAINTENANCE" => Some(Self::Maintenance),
+                    "VIEW_ONLY" => Some(Self::ViewOnly),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Конфигурация для одной торговой операции (покупка или продажа).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct OperationSettings {
+        /// Разрешена ли операция.
+        #[prost(bool, tag = "1")]
+        pub enabled: bool,
+        /// Минимальная сумма операции (в базовой валюте).
+        #[prost(string, optional, tag = "2")]
+        pub min_amount: ::core::option::Option<::prost::alloc::string::String>,
+        /// Максимальная сумма операции (в базовой валюте).
+        #[prost(string, optional, tag = "3")]
+        pub max_amount: ::core::option::Option<::prost::alloc::string::String>,
+        /// Комиссия, взимаемая с базовой валюты.
+        #[prost(message, optional, tag = "4")]
+        pub base_fee: ::core::option::Option<super::CalculationGroup>,
+        /// Комиссия, взимаемая с котируемой валюты.
+        #[prost(message, optional, tag = "5")]
+        pub quote_fee: ::core::option::Option<super::CalculationGroup>,
+    }
+}
+/// ExchangePolicy определяет набор правил для группы бирж (Exchange).
+/// Конкретная логика политики (например, доступные типы ордеров) реализуется на стороне бэкенда.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExchangePolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации.
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики.
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    /// Торговая модель, диктуемая этой политикой.
+    #[prost(enumeration = "exchange_policy::TradingModel", tag = "4")]
+    pub trading_model: i32,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `ExchangePolicy`.
+pub mod exchange_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::ExchangePolicy>,
+    }
+    /// Определяет основную торговую модель, используемую на бирже.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum TradingModel {
+        Unspecified = 0,
+        /// Модель обменника. Цены задаются системой (buy/sell). Тикер использует `ExchangerRate`.
+        Exchanger = 1,
+        /// Модель биржи. Цены формируются на основе стакана ордеров. Тикер использует `MarketRate`.
+        OrderBook = 2,
+    }
+    impl TradingModel {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Exchanger => "EXCHANGER",
+                Self::OrderBook => "ORDER_BOOK",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "EXCHANGER" => Some(Self::Exchanger),
+                "ORDER_BOOK" => Some(Self::OrderBook),
+                _ => None,
+            }
+        }
+    }
+}
+/// Ticker представляет собой сводку рыночных данных (тикер) для торговой пары на конкретной бирже.
+/// Эта модель содержит высокодинамичные данные, которые часто обновляются.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Ticker {
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<ticker::Id>,
+    /// Время последнего обновления тикера.
+    #[prost(message, optional, tag = "4")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(oneof = "ticker::RateKind", tags = "2, 3")]
+    pub rate_kind: ::core::option::Option<ticker::RateKind>,
+}
+/// Nested message and enum types in `Ticker`.
+pub mod ticker {
+    /// Составной идентификатор, связывающий тикер с торговой парой на бирже.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub exchange_id: u32,
+        #[prost(uint32, tag = "2")]
+        pub currency_pair_id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Ticker>,
+    }
+    /// Курс для обменника с фиксированными ценами покупки и продажи.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ExchangerRate {
+        /// Цена, по которой система ПОКУПАЕТ базовую валюту у пользователя.
+        #[prost(string, optional, tag = "1")]
+        pub buy_price: ::core::option::Option<::prost::alloc::string::String>,
+        /// Цена, по которой система ПРОДАЕТ базовую валюту пользователю.
+        #[prost(string, optional, tag = "2")]
+        pub sell_price: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    /// Полные рыночные данные для биржи.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct MarketRate {
+        /// Цена последней сделки.
+        #[prost(string, tag = "1")]
+        pub last_price: ::prost::alloc::string::String,
+        /// Лучшая цена на покупку (bid).
+        #[prost(string, tag = "2")]
+        pub best_bid_price: ::prost::alloc::string::String,
+        /// Лучшая цена на продажу (ask).
+        #[prost(string, tag = "3")]
+        pub best_ask_price: ::prost::alloc::string::String,
+        /// Изменение цены за 24 часа.
+        #[prost(string, tag = "4")]
+        pub price_change_24h: ::prost::alloc::string::String,
+        /// Изменение цены в процентах за 24 часа.
+        #[prost(string, tag = "5")]
+        pub price_change_percent_24h: ::prost::alloc::string::String,
+        /// Объем торгов в базовой валюте за 24 часа.
+        #[prost(string, tag = "6")]
+        pub base_volume_24h: ::prost::alloc::string::String,
+        /// Объем торгов в котируемой валюте за 24 часа.
+        #[prost(string, tag = "7")]
+        pub quote_volume_24h: ::prost::alloc::string::String,
+    }
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum RateKind {
+        /// Для обменников с фиксированным курсом.
+        #[prost(message, tag = "2")]
+        ExchangerRate(ExchangerRate),
+        /// Для бирж с динамическим курсом.
+        #[prost(message, tag = "3")]
+        MarketRate(MarketRate),
     }
 }
 /// GoogleAuthenticatorPolicy определяет набор правил для группы настроек 2FA.
@@ -5444,7 +5803,7 @@ pub mod wallet_type {
 }
 /// WalletTypeCurrency - связь между типом кошелька и валютой.
 /// Определяет, доступна ли валюта в данном типе кошелька и с какими ограничениями.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WalletTypeCurrency {
     #[prost(message, optional, tag = "1")]
     pub id: ::core::option::Option<wallet_type_currency::Id>,
@@ -5454,9 +5813,14 @@ pub struct WalletTypeCurrency {
     /// Битовая маска флагов запрещенных операций. Позиции битов определяются в `WalletOperation.Id`.
     #[prost(uint32, tag = "3")]
     pub disabled_operations_flags: u32,
+    /// Настройки для внутренних переводов.
     #[prost(message, optional, tag = "4")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    pub internal_transfer_settings: ::core::option::Option<
+        wallet_type_currency::InternalTransferSettings,
+    >,
     #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `WalletTypeCurrency`.
@@ -5473,6 +5837,19 @@ pub mod wallet_type_currency {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::WalletTypeCurrency>,
+    }
+    /// Настройки для внутренних переводов.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct InternalTransferSettings {
+        /// Минимальная сумма одного перевода.
+        #[prost(string, optional, tag = "1")]
+        pub min_amount: ::core::option::Option<::prost::alloc::string::String>,
+        /// Максимальная сумма одного перевода.
+        #[prost(string, optional, tag = "2")]
+        pub max_amount: ::core::option::Option<::prost::alloc::string::String>,
+        /// Комиссия, взимаемая за исходящий перевод.
+        #[prost(message, optional, tag = "3")]
+        pub outgoing_fee: ::core::option::Option<super::CalculationGroup>,
     }
 }
 /// Wallet - это экземпляр кошелька, принадлежащий конкретному владельцу (Account).

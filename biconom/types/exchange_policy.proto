@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// ExchangePolicy определяет набор правил для группы бирж (Exchange).
+// Конкретная логика политики (например, доступные типы ордеров) реализуется на стороне бэкенда.
+message ExchangePolicy {
+    message Id {
+        oneof identifier {
+            uint32 id = 1;
+            string name = 2; // Уникальное имя политики
+        }
+    }
+
+    message List {
+        repeated ExchangePolicy items = 1;
+    }
+
+    // Определяет основную торговую модель, используемую на бирже.
+    enum TradingModel {
+        UNSPECIFIED = 0;
+        // Модель обменника. Цены задаются системой (buy/sell). Тикер использует `ExchangerRate`.
+        EXCHANGER = 1;
+        // Модель биржи. Цены формируются на основе стакана ордеров. Тикер использует `MarketRate`.
+        ORDER_BOOK = 2;
+    }
+
+    uint32 id = 1;
+    string name = 2;        // Уникальное имя политики для идентификации.
+    string description = 3; // Описание, поясняющее суть и логику работы политики.
+    TradingModel trading_model = 4; // Торговая модель, диктуемая этой политикой.
+
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}

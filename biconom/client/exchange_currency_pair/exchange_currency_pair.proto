@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package biconom.client.exchange_currency_pair;
+
+import "biconom/types/currency_pair.proto";
+import "biconom/types/exchange.proto";
+import "biconom/types/exchange_currency_pair.proto";
+import "biconom/types/sort.proto";
+
+// Сервис для получения справочной информации о торговых парах на биржах.
+service ExchangeCurrencyPairService {
+    // Получить информацию о конкретной паре на бирже по ее составному ключу.
+    rpc Get(biconom.types.ExchangeCurrencyPair.Id) returns (biconom.types.ExchangeCurrencyPair);
+
+    // Получить список пар на биржах с фильтрацией и пагинацией.
+    rpc List(ListRequest) returns (biconom.types.ExchangeCurrencyPair.List);
+}
+
+// Запрос на получение списка пар на биржах.
+message ListRequest {
+    // Фильтр по одной или нескольким биржам.
+    repeated biconom.types.Exchange.Id filter_exchange_ids = 1;
+    // Фильтр по одной или нескольким валютным парам.
+    repeated biconom.types.CurrencyPair.Id filter_currency_pair_ids = 2;
+    // Фильтр по статусу.
+    repeated biconom.types.ExchangeCurrencyPair.Status.Id filter_statuses = 3;
+    // Курсор для пагинации.
+    optional biconom.types.ExchangeCurrencyPair.Id cursor = 4;
+    optional biconom.types.Sort sort = 5;
+}

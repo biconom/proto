@@ -60,5 +60,4 @@ message Calculation {
 // CalculationGroup - это контейнер для нескольких независимых расчетов.
 message CalculationGroup {
 	map<string, Calculation> calculations = 1;
-	optional Calculation.PostProcessing post_processing = 2;	// Правила постобработки, применяемые к ИТОГОВОЙ сумме.
 }

@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package biconom.client.wallet_currency;
 
+import "biconom/types/account.proto";
 import "biconom/types/currency.proto";
+import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
+import "biconom/types/ledger_transaction.proto";
 import "biconom/types/wallet_type.proto";
 import "biconom/types/wallet_currency.proto";
 
@@ -16,6 +19,10 @@ service WalletCurrencyService {
     // Получить список балансов пользователя с фильтрацией и пагинацией.
     // ID аккаунта берется из контекста авторизации.
     rpc List(ListRequest) returns (biconom.types.WalletCurrency.List);
+
+    // Выполнить внутренний перевод средств другому пользователю.
+    // ID аккаунта отправителя берется из контекста авторизации.
+    rpc Transfer(TransferRequest) returns (biconom.types.LedgerTransaction);
 }
 
 // Запрос на получение списка балансов.
@@ -30,4 +37,21 @@ message ListRequest {
     optional biconom.types.WalletCurrency.Id cursor = 3;
 
     optional biconom.types.Sort sort = 4;
+}
+
+// Запрос на внутренний перевод.
+message TransferRequest {
+    // Источник перевода (кошелек + валюта).
+    biconom.types.WalletCurrency.Id source = 1;
+    // Сумма перевода.
+    string amount = 2;
+
+    // Получатель перевода.
+    oneof recipient {
+        biconom.types.Account.Id account_id = 3;
+        biconom.types.Distributor.Id distributor_id = 4;
+    }
+
+    // Необязательное примечание к переводу.
+    optional string memo = 5;
 }

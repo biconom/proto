@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package biconom.client.exchange;
+
+import "biconom/types/exchange.proto";
+import "biconom/types/sort.proto";
+
+// Сервис для получения справочной информации о торговых площадках (биржах).
+service ExchangeService {
+    // Возвращает информацию о конкретной бирже по ее идентификатору.
+    rpc Get(biconom.types.Exchange.Id) returns (biconom.types.Exchange);
+
+    // Возвращает список бирж, доступных в системе.
+    rpc List(ListRequest) returns (biconom.types.Exchange.List);
+}
+
+message ListRequest {
+    repeated biconom.types.Exchange.Status.Id filter_statuses = 1; // Фильтр по статусу биржи.
+    optional biconom.types.Exchange.Id cursor = 2;                 // Курсор для пагинации.
+    optional biconom.types.Sort sort = 3;                           // Параметры сортировки и лимита.
+}

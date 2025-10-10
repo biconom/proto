@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/calculation.proto";
+import "google/protobuf/timestamp.proto";
+
+// ExchangeCurrencyPair - это операционная модель, которая связывает валютную пару (CurrencyPair)
+// с торговой площадкой (Exchange) и определяет правила торгов для этой пары на этой площадке.
+message ExchangeCurrencyPair {
+    // Составной идентификатор.
+    message Id {
+        uint32 exchange_id = 1;
+        uint32 currency_pair_id = 2;
+    }
+
+    message List {
+        repeated ExchangeCurrencyPair items = 1;
+    }
+
+    // Операционный статус пары на данной бирже.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            ACTIVE = 1;      // Торги по паре активны.
+            MAINTENANCE = 2; // Торги временно приостановлены для тех. обслуживания.
+            VIEW_ONLY = 3;   // Новые ордера не принимаются, но можно просматривать историю.
+        }
+    }
+
+    // Конфигурация для одной торговой операции (покупка или продажа).
+    message OperationSettings {
+        bool enabled = 1;                       // Разрешена ли операция.
+        optional string min_amount = 2;         // Минимальная сумма операции (в базовой валюте).
+        optional string max_amount = 3;         // Максимальная сумма операции (в базовой валюте).
+
+        // Комиссия, взимаемая с базовой валюты.
+        optional biconom.types.CalculationGroup base_fee = 4;
+        // Комиссия, взимаемая с котируемой валюты.
+        optional biconom.types.CalculationGroup quote_fee = 5;
+    }
+
+    Id id = 1;
+    Status.Id status = 2; // Текущий операционный статус.
+
+    OperationSettings buy_settings = 3;  // Настройки для операции покупки базовой валюты.
+    OperationSettings sell_settings = 4; // Настройки для операции продажи базовой валюты.
+
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}

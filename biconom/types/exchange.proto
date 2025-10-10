@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Exchange - это высокоуровневая модель, представляющая собой торговую площадку или биржу.
+// Она определяет общее пространство и правила, в рамках которых происходят торговые операции.
+message Exchange {
+    message Id {
+        oneof identifier {
+            uint32 id = 1;
+            string name = 2; // Уникальное имя биржи
+        }
+    }
+
+    message List {
+        repeated Exchange items = 1;
+    }
+
+    // Операционный статус биржи.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            ACTIVE = 1;      // Биржа активна и торги разрешены.
+            MAINTENANCE = 2; // Биржа на тех. обслуживании, торги приостановлены.
+            RETIRED = 3;     // Биржа закрыта и больше не используется.
+        }
+    }
+
+    uint32 id = 1;
+    string name = 2;        // Уникальное имя биржи.
+    string description = 3; // Описание.
+    Status.Id status = 4;   // Текущий операционный статус.
+    uint32 policy_id = 5;   // ID политики, управляющей биржей (ExchangePolicy).
+
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+}

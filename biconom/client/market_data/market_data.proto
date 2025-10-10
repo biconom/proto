@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package biconom.client.market_data;
+
+import "biconom/types/exchange_currency_pair.proto";
+import "biconom/types/ticker.proto";
+
+// Сервис для получения рыночных данных (тикеров).
+service MarketDataService {
+    // Получить последний тикер для одной торговой пары.
+    rpc GetTicker(biconom.types.ExchangeCurrencyPair.Id) returns (biconom.types.Ticker);
+
+    // Получить список тикеров для нескольких пар.
+    rpc ListTickers(ListTickersRequest) returns (biconom.types.Ticker.List);
+
+    // Подписаться на обновления тикеров в реальном времени.
+    rpc SubscribeTickers(ListTickersRequest) returns (stream biconom.types.Ticker);
+}
+
+message ListTickersRequest {
+    repeated biconom.types.ExchangeCurrencyPair.Id pair_ids = 1;
+}

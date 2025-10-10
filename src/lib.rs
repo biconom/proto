@@ -19,8 +19,17 @@ pub mod biconom {
 		pub mod dictionary {
 			include!("generated/biconom.client.dictionary.rs");
 		}
+		pub mod exchange {
+			include!("generated/biconom.client.exchange.rs");
+		}
+		pub mod exchange_currency_pair {
+			include!("generated/biconom.client.exchange_currency_pair.rs");
+		}
 		pub mod distributor {
 			include!("generated/biconom.client.distributor.rs");
+		}
+		pub mod market_data {
+			include!("generated/biconom.client.market_data.rs");
 		}
 		pub mod google_authenticator {
 			include!("generated/biconom.client.google_authenticator.rs");
@@ -45,6 +54,9 @@ pub mod biconom {
 		}
 		pub mod wallet_type_currency {
 			include!("generated/biconom.client.wallet_type_currency.rs");
+		}
+		pub mod trade {
+			include!("generated/biconom.client.trade.rs");
 		}
 		pub mod payment_network {
 			include!("generated/biconom.client.payment_network.rs");

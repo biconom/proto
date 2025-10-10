@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package biconom.types;
 
+import "biconom/types/calculation.proto";
 import "google/protobuf/timestamp.proto";
 
 // WalletTypeCurrency - связь между типом кошелька и валютой.
@@ -17,12 +18,25 @@ message WalletTypeCurrency {
         repeated WalletTypeCurrency items = 1;
     }
 
+    // Настройки для внутренних переводов.
+    message InternalTransferSettings {
+        // Минимальная сумма одного перевода.
+        optional string min_amount = 1;
+        // Максимальная сумма одного перевода.
+        optional string max_amount = 2;
+        // Комиссия, взимаемая за исходящий перевод.
+        optional biconom.types.CalculationGroup outgoing_fee = 3;
+    }
+
     Id id = 1;
     // "Мастер-выключатель". Если true, валюта полностью отключена в этом типе кошелька.
     bool disabled = 2;
     // Битовая маска флагов запрещенных операций. Позиции битов определяются в `WalletOperation.Id`.
     uint32 disabled_operations_flags = 3;
 
-	google.protobuf.Timestamp created_at = 4;
-	google.protobuf.Timestamp updated_at = 5;
+    // Настройки для внутренних переводов.
+    optional InternalTransferSettings internal_transfer_settings = 4;
+
+	google.protobuf.Timestamp created_at = 5;
+	google.protobuf.Timestamp updated_at = 6;
 }

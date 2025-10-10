@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Ticker представляет собой сводку рыночных данных (тикер) для торговой пары на конкретной бирже.
+// Эта модель содержит высокодинамичные данные, которые часто обновляются.
+message Ticker {
+    // Составной идентификатор, связывающий тикер с торговой парой на бирже.
+    message Id {
+        uint32 exchange_id = 1;
+        uint32 currency_pair_id = 2;
+    }
+
+    message List {
+        repeated Ticker items = 1;
+    }
+
+    // Курс для обменника с фиксированными ценами покупки и продажи.
+    message ExchangerRate {
+        // Цена, по которой система ПОКУПАЕТ базовую валюту у пользователя.
+        optional string buy_price = 1;
+        // Цена, по которой система ПРОДАЕТ базовую валюту пользователю.
+        optional string sell_price = 2;
+    }
+
+    // Полные рыночные данные для биржи.
+    message MarketRate {
+        string last_price = 1;               // Цена последней сделки.
+        string best_bid_price = 2;           // Лучшая цена на покупку (bid).
+        string best_ask_price = 3;           // Лучшая цена на продажу (ask).
+        string price_change_24h = 4;         // Изменение цены за 24 часа.
+        string price_change_percent_24h = 5; // Изменение цены в процентах за 24 часа.
+        string base_volume_24h = 6;          // Объем торгов в базовой валюте за 24 часа.
+        string quote_volume_24h = 7;         // Объем торгов в котируемой валюте за 24 часа.
+    }
+
+    Id id = 1;
+
+    oneof rate_kind {
+        ExchangerRate exchanger_rate = 2; // Для обменников с фиксированным курсом.
+        MarketRate market_rate = 3;       // Для бирж с динамическим курсом.
+    }
+
+    google.protobuf.Timestamp updated_at = 4; // Время последнего обновления тикера.
+}

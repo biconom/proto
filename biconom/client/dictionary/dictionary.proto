@@ -6,6 +6,8 @@ import "google/protobuf/empty.proto";
 
 import "biconom/types/currency.proto";
 import "biconom/types/currency_pair.proto";
+import "biconom/types/exchange.proto";
+import "biconom/types/exchange_currency_pair.proto";
 import "biconom/types/locale.proto";
 import "biconom/types/password_policy.proto";
 import "biconom/types/payment_network.proto";
@@ -42,6 +44,8 @@ message PublicResponse {
     repeated biconom.types.WalletType wallet_types = 7;
     repeated biconom.types.WalletTypeCurrency wallet_type_currencies = 8;
     repeated biconom.types.Network networks = 9;
+    repeated biconom.types.Exchange exchanges = 10;
+    repeated biconom.types.ExchangeCurrencyPair exchange_currency_pairs = 11;
 }
 
 // Ответ, содержащий все данные текущего пользователя.
