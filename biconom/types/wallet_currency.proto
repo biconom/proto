@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package biconom.types;
 
+import "biconom/types/ledger.proto";
+import "google/protobuf/timestamp.proto";
+
 // WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.
 // Оно объединяет подтвержденный баланс с агрегированными данными о транзакциях в ожидании.
 message WalletCurrency {
@@ -14,32 +17,18 @@ message WalletCurrency {
         repeated WalletCurrency items = 1;
     }
 
-    // Сводка по операциям в определенном статусе.
-    // Эта модель переиспользуется для всех типов ожидающих операций.
-    message StatusSummary {
-        string total_amount = 1;    // Общая сумма транзакций в этом статусе.
-        uint32 transaction_count = 2; // Количество транзакций в этом статусе.
-    }
-
-    // Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
-    message PendingInternalOperations {
-        // Входящие операции (получение переводов, будущие бонусы).
-        optional StatusSummary incoming_pending = 1;
-        // Исходящие операции (отправка переводов, заморозка под оплату).
-        optional StatusSummary outgoing_pending = 2;
-    }
-
-    // Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
-    message PendingPaymentNetworkOperations {
-        // Депозиты, ожидающие подтверждения в сети.
-        optional StatusSummary deposits_pending = 1;
-        // Выводы, ожидающие отправки или подтверждения в сети.
-        optional StatusSummary withdrawals_pending = 2;
-    }
-
     Id id = 1;
-    string balance = 2; // Подтвержденный баланс.
-    uint32 transactions_quantity = 3; // Общее количество подтвержденных транзакций по этому балансу.
-    optional PendingInternalOperations pending_internal_operations = 4; // Сводка по всем внутренним операциям в ожидании.
-    optional PendingPaymentNetworkOperations pending_payment_network_operations = 5; // Сводка по всем внешним (сетевым) операциям в ожидании.
+    // Основной объект бухгалтерского счета, содержащий все балансовые показатели.
+    Ledger ledger = 2;
+    // "Мастер-выключатель". Если true, валюта полностью отключена для этой валюты в этом кошельке.
+    bool disabled = 3;
+    // Битовая маска флагов операций, принудительно запрещенных для этой валюты в данном кошельке.
+    // Позиции битов определяются в `WalletOperation.Id`.
+    uint32 disabled_operations_flags = 4;
+
+    // Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+    bool initialized = 5;
+
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
 }

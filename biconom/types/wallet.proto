@@ -28,6 +28,9 @@ message Wallet {
     // Позиции битов определяются в `WalletOperation.Id`.
     uint32 disabled_operations_flags = 3;
 
-    google.protobuf.Timestamp created_at = 4;
-    google.protobuf.Timestamp updated_at = 5;
+    // Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+	bool initialized = 4;
+
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
 }

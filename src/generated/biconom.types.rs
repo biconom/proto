@@ -3125,7 +3125,7 @@ pub mod network_partition_policy {
 /// для конкретного типа платежной сети (блокчейн, банк и т.д.).
 /// Эта модель используется внутри PaymentOperationSettings для детализации
 /// настроек ввода и вывода средств.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PaymentNetworkOperationSettings {
     #[prost(oneof = "payment_network_operation_settings::Kind", tags = "1")]
     pub kind: ::core::option::Option<payment_network_operation_settings::Kind>,
@@ -3133,7 +3133,7 @@ pub struct PaymentNetworkOperationSettings {
 /// Nested message and enum types in `PaymentNetworkOperationSettings`.
 pub mod payment_network_operation_settings {
     /// === Настройки для блокчейнов ===
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Blockchain {
         /// --- Безопасность ---
         /// Количество подтверждений сети, после которого депозит считается успешным.
@@ -3142,8 +3142,8 @@ pub mod payment_network_operation_settings {
         pub required_confirmations: ::core::option::Option<u32>,
         /// Альтернативный механизм определения финализации, основанный на вероятности (0..1).
         /// Используется в некоторых PoS-сетях, где нет строгих "подтверждений".
-        #[prost(double, optional, tag = "2")]
-        pub finality_threshold: ::core::option::Option<f64>,
+        #[prost(string, optional, tag = "2")]
+        pub finality_threshold: ::core::option::Option<::prost::alloc::string::String>,
         #[prost(enumeration = "blockchain::memo_type::Id", tag = "3")]
         pub memo_type: i32,
         #[prost(enumeration = "blockchain::address_format::Id", repeated, tag = "4")]
@@ -3452,7 +3452,7 @@ pub mod payment_network_operation_settings {
             }
         }
     }
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Kind {
         #[prost(message, tag = "1")]
         Blockchain(Blockchain),
@@ -4294,18 +4294,42 @@ pub struct Ledger {
     /// Бинарная маска флагов из `Ledger.Flags.Id`.
     #[prost(uint32, tag = "4")]
     pub flags: u32,
-    /// Общая сумма всех кредитовых операций (зачислений).
-    #[prost(string, tag = "5")]
-    pub credit_total: ::prost::alloc::string::String,
-    /// Общая сумма всех дебетовых операций (списаний).
+    /// Владелец этого счета.
+    #[prost(message, optional, tag = "5")]
+    pub owner: ::core::option::Option<ledger::Owner>,
+    /// Сумма проведенных дебетовых операций (списания).
     #[prost(string, tag = "6")]
-    pub debit_total: ::prost::alloc::string::String,
-    /// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
+    pub posted_debit: ::prost::alloc::string::String,
+    /// Сумма проведенных кредитовых операций (зачисления).
     #[prost(string, tag = "7")]
+    pub posted_credit: ::prost::alloc::string::String,
+    /// Сумма ожидающих дебетовых операций.
+    #[prost(string, tag = "8")]
+    pub pending_debit: ::prost::alloc::string::String,
+    /// Сумма ожидающих кредитовых операций.
+    #[prost(string, tag = "9")]
+    pub pending_credit: ::prost::alloc::string::String,
+    /// Сумма запланированных дебетовых операций.
+    #[prost(string, tag = "10")]
+    pub scheduled_debit: ::prost::alloc::string::String,
+    /// Сумма запланированных кредитовых операций.
+    #[prost(string, tag = "11")]
+    pub scheduled_credit: ::prost::alloc::string::String,
+    /// Кредитный лимит, если разрешен флагом LIMIT_NEGATIVE.
+    #[prost(string, tag = "12")]
+    pub credit_limit: ::prost::alloc::string::String,
+    /// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
+    #[prost(string, tag = "13")]
     pub overdraft_limit: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "8")]
+    /// Общее количество транзакций по счету.
+    #[prost(uint64, tag = "14")]
+    pub transactions_quantity: u64,
+    /// Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+    #[prost(bool, tag = "15")]
+    pub initialized: bool,
+    #[prost(message, optional, tag = "16")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "17")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `Ledger`.
@@ -4314,6 +4338,27 @@ pub mod ledger {
     pub struct Id {
         #[prost(uint64, tag = "1")]
         pub id: u64,
+    }
+    /// Owner определяет владельца счета Ledger.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Owner {
+        #[prost(oneof = "owner::Entity", tags = "1, 2, 3")]
+        pub entity: ::core::option::Option<owner::Entity>,
+    }
+    /// Nested message and enum types in `Owner`.
+    pub mod owner {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Entity {
+            /// ID пула организации.
+            #[prost(uint32, tag = "1")]
+            OrgPoolId(u32),
+            /// ID кошелька.
+            #[prost(uint32, tag = "2")]
+            WalletId(u32),
+            /// ID платежной сети.
+            #[prost(uint32, tag = "3")]
+            PaymentNetworkId(u32),
+        }
     }
     /// Статус жизненного цикла счета.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -4391,16 +4436,27 @@ pub mod ledger {
         )]
         #[repr(i32)]
         pub enum Id {
-            /// Разрешить дебет (списания).
-            AllowDebit = 0,
-            /// Разрешить кредит (зачисления).
-            AllowCredit = 1,
-            /// Разрешить сторнирование (отмену) проведённых транзакций.
-            AllowReversal = 2,
-            /// Разрешить отрицательный баланс (уйти в минус).
-            AllowNegative = 3,
-            /// Разрешить использовать лимит овердрафта.
-            AllowOverdraftLimit = 4,
+            /// Разрешено уходить в отрицательный баланс без ограничений.
+            AllowNegative = 0,
+            /// Разрешён минус, но в пределах `credit_limit`.
+            LimitNegative = 1,
+            /// Разрешён минус в пределах `overdraft_limit`.
+            AllowOverdraftLimit = 2,
+            /// Разрешены операции дебета (списания средств).
+            AllowDebit = 3,
+            /// Разрешены операции кредита (зачисления средств).
+            AllowCredit = 4,
+            /// Ledger временно заблокирован (операционные причины: тех. блокировка, расследование).
+            /// Новые транзакции запрещены, но чтение баланса разрешено.
+            Locked = 5,
+            /// Ledger полностью заморожен — операции невозможны.
+            /// Используется при инцидентах, сбоях или нарушениях целостности.
+            ///
+            /// Переименовано из FROZEN, чтобы избежать конфликта с Ledger.Status.FROZEN
+            FrozenFlag = 6,
+            /// Ledger помечен как подозрительный (флаг KYC/AML).
+            /// Транзакции проходят дополнительную проверку, но не обязательно блокируются.
+            Suspicious = 7,
         }
         impl Id {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -4409,21 +4465,27 @@ pub mod ledger {
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             pub fn as_str_name(&self) -> &'static str {
                 match self {
+                    Self::AllowNegative => "ALLOW_NEGATIVE",
+                    Self::LimitNegative => "LIMIT_NEGATIVE",
+                    Self::AllowOverdraftLimit => "ALLOW_OVERDRAFT_LIMIT",
                     Self::AllowDebit => "ALLOW_DEBIT",
                     Self::AllowCredit => "ALLOW_CREDIT",
-                    Self::AllowReversal => "ALLOW_REVERSAL",
-                    Self::AllowNegative => "ALLOW_NEGATIVE",
-                    Self::AllowOverdraftLimit => "ALLOW_OVERDRAFT_LIMIT",
+                    Self::Locked => "LOCKED",
+                    Self::FrozenFlag => "FROZEN_FLAG",
+                    Self::Suspicious => "SUSPICIOUS",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
             pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
                 match value {
+                    "ALLOW_NEGATIVE" => Some(Self::AllowNegative),
+                    "LIMIT_NEGATIVE" => Some(Self::LimitNegative),
+                    "ALLOW_OVERDRAFT_LIMIT" => Some(Self::AllowOverdraftLimit),
                     "ALLOW_DEBIT" => Some(Self::AllowDebit),
                     "ALLOW_CREDIT" => Some(Self::AllowCredit),
-                    "ALLOW_REVERSAL" => Some(Self::AllowReversal),
-                    "ALLOW_NEGATIVE" => Some(Self::AllowNegative),
-                    "ALLOW_OVERDRAFT_LIMIT" => Some(Self::AllowOverdraftLimit),
+                    "LOCKED" => Some(Self::Locked),
+                    "FROZEN_FLAG" => Some(Self::FrozenFlag),
+                    "SUSPICIOUS" => Some(Self::Suspicious),
                     _ => None,
                 }
             }
@@ -5866,9 +5928,12 @@ pub struct Wallet {
     /// Позиции битов определяются в `WalletOperation.Id`.
     #[prost(uint32, tag = "3")]
     pub disabled_operations_flags: u32,
-    #[prost(message, optional, tag = "4")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+    #[prost(bool, tag = "4")]
+    pub initialized: bool,
     #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `Wallet`.
@@ -5932,22 +5997,23 @@ pub mod wallet {
 pub struct WalletCurrency {
     #[prost(message, optional, tag = "1")]
     pub id: ::core::option::Option<wallet_currency::Id>,
-    /// Подтвержденный баланс.
-    #[prost(string, tag = "2")]
-    pub balance: ::prost::alloc::string::String,
-    /// Общее количество подтвержденных транзакций по этому балансу.
-    #[prost(uint32, tag = "3")]
-    pub transactions_quantity: u32,
-    /// Сводка по всем внутренним операциям в ожидании.
-    #[prost(message, optional, tag = "4")]
-    pub pending_internal_operations: ::core::option::Option<
-        wallet_currency::PendingInternalOperations,
-    >,
-    /// Сводка по всем внешним (сетевым) операциям в ожидании.
-    #[prost(message, optional, tag = "5")]
-    pub pending_payment_network_operations: ::core::option::Option<
-        wallet_currency::PendingPaymentNetworkOperations,
-    >,
+    /// Основной объект бухгалтерского счета, содержащий все балансовые показатели.
+    #[prost(message, optional, tag = "2")]
+    pub ledger: ::core::option::Option<Ledger>,
+    /// "Мастер-выключатель". Если true, валюта полностью отключена для этой валюты в этом кошельке.
+    #[prost(bool, tag = "3")]
+    pub disabled: bool,
+    /// Битовая маска флагов операций, принудительно запрещенных для этой валюты в данном кошельке.
+    /// Позиции битов определяются в `WalletOperation.Id`.
+    #[prost(uint32, tag = "4")]
+    pub disabled_operations_flags: u32,
+    /// Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+    #[prost(bool, tag = "5")]
+    pub initialized: bool,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Nested message and enum types in `WalletCurrency`.
 pub mod wallet_currency {
@@ -5964,36 +6030,5 @@ pub mod wallet_currency {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::WalletCurrency>,
-    }
-    /// Сводка по операциям в определенном статусе.
-    /// Эта модель переиспользуется для всех типов ожидающих операций.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct StatusSummary {
-        /// Общая сумма транзакций в этом статусе.
-        #[prost(string, tag = "1")]
-        pub total_amount: ::prost::alloc::string::String,
-        /// Количество транзакций в этом статусе.
-        #[prost(uint32, tag = "2")]
-        pub transaction_count: u32,
-    }
-    /// Агрегированные данные по ВНУТРЕННИМ операциям в ожидании (бонусы, переводы).
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct PendingInternalOperations {
-        /// Входящие операции (получение переводов, будущие бонусы).
-        #[prost(message, optional, tag = "1")]
-        pub incoming_pending: ::core::option::Option<StatusSummary>,
-        /// Исходящие операции (отправка переводов, заморозка под оплату).
-        #[prost(message, optional, tag = "2")]
-        pub outgoing_pending: ::core::option::Option<StatusSummary>,
-    }
-    /// Агрегированные данные по ВНЕШНИМ операциям в ожидании (депозиты, выводы через платежные сети).
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct PendingPaymentNetworkOperations {
-        /// Депозиты, ожидающие подтверждения в сети.
-        #[prost(message, optional, tag = "1")]
-        pub deposits_pending: ::core::option::Option<StatusSummary>,
-        /// Выводы, ожидающие отправки или подтверждения в сети.
-        #[prost(message, optional, tag = "2")]
-        pub withdrawals_pending: ::core::option::Option<StatusSummary>,
     }
 }

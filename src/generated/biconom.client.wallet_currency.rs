@@ -80,7 +80,7 @@ pub mod wallet_currency_service_server {
             &self,
             request: tonic::Request<super::TransferRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::super::super::types::LedgerTransaction>,
+            tonic::Response<super::super::super::types::ledger_transaction::Id>,
             tonic::Status,
         >;
     }
@@ -261,7 +261,7 @@ pub mod wallet_currency_service_server {
                         T: WalletCurrencyService,
                     > tonic::server::UnaryService<super::TransferRequest>
                     for TransferSvc<T> {
-                        type Response = super::super::super::types::LedgerTransaction;
+                        type Response = super::super::super::types::ledger_transaction::Id;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

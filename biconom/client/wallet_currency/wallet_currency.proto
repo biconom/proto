@@ -22,7 +22,7 @@ service WalletCurrencyService {
 
     // Выполнить внутренний перевод средств другому пользователю.
     // ID аккаунта отправителя берется из контекста авторизации.
-    rpc Transfer(TransferRequest) returns (biconom.types.LedgerTransaction);
+    rpc Transfer(TransferRequest) returns (biconom.types.LedgerTransaction.Id);
 }
 
 // Запрос на получение списка балансов.

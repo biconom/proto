@@ -13,6 +13,18 @@ message Ledger {
 		uint64 id = 1;
 	}
 
+	// Owner определяет владельца счета Ledger.
+	message Owner {
+		oneof entity {
+			// ID пула организации.
+			uint32 org_pool_id = 1;
+			// ID кошелька.
+			uint32 wallet_id = 2;
+			// ID платежной сети.
+			uint32 payment_network_id = 3;
+		}
+	}
+
 	// Статус жизненного цикла счета.
 	message Status {
 		enum Id {
@@ -34,34 +46,67 @@ message Ledger {
 	message Flags {
 		// Id представляет собой порядковый номер бита в маске.
 		enum Id {
-			ALLOW_DEBIT = 0;           // Разрешить дебет (списания).
-			ALLOW_CREDIT = 1;          // Разрешить кредит (зачисления).
-			ALLOW_REVERSAL = 2;        // Разрешить сторнирование (отмену) проведённых транзакций.
-			ALLOW_NEGATIVE = 3;        // Разрешить отрицательный баланс (уйти в минус).
-			ALLOW_OVERDRAFT_LIMIT = 4; // Разрешить использовать лимит овердрафта.
+			// Разрешено уходить в отрицательный баланс без ограничений.
+			ALLOW_NEGATIVE = 0;
+			// Разрешён минус, но в пределах `credit_limit`.
+			LIMIT_NEGATIVE = 1;
+			// Разрешён минус в пределах `overdraft_limit`.
+			ALLOW_OVERDRAFT_LIMIT = 2;
+			// Разрешены операции дебета (списания средств).
+			ALLOW_DEBIT = 3;
+			// Разрешены операции кредита (зачисления средств).
+			ALLOW_CREDIT = 4;
+			// Ledger временно заблокирован (операционные причины: тех. блокировка, расследование).
+			// Новые транзакции запрещены, но чтение баланса разрешено.
+			LOCKED = 5;
+			// Ledger полностью заморожен — операции невозможны.
+			// Используется при инцидентах, сбоях или нарушениях целостности.
+			FROZEN_FLAG = 6; // Переименовано из FROZEN, чтобы избежать конфликта с Ledger.Status.FROZEN
+			// Ledger помечен как подозрительный (флаг KYC/AML).
+			// Транзакции проходят дополнительную проверку, но не обязательно блокируются.
+			SUSPICIOUS = 7;
 		}
 	}
 
 	uint64 id = 1;
 	// Актив, который учитывается на этом счете.
 	Asset asset = 2;
-
 	// Статус счета.
 	Status.Id status = 3;
-
 	// Бинарная маска флагов из `Ledger.Flags.Id`.
 	uint32 flags = 4;
+	// Владелец этого счета.
+	Owner owner = 5;
 
-	// --- Основные балансовые показатели ---
+	// --- Балансовые показатели ---
 	// Все значения хранятся как строки для поддержки высокой точности.
 
-	// Общая сумма всех кредитовых операций (зачислений).
-	string credit_total = 5;
-	// Общая сумма всех дебетовых операций (списаний).
-	string debit_total = 6;
-	// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
-	string overdraft_limit = 7;
+	// Сумма проведенных дебетовых операций (списания).
+	string posted_debit = 6;
+	// Сумма проведенных кредитовых операций (зачисления).
+	string posted_credit = 7;
 
-	google.protobuf.Timestamp created_at = 8;
-	google.protobuf.Timestamp updated_at = 9;
+	// Сумма ожидающих дебетовых операций.
+	string pending_debit = 8;
+	// Сумма ожидающих кредитовых операций.
+	string pending_credit = 9;
+
+	// Сумма запланированных дебетовых операций.
+	string scheduled_debit = 10;
+	// Сумма запланированных кредитовых операций.
+	string scheduled_credit = 11;
+
+	// Кредитный лимит, если разрешен флагом LIMIT_NEGATIVE.
+	string credit_limit = 12;
+	// Лимит овердрафта, если разрешен флагом ALLOW_OVERDRAFT_LIMIT.
+	string overdraft_limit = 13;
+
+	// Общее количество транзакций по счету.
+	uint64 transactions_quantity = 14;
+
+	// Флаг, указывающий, что объект был инициализирован и не является значением по умолчанию.
+	bool initialized = 15;
+
+	google.protobuf.Timestamp created_at = 16;
+	google.protobuf.Timestamp updated_at = 17;
 }

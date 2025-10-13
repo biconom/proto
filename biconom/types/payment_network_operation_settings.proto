@@ -16,7 +16,7 @@ message PaymentNetworkOperationSettings {
 		optional uint32 required_confirmations = 1;
 		// Альтернативный механизм определения финализации, основанный на вероятности (0..1).
 		// Используется в некоторых PoS-сетях, где нет строгих "подтверждений".
-		optional double finality_threshold = 2;
+		optional string finality_threshold = 2;
 
 		// --- Memo / Tag / Message ---
 		// Определяет, требуется ли для транзакций дополнительный идентификатор (Memo/Tag) и какого он типа.
