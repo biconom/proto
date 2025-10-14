@@ -28,9 +28,6 @@ pub mod biconom {
 		pub mod distributor {
 			include!("generated/biconom.client.distributor.rs");
 		}
-		pub mod market_data {
-			include!("generated/biconom.client.market_data.rs");
-		}
 		pub mod google_authenticator {
 			include!("generated/biconom.client.google_authenticator.rs");
 		}
@@ -54,6 +51,9 @@ pub mod biconom {
 		}
 		pub mod wallet_type_currency {
 			include!("generated/biconom.client.wallet_type_currency.rs");
+		}
+		pub mod ticker {
+			include!("generated/biconom.client.ticker.rs");
 		}
 		pub mod trade {
 			include!("generated/biconom.client.trade.rs");
