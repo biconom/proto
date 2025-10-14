@@ -30,6 +30,8 @@ pub struct PublicResponse {
     pub exchange_currency_pairs: ::prost::alloc::vec::Vec<
         super::super::types::ExchangeCurrencyPair,
     >,
+    #[prost(message, repeated, tag = "12")]
+    pub tickers: ::prost::alloc::vec::Vec<super::super::types::Ticker>,
 }
 /// Ответ, содержащий все данные текущего пользователя.
 #[derive(Clone, PartialEq, ::prost::Message)]

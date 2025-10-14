@@ -12,11 +12,25 @@ service TradeService {
     // Этот метод выполняет все необходимые проверки (баланс, лимиты, права доступа),
     // но не совершает саму сделку. Возвращает детальный расчет, включая комиссии,
     // или ошибку, если сделка невозможна.
-    rpc ValidateTrade(TradeRequest) returns (TradeDetails);
+    // rpc ValidateTrade(TradeRequest) returns (TradeDetails);
 
     // Создает и выполняет торговую операцию.
     // Запрос идентичен `ValidateTrade`, но этот метод реально исполняет сделку.
     rpc CreateTrade(TradeRequest) returns (TradeResult);
+}
+
+// Определяет сумму сделки.
+message TradeAmount {
+    oneof by {
+        // Сумма в базовой валюте.
+        // При покупке: "хочу купить 1 BTC".
+        // При продаже: "хочу продать 1 BTC".
+        string base_currency_amount = 1;
+        // Сумма в котируемой валюте.
+        // При покупке: "хочу купить BTC на 1000 USDT".
+        // При продаже: "хочу продать BTC и получить 1000 USDT".
+        string quote_currency_amount = 2;
+    }
 }
 
 // Запрос на валидацию или создание сделки.
@@ -28,40 +42,16 @@ message TradeRequest {
     // Кошелек, в который будут зачислены средства.
     biconom.types.WalletType.Id destination_wallet_type_id = 3;
 
-    // Определяет направление и сумму сделки.
-    // Валюта для суммы определяется из контекста `pair_id`.
+    // Определяет направление и сумму сделки относительно базовой валюты.
     oneof operation {
-        // Сумма в КОТИРУЕМОЙ валюте, которую пользователь тратит, чтобы КУПИТЬ базовую.
-        // Пример для BTC/USDT: `buy_with_quote = "1000"` (потратить 1000 USDT на покупку BTC).
-        string buy_with_quote = 4;
-        // Сумма в БАЗОВОЙ валюте, которую пользователь хочет ПРОДАТЬ.
-        // Пример для BTC/USDT: `sell_base = "0.1"` (продать 0.1 BTC).
-        string sell_base = 5;
+        TradeAmount buy = 4;
+        TradeAmount sell = 5;
     }
 }
 
-// Детализация комиссий в одной валюте.
-message FeeBreakdown {
-    // Общая сумма комиссии в этой валюте.
-    string total_amount = 1;
-    // Детализация по составляющим.
-    // Ключ: название комиссии (например, "processing_fee" из CalculationGroup).
-    // Значение: сумма этой части комиссии.
-    map<string, string> details = 2;
-}
-
-// Детали исполненной или предварительно рассчитанной сделки.
-message TradeDetails {
-    string amount_to_spend = 1;   // Сумма к списанию.
-    string amount_to_receive = 2; // Сумма к зачислению (после вычета комиссий).
-    string effective_rate = 3;    // Эффективный курс сделки.
-    // Детализация комиссий. Ключ - ID валюты, значение - разбивка комиссий в этой валюте.
-    map<uint32, FeeBreakdown> fees = 4;
-}
 
 // Результат исполненной сделки.
 message TradeResult {
     uint64 id = 1; // Уникальный ID исполненной сделки.
-    TradeDetails details = 2; // Детали исполненной сделки.
     // Здесь могут быть добавлены другие детали сделки, например, ссылки на транзакции в Ledger.
 }
