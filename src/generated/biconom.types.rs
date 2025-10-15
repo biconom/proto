@@ -4342,7 +4342,7 @@ pub mod ledger {
     /// Owner определяет владельца счета Ledger.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Owner {
-        #[prost(oneof = "owner::Entity", tags = "1, 2, 3")]
+        #[prost(oneof = "owner::Entity", tags = "1, 2, 3, 4")]
         pub entity: ::core::option::Option<owner::Entity>,
     }
     /// Nested message and enum types in `Owner`.
@@ -4358,6 +4358,9 @@ pub mod ledger {
             /// ID платежной сети.
             #[prost(uint32, tag = "3")]
             PaymentNetworkId(u32),
+            /// ID биржи/обменника.
+            #[prost(uint32, tag = "4")]
+            ExchangeId(u32),
         }
     }
     /// Статус жизненного цикла счета.

@@ -22,6 +22,8 @@ message Ledger {
 			uint32 wallet_id = 2;
 			// ID платежной сети.
 			uint32 payment_network_id = 3;
+			// ID биржи/обменника.
+			uint32 exchange_id = 4;
 		}
 	}
 
