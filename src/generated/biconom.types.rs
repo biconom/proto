@@ -2657,96 +2657,6 @@ pub mod google_authenticator_policy {
         pub items: ::prost::alloc::vec::Vec<super::GoogleAuthenticatorPolicy>,
     }
 }
-/// Locale представляет собой языковую локаль, используемую в системе для интернационализации.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct Locale {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Полное название (например, "English (United States)")
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Уникальный код по стандарту IETF BCP 47 (например, "en-US", "ar-SA").
-    #[prost(string, tag = "3")]
-    pub code: ::prost::alloc::string::String,
-    /// Указывает, имеет ли язык написание справа налево (Right-to-Left).
-    #[prost(bool, tag = "4")]
-    pub is_rtl: bool,
-    /// Текущий статус доступности локали
-    #[prost(enumeration = "locale::Status", tag = "5")]
-    pub status: i32,
-    #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-/// Nested message and enum types in `Locale`.
-pub mod locale {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID локали
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальный код локали (например, "en-US")
-            #[prost(string, tag = "2")]
-            Code(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Locale>,
-    }
-    /// Определяет статус доступности локали.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        /// Статус не определен.
-        Unspecified = 0,
-        /// Активна. Локаль доступна для выбора пользователями.
-        Active = 1,
-        /// Неактивна. Локаль скрыта и недоступна.
-        Inactive = 2,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "UNSPECIFIED",
-                Self::Active => "ACTIVE",
-                Self::Inactive => "INACTIVE",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "UNSPECIFIED" => Some(Self::Unspecified),
-                "ACTIVE" => Some(Self::Active),
-                "INACTIVE" => Some(Self::Inactive),
-                _ => None,
-            }
-        }
-    }
-}
 /// Mnemonic представляет конфигурацию для мнемонических фраз.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Mnemonic {
@@ -4283,6 +4193,7 @@ pub mod referral_link_policy {
 /// Поведение счета регулируется набором флагов.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Ledger {
+    /// Уникальный идентификатор счета.
     #[prost(uint64, tag = "1")]
     pub id: u64,
     /// Актив, который учитывается на этом счете.
@@ -4336,8 +4247,28 @@ pub struct Ledger {
 pub mod ledger {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        /// Составной ключ для идентификации Ledger по его владельцу и активу.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ByOwnerAsset {
+            /// Владелец счета.
+            #[prost(message, optional, tag = "1")]
+            pub owner: ::core::option::Option<super::Owner>,
+            /// Актив, который учитывается на счете.
+            #[prost(message, optional, tag = "2")]
+            pub asset: ::core::option::Option<super::super::Asset>,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            #[prost(uint64, tag = "1")]
+            Id(u64),
+            #[prost(message, tag = "2")]
+            ByOwnerAsset(ByOwnerAsset),
+        }
     }
     /// Owner определяет владельца счета Ledger.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -4809,6 +4740,96 @@ pub mod ledger_policy {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::LedgerPolicy>,
+    }
+}
+/// Locale представляет собой языковую локаль, используемую в системе для интернационализации.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Locale {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Полное название (например, "English (United States)")
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Уникальный код по стандарту IETF BCP 47 (например, "en-US", "ar-SA").
+    #[prost(string, tag = "3")]
+    pub code: ::prost::alloc::string::String,
+    /// Указывает, имеет ли язык написание справа налево (Right-to-Left).
+    #[prost(bool, tag = "4")]
+    pub is_rtl: bool,
+    /// Текущий статус доступности локали
+    #[prost(enumeration = "locale::Status", tag = "5")]
+    pub status: i32,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `Locale`.
+pub mod locale {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID локали
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальный код локали (например, "en-US")
+            #[prost(string, tag = "2")]
+            Code(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Locale>,
+    }
+    /// Определяет статус доступности локали.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        /// Статус не определен.
+        Unspecified = 0,
+        /// Активна. Локаль доступна для выбора пользователями.
+        Active = 1,
+        /// Неактивна. Локаль скрыта и недоступна.
+        Inactive = 2,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Active => "ACTIVE",
+                Self::Inactive => "INACTIVE",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "ACTIVE" => Some(Self::Active),
+                "INACTIVE" => Some(Self::Inactive),
+                _ => None,
+            }
+        }
     }
 }
 /// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
@@ -5393,10 +5414,315 @@ pub mod tree {
         pub items: ::prost::alloc::vec::Vec<super::Tree>,
     }
 }
-/// TreePolicy определяет набор правил для группы деревьев.
-/// Конкретная логика политики реализуется на бэкенде.
+/// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
+/// которые относятся к одной бизнес-операции.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionGroup {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(message, optional, tag = "2")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Список транзакций, входящих в эту группу.
+    #[prost(message, repeated, tag = "3")]
+    pub transactions: ::prost::alloc::vec::Vec<Transaction>,
+}
+/// Nested message and enum types in `TransactionGroup`.
+pub mod transaction_group {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::TransactionGroup>,
+    }
+}
+/// Transaction представляет собой логическую финансовую операцию над одним активом.
+/// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Transaction {
+    /// Уникальный ID транзакции.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// ID группы, к которой принадлежит транзакция.
+    #[prost(uint64, tag = "2")]
+    pub group_id: u64,
+    /// ID родительской транзакции (для сторнирования или связанных операций).
+    #[prost(uint64, optional, tag = "3")]
+    pub parent_transaction_id: ::core::option::Option<u64>,
+    /// Актив, с которым работает транзакция.
+    #[prost(message, optional, tag = "4")]
+    pub asset: ::core::option::Option<Asset>,
+    /// Слой исполнения.
+    #[prost(enumeration = "transaction::layer::Id", tag = "5")]
+    pub layer: i32,
+    /// Текущий статус.
+    #[prost(enumeration = "transaction::status::Id", tag = "6")]
+    pub status: i32,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Список проводок, составляющих эту транзакцию.
+    #[prost(message, repeated, tag = "9")]
+    pub entries: ::prost::alloc::vec::Vec<TransactionEntry>,
+}
+/// Nested message and enum types in `Transaction`.
+pub mod transaction {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Transaction>,
+    }
+    /// Слой, на котором выполняется транзакция.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Layer {}
+    /// Nested message and enum types in `Layer`.
+    pub mod layer {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Основной слой, немедленное исполнение.
+            Primary = 1,
+            /// Запланированная операция, которая будет исполнена в будущем.
+            Scheduled = 2,
+            /// Платежный слой, связанный с внешними системами.
+            Payment = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Primary => "PRIMARY",
+                    Self::Scheduled => "SCHEDULED",
+                    Self::Payment => "PAYMENT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PRIMARY" => Some(Self::Primary),
+                    "SCHEDULED" => Some(Self::Scheduled),
+                    "PAYMENT" => Some(Self::Payment),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Статус жизненного цикла транзакции.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Операция инициирована, но еще не отражена на счетах.
+            Pending = 1,
+            /// Сумма зарезервирована (например, предавторизация по карте).
+            Authorized = 2,
+            /// Проводка отражена в книге (баланс изменен).
+            Posted = 3,
+            /// Аннулирована до отражения (проводки не было).
+            Voided = 4,
+            /// Отклонена системой (ошибка, лимит, несоответствие).
+            Rejected = 5,
+            /// Сторнирована (была проведена и затем отменена обратной записью).
+            Reversed = 6,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Pending => "PENDING",
+                    Self::Authorized => "AUTHORIZED",
+                    Self::Posted => "POSTED",
+                    Self::Voided => "VOIDED",
+                    Self::Rejected => "REJECTED",
+                    Self::Reversed => "REVERSED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PENDING" => Some(Self::Pending),
+                    "AUTHORIZED" => Some(Self::Authorized),
+                    "POSTED" => Some(Self::Posted),
+                    "VOIDED" => Some(Self::Voided),
+                    "REJECTED" => Some(Self::Rejected),
+                    "REVERSED" => Some(Self::Reversed),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+/// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
+/// по одному счету Ledger. Является дочерним элементом Transaction.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TreePolicy {
+pub struct TransactionEntry {
+    /// Уникальный ID проводки.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// ID родительской транзакции.
+    #[prost(uint64, tag = "2")]
+    pub transaction_id: u64,
+    /// ID счета, по которому выполняется проводка.
+    #[prost(uint64, tag = "3")]
+    pub ledger_id: u64,
+    /// Направление (дебет/кредит).
+    #[prost(enumeration = "transaction_entry::direction::Id", tag = "4")]
+    pub direction: i32,
+    /// Сумма проводки в виде строки для высокой точности.
+    #[prost(string, tag = "5")]
+    pub amount: ::prost::alloc::string::String,
+    /// Причина проводки.
+    #[prost(message, optional, tag = "6")]
+    pub reason: ::core::option::Option<transaction_entry::Reason>,
+    /// Необязательное примечание.
+    #[prost(string, optional, tag = "7")]
+    pub note: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `TransactionEntry`.
+pub mod transaction_entry {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::TransactionEntry>,
+    }
+    /// Направление движения средств.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Direction {}
+    /// Nested message and enum types in `Direction`.
+    pub mod direction {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Списание со счета.
+            Debit = 1,
+            /// Зачисление на счет.
+            Credit = 2,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Debit => "DEBIT",
+                    Self::Credit => "CREDIT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "DEBIT" => Some(Self::Debit),
+                    "CREDIT" => Some(Self::Credit),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Причина или контекст проводки.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Reason {
+        #[prost(oneof = "reason::Kind", tags = "1")]
+        pub kind: ::core::option::Option<reason::Kind>,
+    }
+    /// Nested message and enum types in `Reason`.
+    pub mod reason {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Kind {
+            /// В будущем здесь будут структурированные причины.
+            /// Например: Fee, Commission, Bonus, etc.
+            #[prost(string, tag = "1")]
+            Json(::prost::alloc::string::String),
+        }
+    }
+}
+/// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
+/// в иерархии транзакций (группу, транзакцию или проводку).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TransactionScopeId {
+    #[prost(oneof = "transaction_scope_id::Id", tags = "1, 2, 3")]
+    pub id: ::core::option::Option<transaction_scope_id::Id>,
+}
+/// Nested message and enum types in `TransactionScopeId`.
+pub mod transaction_scope_id {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Id {
+        #[prost(uint64, tag = "1")]
+        GroupId(u64),
+        #[prost(uint64, tag = "2")]
+        TransactionId(u64),
+        #[prost(uint64, tag = "3")]
+        EntryId(u64),
+    }
+}
+/// TreeDistributorPolicy определяет набор правил для группы связей TreeDistributor.
+/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TreeDistributorPolicy {
     #[prost(uint32, tag = "1")]
     pub id: u32,
     /// Уникальное имя политики для идентификации
@@ -5414,8 +5740,8 @@ pub struct TreePolicy {
     #[prost(message, optional, tag = "7")]
     pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
-/// Nested message and enum types in `TreePolicy`.
-pub mod tree_policy {
+/// Nested message and enum types in `TreeDistributorPolicy`.
+pub mod tree_distributor_policy {
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
         #[prost(oneof = "id::Identifier", tags = "1, 2")]
@@ -5436,7 +5762,7 @@ pub mod tree_policy {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TreePolicy>,
+        pub items: ::prost::alloc::vec::Vec<super::TreeDistributorPolicy>,
     }
 }
 /// TreeDistributor представляет собой связь между деревом (Tree) и дистрибьютором (Distributor).
@@ -5503,10 +5829,10 @@ pub mod tree_distributor {
         pub items: ::prost::alloc::vec::Vec<super::TreeDistributor>,
     }
 }
-/// TreeDistributorPolicy определяет набор правил для группы связей TreeDistributor.
-/// Конкретная логика политики (например, блокировка, особые условия) реализуется на бэкенде.
+/// TreePolicy определяет набор правил для группы деревьев.
+/// Конкретная логика политики реализуется на бэкенде.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TreeDistributorPolicy {
+pub struct TreePolicy {
     #[prost(uint32, tag = "1")]
     pub id: u32,
     /// Уникальное имя политики для идентификации
@@ -5524,8 +5850,8 @@ pub struct TreeDistributorPolicy {
     #[prost(message, optional, tag = "7")]
     pub additional_data: ::core::option::Option<::prost_types::Any>,
 }
-/// Nested message and enum types in `TreeDistributorPolicy`.
-pub mod tree_distributor_policy {
+/// Nested message and enum types in `TreePolicy`.
+pub mod tree_policy {
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
         #[prost(oneof = "id::Identifier", tags = "1, 2")]
@@ -5546,7 +5872,55 @@ pub mod tree_distributor_policy {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TreeDistributorPolicy>,
+        pub items: ::prost::alloc::vec::Vec<super::TreePolicy>,
+    }
+}
+/// TreePartitionPolicy определяет набор правил для группы партиций дерева.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TreePartitionPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Уникальное имя политики для идентификации
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Описание, поясняющее суть и логику работы политики
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    /// Определяет, могут ли партиции, подчиненные этой политике, быть слиты с другими. false - аналог "Standalone".
+    #[prost(bool, tag = "4")]
+    pub is_mergeable: bool,
+    #[prost(uint64, tag = "5")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "6")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "7")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `TreePartitionPolicy`.
+pub mod tree_partition_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::TreePartitionPolicy>,
     }
 }
 /// TreePartition представляет собой выделенную часть или "партицию" внутри дерева (Tree).
@@ -5612,54 +5986,6 @@ pub mod tree_partition {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::TreePartition>,
-    }
-}
-/// TreePartitionPolicy определяет набор правил для группы партиций дерева.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TreePartitionPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Уникальное имя политики для идентификации
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Описание, поясняющее суть и логику работы политики
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    /// Определяет, могут ли партиции, подчиненные этой политике, быть слиты с другими. false - аналог "Standalone".
-    #[prost(bool, tag = "4")]
-    pub is_mergeable: bool,
-    #[prost(uint64, tag = "5")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "6")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "7")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `TreePartitionPolicy`.
-pub mod tree_partition_policy {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TreePartitionPolicy>,
     }
 }
 /// UserPolicy определяет набор правил для группы пользователей.

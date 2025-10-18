@@ -10,7 +10,18 @@ import "google/protobuf/timestamp.proto";
 // Поведение счета регулируется набором флагов.
 message Ledger {
 	message Id {
-		uint64 id = 1;
+		// Составной ключ для идентификации Ledger по его владельцу и активу.
+		message ByOwnerAsset {
+			// Владелец счета.
+			biconom.types.Ledger.Owner owner = 1;
+			// Актив, который учитывается на счете.
+			biconom.types.Asset asset = 2;
+		}
+
+		oneof identifier {
+			uint64 id = 1;
+			ByOwnerAsset by_owner_asset = 2;
+		}
 	}
 
 	// Owner определяет владельца счета Ledger.
@@ -70,9 +81,10 @@ message Ledger {
 		}
 	}
 
+	// Уникальный идентификатор счета.
 	uint64 id = 1;
 	// Актив, который учитывается на этом счете.
-	Asset asset = 2;
+	biconom.types.Asset asset = 2;
 	// Статус счета.
 	Status.Id status = 3;
 	// Бинарная маска флагов из `Ledger.Flags.Id`.

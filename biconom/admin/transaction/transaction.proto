@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package biconom.admin.transaction;
+
+import "biconom/types/asset.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/transaction.proto";
+
+// TransactionService предоставляет административный функционал для работы с транзакциями.
+service TransactionService {
+  // Получить полную группу транзакций по любому из идентификаторов в иерархии
+  // (group_id, transaction_id или entry_id).
+  rpc Get(biconom.types.TransactionScopeId) returns (biconom.types.TransactionGroup);
+
+  // Получить список групп транзакций.
+  rpc ListGroups(ListGroupsRequest) returns (biconom.types.TransactionGroup.List);
+
+  // Получить список транзакций.
+  rpc ListTransactions(ListTransactionsRequest) returns (biconom.types.Transaction.List);
+
+  // Получить список проводок.
+  rpc ListEntries(ListEntriesRequest) returns (biconom.types.TransactionEntry.List);
+}
+
+// --- Запросы и ответы для списков ---
+
+message ListGroupsRequest {
+  // Курсор для пагинации (используется id последней полученной группы).
+  optional biconom.types.TransactionGroup.Id cursor = 1;
+  optional biconom.types.Sort sort = 2;
+}
+
+message ListTransactionsRequest {
+  // Фильтр по ID группы.
+  optional biconom.types.TransactionGroup.Id filter_group_id = 1;
+  // Фильтр по ID родительской транзакции.
+  optional uint64 filter_parent_transaction_id = 2;
+  // Фильтр по одному или нескольким активам.
+  repeated biconom.types.Asset filter_assets = 3;
+  // Фильтр по одному или нескольким слоям.
+  repeated biconom.types.Transaction.Layer.Id filter_layers = 4;
+  // Фильтр по одному или нескольким статусам.
+  repeated biconom.types.Transaction.Status.Id filter_statuses = 5;
+
+  // Курсор для пагинации (используется id последней полученной транзакции).
+  optional biconom.types.Transaction.Id cursor = 6;
+  optional biconom.types.Sort sort = 7;
+}
+
+message ListEntriesRequest {
+  // Фильтр по ID транзакции.
+  optional biconom.types.Transaction.Id filter_transaction_id = 1;
+  // Фильтр по ID счета.
+  optional uint64 filter_ledger_id = 2;
+
+  // Курсор для пагинации (используется id последней полученной проводки).
+  optional biconom.types.TransactionEntry.Id cursor = 3;
+  optional biconom.types.Sort sort = 4;
+}

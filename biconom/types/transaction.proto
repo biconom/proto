@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/asset.proto";
+import "google/protobuf/timestamp.proto";
+
+// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
+// которые относятся к одной бизнес-операции.
+message TransactionGroup {
+  message Id {
+    uint64 id = 1;
+  }
+
+  message List {
+    repeated TransactionGroup items = 1;
+  }
+
+  uint64 id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  // Список транзакций, входящих в эту группу.
+  repeated Transaction transactions = 3;
+}
+
+// Transaction представляет собой логическую финансовую операцию над одним активом.
+// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
+message Transaction {
+  message Id {
+    uint64 id = 1;
+  }
+
+  message List {
+    repeated Transaction items = 1;
+  }
+
+  // Слой, на котором выполняется транзакция.
+  message Layer {
+    enum Id {
+      UNSPECIFIED = 0;
+      // Основной слой, немедленное исполнение.
+      PRIMARY = 1;
+      // Запланированная операция, которая будет исполнена в будущем.
+      SCHEDULED = 2;
+      // Платежный слой, связанный с внешними системами.
+      PAYMENT = 3;
+    }
+  }
+
+  // Статус жизненного цикла транзакции.
+  message Status {
+    enum Id {
+      UNSPECIFIED = 0;
+      // Операция инициирована, но еще не отражена на счетах.
+      PENDING = 1;
+      // Сумма зарезервирована (например, предавторизация по карте).
+      AUTHORIZED = 2;
+      // Проводка отражена в книге (баланс изменен).
+      POSTED = 3;
+      // Аннулирована до отражения (проводки не было).
+      VOIDED = 4;
+      // Отклонена системой (ошибка, лимит, несоответствие).
+      REJECTED = 5;
+      // Сторнирована (была проведена и затем отменена обратной записью).
+      REVERSED = 6;
+    }
+  }
+
+  // Уникальный ID транзакции.
+  uint64 id = 1;
+  // ID группы, к которой принадлежит транзакция.
+  uint64 group_id = 2;
+  // ID родительской транзакции (для сторнирования или связанных операций).
+  optional uint64 parent_transaction_id = 3;
+  // Актив, с которым работает транзакция.
+  Asset asset = 4;
+  // Слой исполнения.
+  Layer.Id layer = 5;
+  // Текущий статус.
+  Status.Id status = 6;
+
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  // Список проводок, составляющих эту транзакцию.
+  repeated TransactionEntry entries = 9;
+}
+
+// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
+// по одному счету Ledger. Является дочерним элементом Transaction.
+message TransactionEntry {
+  message Id {
+    uint64 id = 1;
+  }
+
+  message List {
+    repeated TransactionEntry items = 1;
+  }
+
+  // Направление движения средств.
+  message Direction {
+    enum Id {
+      UNSPECIFIED = 0;
+      // Списание со счета.
+      DEBIT = 1;
+      // Зачисление на счет.
+      CREDIT = 2;
+    }
+  }
+
+  // Причина или контекст проводки.
+  message Reason {
+    oneof kind {
+      // В будущем здесь будут структурированные причины.
+      // Например: Fee, Commission, Bonus, etc.
+      string json = 1;
+    }
+  }
+
+  // Уникальный ID проводки.
+  uint64 id = 1;
+  // ID родительской транзакции.
+  uint64 transaction_id = 2;
+  // ID счета, по которому выполняется проводка.
+  uint64 ledger_id = 3;
+  // Направление (дебет/кредит).
+  Direction.Id direction = 4;
+  // Сумма проводки в виде строки для высокой точности.
+  string amount = 5;
+  // Причина проводки.
+  Reason reason = 6;
+  // Необязательное примечание.
+  optional string note = 7;
+
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
+// в иерархии транзакций (группу, транзакцию или проводку).
+message TransactionScopeId {
+  oneof id {
+    uint64 group_id = 1;
+    uint64 transaction_id = 2;
+    uint64 entry_id = 3;
+  }
+}

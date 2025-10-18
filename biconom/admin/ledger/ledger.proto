@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package biconom.admin.ledger;
+
+import "biconom/types/asset.proto";
+import "biconom/types/ledger.proto";
+import "biconom/types/sort.proto";
+
+// LedgerService предоставляет административный функционал для управления счетами Ledger.
+service LedgerService {
+  // Получить Ledger по его ID.
+  rpc Get(biconom.types.Ledger.Id) returns (biconom.types.Ledger);
+
+  // Получить список Ledger с возможностью фильтрации и пагинации.
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+// Запрос на получение списка счетов Ledger.
+message ListRequest {
+  // Фильтр по одному или нескольким владельцам.
+  repeated biconom.types.Ledger.Owner filter_owners = 1;
+
+  // Фильтр по одному или нескольким активам.
+  repeated biconom.types.Asset filter_assets = 2;
+
+  // Фильтр по одному или нескольким статусам.
+  repeated biconom.types.Ledger.Status.Id filter_statuses = 3;
+
+  // Фильтр по флагам. Возвращает счета, у которых установлен хотя бы один из указанных флагов.
+  repeated biconom.types.Ledger.Flags.Id filter_flags = 4;
+
+  // Курсор для пагинации.
+  // В качестве значения используется `id` последней полученной записи.
+  optional biconom.types.Ledger.Id cursor = 5;
+
+  // Параметры сортировки и лимита.
+  optional biconom.types.Sort sort = 6;
+}
+
+// Ответ со списком счетов Ledger.
+message ListResponse {
+  repeated biconom.types.Ledger ledgers = 1;
+}
