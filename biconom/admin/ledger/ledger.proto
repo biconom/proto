@@ -12,7 +12,7 @@ service LedgerService {
   rpc Get(biconom.types.Ledger.Id) returns (biconom.types.Ledger);
 
   // Получить список Ledger с возможностью фильтрации и пагинации.
-  rpc List(ListRequest) returns (ListResponse);
+  rpc List(ListRequest) returns (biconom.types.Ledger.List);
 }
 
 // Запрос на получение списка счетов Ledger.
@@ -35,9 +35,4 @@ message ListRequest {
 
   // Параметры сортировки и лимита.
   optional biconom.types.Sort sort = 6;
-}
-
-// Ответ со списком счетов Ledger.
-message ListResponse {
-  repeated biconom.types.Ledger ledgers = 1;
 }

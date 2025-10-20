@@ -26,12 +26,6 @@ pub struct ListRequest {
     #[prost(message, optional, tag = "6")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
-/// Ответ со списком счетов Ledger.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub ledgers: ::prost::alloc::vec::Vec<super::super::types::Ledger>,
-}
 /// Generated server implementations.
 pub mod ledger_service_server {
     #![allow(
@@ -57,7 +51,10 @@ pub mod ledger_service_server {
         async fn list(
             &self,
             request: tonic::Request<super::ListRequest>,
-        ) -> std::result::Result<tonic::Response<super::ListResponse>, tonic::Status>;
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::ledger::List>,
+            tonic::Status,
+        >;
     }
     /// LedgerService предоставляет административный функционал для управления счетами Ledger.
     #[derive(Debug)]
@@ -189,7 +186,7 @@ pub mod ledger_service_server {
                     impl<
                         T: LedgerService,
                     > tonic::server::UnaryService<super::ListRequest> for ListSvc<T> {
-                        type Response = super::ListResponse;
+                        type Response = super::super::super::types::ledger::List;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

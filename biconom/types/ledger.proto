@@ -24,6 +24,10 @@ message Ledger {
 		}
 	}
 
+  message List {
+    repeated Ledger items = 1;
+  }
+
 	// Owner определяет владельца счета Ledger.
 	message Owner {
 		oneof entity {
@@ -74,7 +78,7 @@ message Ledger {
 			LOCKED = 5;
 			// Ledger полностью заморожен — операции невозможны.
 			// Используется при инцидентах, сбоях или нарушениях целостности.
-			FROZEN_FLAG = 6; // Переименовано из FROZEN, чтобы избежать конфликта с Ledger.Status.FROZEN
+			FROZEN = 6;
 			// Ledger помечен как подозрительный (флаг KYC/AML).
 			// Транзакции проходят дополнительную проверку, но не обязательно блокируются.
 			SUSPICIOUS = 7;
@@ -89,6 +93,7 @@ message Ledger {
 	Status.Id status = 3;
 	// Бинарная маска флагов из `Ledger.Flags.Id`.
 	uint32 flags = 4;
+	repeated Flags.Id view_flags = 18;
 	// Владелец этого счета.
 	Owner owner = 5;
 

@@ -4205,6 +4205,8 @@ pub struct Ledger {
     /// Бинарная маска флагов из `Ledger.Flags.Id`.
     #[prost(uint32, tag = "4")]
     pub flags: u32,
+    #[prost(enumeration = "ledger::flags::Id", repeated, tag = "18")]
+    pub view_flags: ::prost::alloc::vec::Vec<i32>,
     /// Владелец этого счета.
     #[prost(message, optional, tag = "5")]
     pub owner: ::core::option::Option<ledger::Owner>,
@@ -4269,6 +4271,11 @@ pub mod ledger {
             #[prost(message, tag = "2")]
             ByOwnerAsset(ByOwnerAsset),
         }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Ledger>,
     }
     /// Owner определяет владельца счета Ledger.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -4385,9 +4392,7 @@ pub mod ledger {
             Locked = 5,
             /// Ledger полностью заморожен — операции невозможны.
             /// Используется при инцидентах, сбоях или нарушениях целостности.
-            ///
-            /// Переименовано из FROZEN, чтобы избежать конфликта с Ledger.Status.FROZEN
-            FrozenFlag = 6,
+            Frozen = 6,
             /// Ledger помечен как подозрительный (флаг KYC/AML).
             /// Транзакции проходят дополнительную проверку, но не обязательно блокируются.
             Suspicious = 7,
@@ -4405,7 +4410,7 @@ pub mod ledger {
                     Self::AllowDebit => "ALLOW_DEBIT",
                     Self::AllowCredit => "ALLOW_CREDIT",
                     Self::Locked => "LOCKED",
-                    Self::FrozenFlag => "FROZEN_FLAG",
+                    Self::Frozen => "FROZEN",
                     Self::Suspicious => "SUSPICIOUS",
                 }
             }
@@ -4418,7 +4423,7 @@ pub mod ledger {
                     "ALLOW_DEBIT" => Some(Self::AllowDebit),
                     "ALLOW_CREDIT" => Some(Self::AllowCredit),
                     "LOCKED" => Some(Self::Locked),
-                    "FROZEN_FLAG" => Some(Self::FrozenFlag),
+                    "FROZEN" => Some(Self::Frozen),
                     "SUSPICIOUS" => Some(Self::Suspicious),
                     _ => None,
                 }
