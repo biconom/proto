@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package biconom.client.payment_network_currency;
 
+import "biconom/types/payment_instrument.proto";
 import "biconom/types/currency.proto";
 import "biconom/types/payment_network.proto";
 import "biconom/types/payment_network_currency.proto";
@@ -18,6 +19,9 @@ service PaymentNetworkCurrencyService {
 	// Получить или сгенерировать реквизиты для пополнения для текущего пользователя.
 	// ID аккаунта берется из контекста авторизации.
 	rpc GetDepositAddress(biconom.types.PaymentNetworkCurrency.Id) returns (DepositAddress);
+
+	// Проверяет, являются ли предоставленные реквизиты (`instrument`) валидными для указанной пары "сеть-валюта".
+	rpc ValidateInstrument(ValidateInstrumentRequest) returns (ValidateInstrumentResponse);
 }
 
 // DepositAddress представляет собой набор реквизитов для пополнения счета.
@@ -51,4 +55,25 @@ message ListRequest {
 	optional biconom.types.PaymentNetworkCurrency.Id cursor = 4;
 
 	optional biconom.types.Sort sort = 5;
+}
+
+// Запрос на валидацию реквизитов.
+message ValidateInstrumentRequest {
+	// Контекст: ID платежной сети, для которой выполняется проверка.
+	uint32 payment_network_id = 1;
+
+	// Контекст: ID валюты, для которой выполняется проверка.
+	uint32 currency_id = 2;
+
+	// Реквизиты, которые нужно проверить.
+	biconom.types.PaymentInstrument instrument = 3;
+}
+
+// Ответ на запрос валидации реквизитов.
+message ValidateInstrumentResponse {
+	// Результат проверки.
+	bool is_valid = 1;
+
+	// Отформатированные/нормализованные реквизиты, если бэкенд выполнил их преобразование.
+	optional biconom.types.PaymentInstrument formatted_instrument = 2;
 }

@@ -722,6 +722,311 @@ pub mod community_policy {
         pub items: ::prost::alloc::vec::Vec<super::CommunityPolicy>,
     }
 }
+/// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
+/// которые относятся к одной бизнес-операции.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionGroup {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(message, optional, tag = "2")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Список транзакций, входящих в эту группу.
+    #[prost(message, repeated, tag = "3")]
+    pub transactions: ::prost::alloc::vec::Vec<Transaction>,
+}
+/// Nested message and enum types in `TransactionGroup`.
+pub mod transaction_group {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::TransactionGroup>,
+    }
+}
+/// Transaction представляет собой логическую финансовую операцию над одним активом.
+/// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Transaction {
+    /// Уникальный ID транзакции.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// ID группы, к которой принадлежит транзакция.
+    #[prost(uint64, tag = "2")]
+    pub group_id: u64,
+    /// ID родительской транзакции (для сторнирования или связанных операций).
+    #[prost(uint64, optional, tag = "3")]
+    pub parent_transaction_id: ::core::option::Option<u64>,
+    /// Актив, с которым работает транзакция.
+    #[prost(message, optional, tag = "4")]
+    pub asset: ::core::option::Option<Asset>,
+    /// Слой исполнения.
+    #[prost(enumeration = "transaction::layer::Id", tag = "5")]
+    pub layer: i32,
+    /// Текущий статус.
+    #[prost(enumeration = "transaction::status::Id", tag = "6")]
+    pub status: i32,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Список проводок, составляющих эту транзакцию.
+    #[prost(message, repeated, tag = "9")]
+    pub entries: ::prost::alloc::vec::Vec<TransactionEntry>,
+}
+/// Nested message and enum types in `Transaction`.
+pub mod transaction {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Transaction>,
+    }
+    /// Слой, на котором выполняется транзакция.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Layer {}
+    /// Nested message and enum types in `Layer`.
+    pub mod layer {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Основной слой, немедленное исполнение.
+            Primary = 1,
+            /// Запланированная операция, которая будет исполнена в будущем.
+            Scheduled = 2,
+            /// Платежный слой, связанный с внешними системами.
+            Payment = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Primary => "PRIMARY",
+                    Self::Scheduled => "SCHEDULED",
+                    Self::Payment => "PAYMENT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PRIMARY" => Some(Self::Primary),
+                    "SCHEDULED" => Some(Self::Scheduled),
+                    "PAYMENT" => Some(Self::Payment),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Статус жизненного цикла транзакции.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Операция инициирована, но еще не отражена на счетах.
+            Pending = 1,
+            /// Сумма зарезервирована (например, предавторизация по карте).
+            Authorized = 2,
+            /// Проводка отражена в книге (баланс изменен).
+            Posted = 3,
+            /// Аннулирована до отражения (проводки не было).
+            Voided = 4,
+            /// Отклонена системой (ошибка, лимит, несоответствие).
+            Rejected = 5,
+            /// Сторнирована (была проведена и затем отменена обратной записью).
+            Reversed = 6,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Pending => "PENDING",
+                    Self::Authorized => "AUTHORIZED",
+                    Self::Posted => "POSTED",
+                    Self::Voided => "VOIDED",
+                    Self::Rejected => "REJECTED",
+                    Self::Reversed => "REVERSED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PENDING" => Some(Self::Pending),
+                    "AUTHORIZED" => Some(Self::Authorized),
+                    "POSTED" => Some(Self::Posted),
+                    "VOIDED" => Some(Self::Voided),
+                    "REJECTED" => Some(Self::Rejected),
+                    "REVERSED" => Some(Self::Reversed),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
+/// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
+/// по одному счету Ledger. Является дочерним элементом Transaction.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TransactionEntry {
+    /// Уникальный ID проводки.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// ID родительской транзакции.
+    #[prost(uint64, tag = "2")]
+    pub transaction_id: u64,
+    /// ID счета, по которому выполняется проводка.
+    #[prost(uint64, tag = "3")]
+    pub ledger_id: u64,
+    /// Направление (дебет/кредит).
+    #[prost(enumeration = "transaction_entry::direction::Id", tag = "4")]
+    pub direction: i32,
+    /// Сумма проводки в виде строки для высокой точности.
+    #[prost(string, tag = "5")]
+    pub amount: ::prost::alloc::string::String,
+    /// Причина проводки.
+    #[prost(message, optional, tag = "6")]
+    pub reason: ::core::option::Option<transaction_entry::Reason>,
+    /// Необязательное примечание.
+    #[prost(string, optional, tag = "7")]
+    pub note: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `TransactionEntry`.
+pub mod transaction_entry {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::TransactionEntry>,
+    }
+    /// Направление движения средств.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Direction {}
+    /// Nested message and enum types in `Direction`.
+    pub mod direction {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Списание со счета.
+            Debit = 1,
+            /// Зачисление на счет.
+            Credit = 2,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Debit => "DEBIT",
+                    Self::Credit => "CREDIT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "DEBIT" => Some(Self::Debit),
+                    "CREDIT" => Some(Self::Credit),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Причина или контекст проводки.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Reason {
+        #[prost(oneof = "reason::Kind", tags = "1")]
+        pub kind: ::core::option::Option<reason::Kind>,
+    }
+    /// Nested message and enum types in `Reason`.
+    pub mod reason {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Kind {
+            /// В будущем здесь будут структурированные причины.
+            /// Например: Fee, Commission, Bonus, etc.
+            #[prost(string, tag = "1")]
+            Json(::prost::alloc::string::String),
+        }
+    }
+}
+/// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
+/// в иерархии транзакций (группу, транзакцию или проводку).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TransactionScopeId {
+    #[prost(oneof = "transaction_scope_id::Id", tags = "1, 2, 3")]
+    pub id: ::core::option::Option<transaction_scope_id::Id>,
+}
+/// Nested message and enum types in `TransactionScopeId`.
+pub mod transaction_scope_id {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Id {
+        #[prost(uint64, tag = "1")]
+        GroupId(u64),
+        #[prost(uint64, tag = "2")]
+        TransactionId(u64),
+        #[prost(uint64, tag = "3")]
+        EntryId(u64),
+    }
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PasswordPolicy {
     /// ID политики
@@ -833,6 +1138,644 @@ pub mod password_policy {
                     "EMOJI" => Some(Self::Emoji),
                     _ => None,
                 }
+            }
+        }
+    }
+}
+/// === Сетевые параметры ===
+/// PaymentNetworkOperationSettings инкапсулирует технические параметры, специфичные
+/// для конкретного типа платежной сети (блокчейн, банк и т.д.).
+/// Эта модель используется внутри PaymentOperationSettings для детализации
+/// настроек ввода и вывода средств.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PaymentNetworkOperationSettings {
+    #[prost(oneof = "payment_network_operation_settings::Kind", tags = "1")]
+    pub kind: ::core::option::Option<payment_network_operation_settings::Kind>,
+}
+/// Nested message and enum types in `PaymentNetworkOperationSettings`.
+pub mod payment_network_operation_settings {
+    /// === Настройки для блокчейнов ===
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Blockchain {
+        /// --- Безопасность ---
+        /// Количество подтверждений сети, после которого депозит считается успешным.
+        /// Критически важный параметр для защиты от реорганизации блокчейна.
+        #[prost(uint32, optional, tag = "1")]
+        pub required_confirmations: ::core::option::Option<u32>,
+        /// Альтернативный механизм определения финализации, основанный на вероятности (0..1).
+        /// Используется в некоторых PoS-сетях, где нет строгих "подтверждений".
+        #[prost(string, optional, tag = "2")]
+        pub finality_threshold: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(enumeration = "blockchain::memo_type::Id", tag = "3")]
+        pub memo_type: i32,
+        #[prost(enumeration = "blockchain::address_format::Id", repeated, tag = "4")]
+        pub supported_address_formats: ::prost::alloc::vec::Vec<i32>,
+        #[prost(enumeration = "blockchain::contract_type::Id", repeated, tag = "5")]
+        pub supported_contract_types: ::prost::alloc::vec::Vec<i32>,
+        #[prost(enumeration = "blockchain::token_standard::Id", repeated, tag = "6")]
+        pub supported_token_standards: ::prost::alloc::vec::Vec<i32>,
+        /// --- Оптимизации ---
+        /// Поддержка пакетной отправки (одна транзакция с несколькими получателями).
+        #[prost(bool, tag = "7")]
+        pub supports_batching: bool,
+        /// Поддержка мульти-пакетной отправки (одна бизнес-операция может породить несколько транзакций).
+        #[prost(bool, tag = "8")]
+        pub supports_multi_batching: bool,
+        /// --- Нативная валюта ---
+        /// ID нативной валюты сети, которая используется для оплаты комиссий (газа).
+        #[prost(uint32, tag = "9")]
+        pub native_currency_id: u32,
+    }
+    /// Nested message and enum types in `Blockchain`.
+    pub mod blockchain {
+        /// --- Memo / Tag / Message ---
+        /// Определяет, требуется ли для транзакций дополнительный идентификатор (Memo/Tag) и какого он типа.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct MemoType {
+            #[prost(enumeration = "memo_type::Id", tag = "1")]
+            pub id: i32,
+        }
+        /// Nested message and enum types in `MemoType`.
+        pub mod memo_type {
+            /// Список типов Memo.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct List {
+                #[prost(enumeration = "Id", repeated, tag = "1")]
+                pub items: ::prost::alloc::vec::Vec<i32>,
+            }
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                None = 1,
+                Text = 2,
+                Number = 3,
+                Hash = 4,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::None => "NONE",
+                        Self::Text => "TEXT",
+                        Self::Number => "NUMBER",
+                        Self::Hash => "HASH",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "NONE" => Some(Self::None),
+                        "TEXT" => Some(Self::Text),
+                        "NUMBER" => Some(Self::Number),
+                        "HASH" => Some(Self::Hash),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        /// --- Форматы адресов ---
+        /// Список форматов адресов, которые валидны для данной сети.
+        /// Позволяет проводить валидацию на стороне клиента и сервера.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct AddressFormat {
+            #[prost(enumeration = "address_format::Id", tag = "1")]
+            pub id: i32,
+        }
+        /// Nested message and enum types in `AddressFormat`.
+        pub mod address_format {
+            /// Список форматов адресов.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct List {
+                #[prost(enumeration = "Id", repeated, tag = "1")]
+                pub items: ::prost::alloc::vec::Vec<i32>,
+            }
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                EvmHex = 1,
+                Base58 = 2,
+                Bech32 = 3,
+                Bech32m = 4,
+                CosmosBech32 = 5,
+                SubstrateSs58 = 6,
+                SolanaBase58 = 7,
+                CardanoBech32 = 8,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::EvmHex => "EVM_HEX",
+                        Self::Base58 => "BASE58",
+                        Self::Bech32 => "BECH32",
+                        Self::Bech32m => "BECH32M",
+                        Self::CosmosBech32 => "COSMOS_BECH32",
+                        Self::SubstrateSs58 => "SUBSTRATE_SS58",
+                        Self::SolanaBase58 => "SOLANA_BASE58",
+                        Self::CardanoBech32 => "CARDANO_BECH32",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "EVM_HEX" => Some(Self::EvmHex),
+                        "BASE58" => Some(Self::Base58),
+                        "BECH32" => Some(Self::Bech32),
+                        "BECH32M" => Some(Self::Bech32m),
+                        "COSMOS_BECH32" => Some(Self::CosmosBech32),
+                        "SUBSTRATE_SS58" => Some(Self::SubstrateSs58),
+                        "SOLANA_BASE58" => Some(Self::SolanaBase58),
+                        "CARDANO_BECH32" => Some(Self::CardanoBech32),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        /// --- Типы контрактов / кошельков ---
+        /// Список специфичных для блокчейна типов контрактов или кошельков, которые поддерживаются системой.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ContractType {
+            #[prost(enumeration = "contract_type::Id", tag = "1")]
+            pub id: i32,
+        }
+        /// Nested message and enum types in `ContractType`.
+        pub mod contract_type {
+            /// Список типов контрактов.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct List {
+                #[prost(enumeration = "Id", repeated, tag = "1")]
+                pub items: ::prost::alloc::vec::Vec<i32>,
+            }
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                /// TON
+                TonV3r1 = 1,
+                TonV3r2 = 2,
+                TonV4r2 = 3,
+                TonHighload = 4,
+                TonJetton = 5,
+                /// EVM
+                EvmErc20 = 6,
+                EvmErc721 = 7,
+                EvmErc1155 = 8,
+                /// BTC
+                BtcMultisig = 9,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::TonV3r1 => "TON_V3R1",
+                        Self::TonV3r2 => "TON_V3R2",
+                        Self::TonV4r2 => "TON_V4R2",
+                        Self::TonHighload => "TON_HIGHLOAD",
+                        Self::TonJetton => "TON_JETTON",
+                        Self::EvmErc20 => "EVM_ERC20",
+                        Self::EvmErc721 => "EVM_ERC721",
+                        Self::EvmErc1155 => "EVM_ERC1155",
+                        Self::BtcMultisig => "BTC_MULTISIG",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "TON_V3R1" => Some(Self::TonV3r1),
+                        "TON_V3R2" => Some(Self::TonV3r2),
+                        "TON_V4R2" => Some(Self::TonV4r2),
+                        "TON_HIGHLOAD" => Some(Self::TonHighload),
+                        "TON_JETTON" => Some(Self::TonJetton),
+                        "EVM_ERC20" => Some(Self::EvmErc20),
+                        "EVM_ERC721" => Some(Self::EvmErc721),
+                        "EVM_ERC1155" => Some(Self::EvmErc1155),
+                        "BTC_MULTISIG" => Some(Self::BtcMultisig),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        /// --- Стандарты токенов ---
+        /// Список стандартов токенов, поддерживаемых в этой сети.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct TokenStandard {
+            #[prost(enumeration = "token_standard::Id", tag = "1")]
+            pub id: i32,
+        }
+        /// Nested message and enum types in `TokenStandard`.
+        pub mod token_standard {
+            /// Список стандартов токенов.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct List {
+                #[prost(enumeration = "Id", repeated, tag = "1")]
+                pub items: ::prost::alloc::vec::Vec<i32>,
+            }
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                /// ERC20 и его аналоги (BEP20, TRC20 и т.д.).
+                Erc20 = 1,
+                Erc721 = 2,
+                Erc1155 = 3,
+                /// Solana Program Library (SPL).
+                Spl = 4,
+                /// TON Jettons.
+                Jetton = 5,
+                /// CosmWasm (CW20).
+                Cw20 = 6,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Erc20 => "ERC20",
+                        Self::Erc721 => "ERC721",
+                        Self::Erc1155 => "ERC1155",
+                        Self::Spl => "SPL",
+                        Self::Jetton => "JETTON",
+                        Self::Cw20 => "CW20",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "ERC20" => Some(Self::Erc20),
+                        "ERC721" => Some(Self::Erc721),
+                        "ERC1155" => Some(Self::Erc1155),
+                        "SPL" => Some(Self::Spl),
+                        "JETTON" => Some(Self::Jetton),
+                        "CW20" => Some(Self::Cw20),
+                        _ => None,
+                    }
+                }
+            }
+        }
+    }
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Kind {
+        #[prost(message, tag = "1")]
+        Blockchain(Blockchain),
+    }
+}
+/// PaymentInstrument представляет собой конкретные, переиспользуемые реквизиты
+/// для совершения платежа (например, адрес кошелька).
+/// Эта модель не содержит пользовательских или системных данных (имен, статусов),
+/// а только сами реквизиты.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PaymentInstrument {
+    /// Конкретные реквизиты, зависящие от типа инструмента.
+    #[prost(oneof = "payment_instrument::Details", tags = "1")]
+    pub details: ::core::option::Option<payment_instrument::Details>,
+}
+/// Nested message and enum types in `PaymentInstrument`.
+pub mod payment_instrument {
+    /// Реквизиты для блокчейн-транзакции.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Blockchain {
+        /// Формат адреса кошелька. Используется для валидации и фильтрации
+        /// совместимых платежных сетей.
+        #[prost(
+            enumeration = "super::payment_network_operation_settings::blockchain::address_format::Id",
+            tag = "1"
+        )]
+        pub address_format: i32,
+        /// Адрес.
+        #[prost(string, tag = "2")]
+        pub address: ::prost::alloc::string::String,
+    }
+    /// Конкретные реквизиты, зависящие от типа инструмента.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Details {
+        /// В будущем здесь могут быть BankAccount и т.д.
+        #[prost(message, tag = "1")]
+        Blockchain(Blockchain),
+    }
+}
+/// PaymentDestination представляет собой запись в "адресной книге" пользователя.
+/// Она хранит статичные, переиспользуемые реквизиты получателя средств (назначение платежа),
+/// которые пользователь добавил в свой "белый список" для многократного использования,
+/// как правило, для операций вывода.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PaymentDestination {
+    /// --- Основные данные ---
+    ///
+    /// Уникальный ID записи в реестре пользователя.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// Пользовательское название (например, "Мой основной кошелек ETH").
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Статус записи (активна/архивирована).
+    #[prost(enumeration = "payment_destination::status::Id", tag = "3")]
+    pub status: i32,
+    /// Реквизиты, сохраненные в этой записи.
+    #[prost(message, optional, tag = "4")]
+    pub instrument: ::core::option::Option<PaymentInstrument>,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `PaymentDestination`.
+pub mod payment_destination {
+    /// Идентификатор для поиска назначения.
+    /// Тип инструмента, используемый для установки лимитов по типам.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct InstrumentType {
+        #[prost(enumeration = "instrument_type::Id", tag = "1")]
+        pub id: i32,
+    }
+    /// Nested message and enum types in `InstrumentType`.
+    pub mod instrument_type {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct List {
+            #[prost(enumeration = "Id", repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<i32>,
+        }
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// BANK_ACCOUNT = 2; // Для будущего использования
+            Blockchain = 1,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Blockchain => "BLOCKCHAIN",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "BLOCKCHAIN" => Some(Self::Blockchain),
+                    _ => None,
+                }
+            }
+        }
+    }
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        /// Уникальный ID записи в реестре пользователя.
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    /// Статус жизненного цикла записи.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {
+        #[prost(enumeration = "status::Id", tag = "1")]
+        pub id: i32,
+    }
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Запись активна и может быть использована для операций.
+            Active = 1,
+            /// Запись архивирована, не отображается в общих списках,
+            /// но доступен по прямому идентификатору.
+            Archived = 2,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Archived => "ARCHIVED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "ARCHIVED" => Some(Self::Archived),
+                    _ => None,
+                }
+            }
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::PaymentDestination>,
+    }
+}
+/// PaymentNetworkCurrencyWithdrawal представляет собой заявку на вывод средств.
+///
+/// --- Вложенные типы ---
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PaymentNetworkCurrencyWithdrawal {
+    /// Уникальный ID заявки на вывод.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// Текущий статус заявки.
+    #[prost(enumeration = "payment_network_currency_withdrawal::Status", tag = "2")]
+    pub status: i32,
+    /// Тело заявки с деталями вывода.
+    #[prost(message, optional, tag = "3")]
+    pub body: ::core::option::Option<payment_network_currency_withdrawal::Body>,
+    /// ID связанной транзакции, которая будет создана после успешной обработки.
+    #[prost(uint64, optional, tag = "4")]
+    pub transaction_id: ::core::option::Option<u64>,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `PaymentNetworkCurrencyWithdrawal`.
+pub mod payment_network_currency_withdrawal {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::PaymentNetworkCurrencyWithdrawal>,
+    }
+    /// Body содержит основные данные заявки на вывод, которые могут быть
+    /// использованы как для создания новой заявки, так и для представления существующей.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Body {
+        /// ID типа кошелька, с которого осуществляется вывод.
+        #[prost(uint32, tag = "1")]
+        pub wallet_type_id: u32,
+        /// ID платежной сети, через которую осуществляется вывод.
+        #[prost(uint32, tag = "2")]
+        pub payment_network_id: u32,
+        /// ID валюты для вывода.
+        #[prost(uint32, tag = "3")]
+        pub currency_id: u32,
+        /// ID сохраненного назначения платежа из "белого списка".
+        /// Если поле заполнено, это означает, что `instrument` взят из адресной книги.
+        #[prost(uint64, optional, tag = "4")]
+        pub payment_destination_id: ::core::option::Option<u64>,
+        /// Реквизиты для вывода.
+        #[prost(message, optional, tag = "5")]
+        pub instrument: ::core::option::Option<super::PaymentInstrument>,
+        /// Сумма вывода.
+        #[prost(string, tag = "6")]
+        pub amount: ::prost::alloc::string::String,
+        /// Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
+        #[prost(string, optional, tag = "7")]
+        pub memo: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    /// Статус жизненного цикла заявки на вывод.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Заявка создана и ожидает подтверждения пользователя.
+        PendingConfirmation = 1,
+        /// Заявка подтверждена и ожидает обработки системой.
+        PendingProcessing = 2,
+        /// Заявка находится в процессе выполнения (транзакция отправлена в сеть).
+        Processing = 3,
+        /// Заявка успешно выполнена.
+        Completed = 4,
+        /// Заявка отклонена (например, из-за ошибки валидации, недостатка средств).
+        Rejected = 5,
+        /// Заявка отменена пользователем.
+        Cancelled = 6,
+        /// Произошла ошибка во время обработки.
+        Failed = 7,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::PendingConfirmation => "PENDING_CONFIRMATION",
+                Self::PendingProcessing => "PENDING_PROCESSING",
+                Self::Processing => "PROCESSING",
+                Self::Completed => "COMPLETED",
+                Self::Rejected => "REJECTED",
+                Self::Cancelled => "CANCELLED",
+                Self::Failed => "FAILED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "PENDING_CONFIRMATION" => Some(Self::PendingConfirmation),
+                "PENDING_PROCESSING" => Some(Self::PendingProcessing),
+                "PROCESSING" => Some(Self::Processing),
+                "COMPLETED" => Some(Self::Completed),
+                "REJECTED" => Some(Self::Rejected),
+                "CANCELLED" => Some(Self::Cancelled),
+                "FAILED" => Some(Self::Failed),
+                _ => None,
             }
         }
     }
@@ -1349,14 +2292,14 @@ pub mod confirmation {
             }
         }
     }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Metadata {
-        #[prost(oneof = "metadata::Identifier", tags = "1, 2, 3, 4")]
+        #[prost(oneof = "metadata::Identifier", tags = "1, 2, 3, 4, 5, 6, 7")]
         pub identifier: ::core::option::Option<metadata::Identifier>,
     }
     /// Nested message and enum types in `Metadata`.
     pub mod metadata {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Identifier {
             #[prost(string, tag = "1")]
             GoogleAuthenticatorSecret(::prost::alloc::string::String),
@@ -1366,6 +2309,16 @@ pub mod confirmation {
             MnemonicWords(::prost::alloc::string::String),
             #[prost(string, tag = "4")]
             AuthorizationBearer(::prost::alloc::string::String),
+            #[prost(message, tag = "5")]
+            TransactionGroup(super::super::TransactionGroup),
+            /// Для подтверждения добавления в "белый список".
+            #[prost(message, tag = "6")]
+            PaymentDestination(super::super::PaymentDestination),
+            /// Для подтверждения заявки на вывод.
+            #[prost(message, tag = "7")]
+            PaymentNetworkCurrencyWithdrawalBody(
+                super::super::payment_network_currency_withdrawal::Body,
+            ),
         }
     }
     /// Статус формы подтверждения.
@@ -3030,509 +3983,6 @@ pub mod network_partition_policy {
         pub items: ::prost::alloc::vec::Vec<super::NetworkPartitionPolicy>,
     }
 }
-/// === Сетевые параметры ===
-/// PaymentNetworkOperationSettings инкапсулирует технические параметры, специфичные
-/// для конкретного типа платежной сети (блокчейн, банк и т.д.).
-/// Эта модель используется внутри PaymentOperationSettings для детализации
-/// настроек ввода и вывода средств.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PaymentNetworkOperationSettings {
-    #[prost(oneof = "payment_network_operation_settings::Kind", tags = "1")]
-    pub kind: ::core::option::Option<payment_network_operation_settings::Kind>,
-}
-/// Nested message and enum types in `PaymentNetworkOperationSettings`.
-pub mod payment_network_operation_settings {
-    /// === Настройки для блокчейнов ===
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Blockchain {
-        /// --- Безопасность ---
-        /// Количество подтверждений сети, после которого депозит считается успешным.
-        /// Критически важный параметр для защиты от реорганизации блокчейна.
-        #[prost(uint32, optional, tag = "1")]
-        pub required_confirmations: ::core::option::Option<u32>,
-        /// Альтернативный механизм определения финализации, основанный на вероятности (0..1).
-        /// Используется в некоторых PoS-сетях, где нет строгих "подтверждений".
-        #[prost(string, optional, tag = "2")]
-        pub finality_threshold: ::core::option::Option<::prost::alloc::string::String>,
-        #[prost(enumeration = "blockchain::memo_type::Id", tag = "3")]
-        pub memo_type: i32,
-        #[prost(enumeration = "blockchain::address_format::Id", repeated, tag = "4")]
-        pub supported_address_formats: ::prost::alloc::vec::Vec<i32>,
-        #[prost(enumeration = "blockchain::contract_type::Id", repeated, tag = "5")]
-        pub supported_contract_types: ::prost::alloc::vec::Vec<i32>,
-        #[prost(enumeration = "blockchain::token_standard::Id", repeated, tag = "6")]
-        pub supported_token_standards: ::prost::alloc::vec::Vec<i32>,
-        /// --- Оптимизации ---
-        /// Поддержка пакетной отправки (одна транзакция с несколькими получателями).
-        #[prost(bool, tag = "7")]
-        pub supports_batching: bool,
-        /// Поддержка мульти-пакетной отправки (одна бизнес-операция может породить несколько транзакций).
-        #[prost(bool, tag = "8")]
-        pub supports_multi_batching: bool,
-        /// --- Нативная валюта ---
-        /// ID нативной валюты сети, которая используется для оплаты комиссий (газа).
-        #[prost(uint32, tag = "9")]
-        pub native_currency_id: u32,
-    }
-    /// Nested message and enum types in `Blockchain`.
-    pub mod blockchain {
-        /// --- Memo / Tag / Message ---
-        /// Определяет, требуется ли для транзакций дополнительный идентификатор (Memo/Tag) и какого он типа.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct MemoType {
-            #[prost(enumeration = "memo_type::Id", tag = "1")]
-            pub id: i32,
-        }
-        /// Nested message and enum types in `MemoType`.
-        pub mod memo_type {
-            /// Список типов Memo.
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct List {
-                #[prost(enumeration = "Id", repeated, tag = "1")]
-                pub items: ::prost::alloc::vec::Vec<i32>,
-            }
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                PartialEq,
-                Eq,
-                Hash,
-                PartialOrd,
-                Ord,
-                ::prost::Enumeration
-            )]
-            #[repr(i32)]
-            pub enum Id {
-                Unspecified = 0,
-                None = 1,
-                Text = 2,
-                Number = 3,
-                Hash = 4,
-            }
-            impl Id {
-                /// String value of the enum field names used in the ProtoBuf definition.
-                ///
-                /// The values are not transformed in any way and thus are considered stable
-                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-                pub fn as_str_name(&self) -> &'static str {
-                    match self {
-                        Self::Unspecified => "UNSPECIFIED",
-                        Self::None => "NONE",
-                        Self::Text => "TEXT",
-                        Self::Number => "NUMBER",
-                        Self::Hash => "HASH",
-                    }
-                }
-                /// Creates an enum from field names used in the ProtoBuf definition.
-                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                    match value {
-                        "UNSPECIFIED" => Some(Self::Unspecified),
-                        "NONE" => Some(Self::None),
-                        "TEXT" => Some(Self::Text),
-                        "NUMBER" => Some(Self::Number),
-                        "HASH" => Some(Self::Hash),
-                        _ => None,
-                    }
-                }
-            }
-        }
-        /// --- Форматы адресов ---
-        /// Список форматов адресов, которые валидны для данной сети.
-        /// Позволяет проводить валидацию на стороне клиента и сервера.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct AddressFormat {
-            #[prost(enumeration = "address_format::Id", tag = "1")]
-            pub id: i32,
-        }
-        /// Nested message and enum types in `AddressFormat`.
-        pub mod address_format {
-            /// Список форматов адресов.
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct List {
-                #[prost(enumeration = "Id", repeated, tag = "1")]
-                pub items: ::prost::alloc::vec::Vec<i32>,
-            }
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                PartialEq,
-                Eq,
-                Hash,
-                PartialOrd,
-                Ord,
-                ::prost::Enumeration
-            )]
-            #[repr(i32)]
-            pub enum Id {
-                Unspecified = 0,
-                EvmHex = 1,
-                Base58 = 2,
-                Bech32 = 3,
-                Bech32m = 4,
-                CosmosBech32 = 5,
-                SubstrateSs58 = 6,
-                SolanaBase58 = 7,
-                CardanoBech32 = 8,
-            }
-            impl Id {
-                /// String value of the enum field names used in the ProtoBuf definition.
-                ///
-                /// The values are not transformed in any way and thus are considered stable
-                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-                pub fn as_str_name(&self) -> &'static str {
-                    match self {
-                        Self::Unspecified => "UNSPECIFIED",
-                        Self::EvmHex => "EVM_HEX",
-                        Self::Base58 => "BASE58",
-                        Self::Bech32 => "BECH32",
-                        Self::Bech32m => "BECH32M",
-                        Self::CosmosBech32 => "COSMOS_BECH32",
-                        Self::SubstrateSs58 => "SUBSTRATE_SS58",
-                        Self::SolanaBase58 => "SOLANA_BASE58",
-                        Self::CardanoBech32 => "CARDANO_BECH32",
-                    }
-                }
-                /// Creates an enum from field names used in the ProtoBuf definition.
-                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                    match value {
-                        "UNSPECIFIED" => Some(Self::Unspecified),
-                        "EVM_HEX" => Some(Self::EvmHex),
-                        "BASE58" => Some(Self::Base58),
-                        "BECH32" => Some(Self::Bech32),
-                        "BECH32M" => Some(Self::Bech32m),
-                        "COSMOS_BECH32" => Some(Self::CosmosBech32),
-                        "SUBSTRATE_SS58" => Some(Self::SubstrateSs58),
-                        "SOLANA_BASE58" => Some(Self::SolanaBase58),
-                        "CARDANO_BECH32" => Some(Self::CardanoBech32),
-                        _ => None,
-                    }
-                }
-            }
-        }
-        /// --- Типы контрактов / кошельков ---
-        /// Список специфичных для блокчейна типов контрактов или кошельков, которые поддерживаются системой.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ContractType {
-            #[prost(enumeration = "contract_type::Id", tag = "1")]
-            pub id: i32,
-        }
-        /// Nested message and enum types in `ContractType`.
-        pub mod contract_type {
-            /// Список типов контрактов.
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct List {
-                #[prost(enumeration = "Id", repeated, tag = "1")]
-                pub items: ::prost::alloc::vec::Vec<i32>,
-            }
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                PartialEq,
-                Eq,
-                Hash,
-                PartialOrd,
-                Ord,
-                ::prost::Enumeration
-            )]
-            #[repr(i32)]
-            pub enum Id {
-                Unspecified = 0,
-                /// TON
-                TonV3r1 = 1,
-                TonV3r2 = 2,
-                TonV4r2 = 3,
-                TonHighload = 4,
-                TonJetton = 5,
-                /// EVM
-                EvmErc20 = 6,
-                EvmErc721 = 7,
-                EvmErc1155 = 8,
-                /// BTC
-                BtcMultisig = 9,
-            }
-            impl Id {
-                /// String value of the enum field names used in the ProtoBuf definition.
-                ///
-                /// The values are not transformed in any way and thus are considered stable
-                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-                pub fn as_str_name(&self) -> &'static str {
-                    match self {
-                        Self::Unspecified => "UNSPECIFIED",
-                        Self::TonV3r1 => "TON_V3R1",
-                        Self::TonV3r2 => "TON_V3R2",
-                        Self::TonV4r2 => "TON_V4R2",
-                        Self::TonHighload => "TON_HIGHLOAD",
-                        Self::TonJetton => "TON_JETTON",
-                        Self::EvmErc20 => "EVM_ERC20",
-                        Self::EvmErc721 => "EVM_ERC721",
-                        Self::EvmErc1155 => "EVM_ERC1155",
-                        Self::BtcMultisig => "BTC_MULTISIG",
-                    }
-                }
-                /// Creates an enum from field names used in the ProtoBuf definition.
-                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                    match value {
-                        "UNSPECIFIED" => Some(Self::Unspecified),
-                        "TON_V3R1" => Some(Self::TonV3r1),
-                        "TON_V3R2" => Some(Self::TonV3r2),
-                        "TON_V4R2" => Some(Self::TonV4r2),
-                        "TON_HIGHLOAD" => Some(Self::TonHighload),
-                        "TON_JETTON" => Some(Self::TonJetton),
-                        "EVM_ERC20" => Some(Self::EvmErc20),
-                        "EVM_ERC721" => Some(Self::EvmErc721),
-                        "EVM_ERC1155" => Some(Self::EvmErc1155),
-                        "BTC_MULTISIG" => Some(Self::BtcMultisig),
-                        _ => None,
-                    }
-                }
-            }
-        }
-        /// --- Стандарты токенов ---
-        /// Список стандартов токенов, поддерживаемых в этой сети.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct TokenStandard {
-            #[prost(enumeration = "token_standard::Id", tag = "1")]
-            pub id: i32,
-        }
-        /// Nested message and enum types in `TokenStandard`.
-        pub mod token_standard {
-            /// Список стандартов токенов.
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct List {
-                #[prost(enumeration = "Id", repeated, tag = "1")]
-                pub items: ::prost::alloc::vec::Vec<i32>,
-            }
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                PartialEq,
-                Eq,
-                Hash,
-                PartialOrd,
-                Ord,
-                ::prost::Enumeration
-            )]
-            #[repr(i32)]
-            pub enum Id {
-                Unspecified = 0,
-                /// ERC20 и его аналоги (BEP20, TRC20 и т.д.).
-                Erc20 = 1,
-                Erc721 = 2,
-                Erc1155 = 3,
-                /// Solana Program Library (SPL).
-                Spl = 4,
-                /// TON Jettons.
-                Jetton = 5,
-                /// CosmWasm (CW20).
-                Cw20 = 6,
-            }
-            impl Id {
-                /// String value of the enum field names used in the ProtoBuf definition.
-                ///
-                /// The values are not transformed in any way and thus are considered stable
-                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-                pub fn as_str_name(&self) -> &'static str {
-                    match self {
-                        Self::Unspecified => "UNSPECIFIED",
-                        Self::Erc20 => "ERC20",
-                        Self::Erc721 => "ERC721",
-                        Self::Erc1155 => "ERC1155",
-                        Self::Spl => "SPL",
-                        Self::Jetton => "JETTON",
-                        Self::Cw20 => "CW20",
-                    }
-                }
-                /// Creates an enum from field names used in the ProtoBuf definition.
-                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                    match value {
-                        "UNSPECIFIED" => Some(Self::Unspecified),
-                        "ERC20" => Some(Self::Erc20),
-                        "ERC721" => Some(Self::Erc721),
-                        "ERC1155" => Some(Self::Erc1155),
-                        "SPL" => Some(Self::Spl),
-                        "JETTON" => Some(Self::Jetton),
-                        "CW20" => Some(Self::Cw20),
-                        _ => None,
-                    }
-                }
-            }
-        }
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Kind {
-        #[prost(message, tag = "1")]
-        Blockchain(Blockchain),
-    }
-}
-/// PaymentDestination представляет собой запись в "адресной книге" пользователя.
-/// Она хранит статичные, переиспользуемые реквизиты получателя средств (назначение платежа),
-/// которые пользователь добавил в свой "белый список" для многократного использования,
-/// как правило, для операций вывода.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct PaymentDestination {
-    /// --- Основные данные ---
-    ///
-    /// Уникальный ID записи в реестре пользователя.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// Пользовательское название (например, "Мой основной кошелек ETH").
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    /// Статус записи (активна/архивирована).
-    #[prost(enumeration = "payment_destination::status::Id", tag = "3")]
-    pub status: i32,
-    #[prost(message, optional, tag = "5")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Конкретные реквизиты, зависящие от типа инструмента.
-    #[prost(oneof = "payment_destination::InstrumentDetails", tags = "4")]
-    pub instrument_details: ::core::option::Option<
-        payment_destination::InstrumentDetails,
-    >,
-}
-/// Nested message and enum types in `PaymentDestination`.
-pub mod payment_destination {
-    /// Идентификатор для поиска назначения.
-    /// Тип инструмента, используемый для установки лимитов по типам.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InstrumentType {
-        #[prost(enumeration = "instrument_type::Id", tag = "1")]
-        pub id: i32,
-    }
-    /// Nested message and enum types in `InstrumentType`.
-    pub mod instrument_type {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct List {
-            #[prost(enumeration = "Id", repeated, tag = "1")]
-            pub items: ::prost::alloc::vec::Vec<i32>,
-        }
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// BANK_ACCOUNT = 2; // Для будущего использования
-            Blockchain = 1,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Blockchain => "BLOCKCHAIN",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "BLOCKCHAIN" => Some(Self::Blockchain),
-                    _ => None,
-                }
-            }
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        /// Уникальный ID записи в реестре пользователя.
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    /// Статус жизненного цикла записи.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Status {
-        #[prost(enumeration = "status::Id", tag = "1")]
-        pub id: i32,
-    }
-    /// Nested message and enum types in `Status`.
-    pub mod status {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Запись активна и может быть использована для операций.
-            Active = 1,
-            /// Запись архивирована, не отображается в общих списках,
-            /// но доступен по прямому идентификатору.
-            Archived = 2,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Active => "ACTIVE",
-                    Self::Archived => "ARCHIVED",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "ACTIVE" => Some(Self::Active),
-                    "ARCHIVED" => Some(Self::Archived),
-                    _ => None,
-                }
-            }
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::PaymentDestination>,
-    }
-    /// Реквизиты для блокчейн-транзакции.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Blockchain {
-        /// Формат адреса кошелька. Используется для валидации и фильтрации
-        /// совместимых платежных сетей при выводе.
-        #[prost(
-            enumeration = "super::payment_network_operation_settings::blockchain::address_format::Id",
-            tag = "1"
-        )]
-        pub address_format: i32,
-        /// Адрес.
-        #[prost(string, tag = "2")]
-        pub address: ::prost::alloc::string::String,
-    }
-    /// Конкретные реквизиты, зависящие от типа инструмента.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum InstrumentDetails {
-        /// В будущем здесь могут быть BankAccount и т.д.
-        #[prost(message, tag = "4")]
-        Blockchain(Blockchain),
-    }
-}
 /// PaymentDestinationRegistry представляет собой "адресную книгу" (реестр)
 /// назначений платежей, сохраненных пользователем, вместе с лимитами.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -3566,7 +4016,7 @@ pub mod payment_destination_registry {
                 enumeration = "super::super::payment_destination::instrument_type::Id",
                 tag = "1"
             )]
-            pub r#type: i32,
+            pub instrument_type: i32,
             /// Максимальное количество записей этого типа. Если поле отсутствует, лимит не применяется.
             #[prost(uint32, optional, tag = "2")]
             pub value: ::core::option::Option<u32>,
@@ -5417,311 +5867,6 @@ pub mod tree {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Tree>,
-    }
-}
-/// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
-/// которые относятся к одной бизнес-операции.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransactionGroup {
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    #[prost(message, optional, tag = "2")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Список транзакций, входящих в эту группу.
-    #[prost(message, repeated, tag = "3")]
-    pub transactions: ::prost::alloc::vec::Vec<Transaction>,
-}
-/// Nested message and enum types in `TransactionGroup`.
-pub mod transaction_group {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TransactionGroup>,
-    }
-}
-/// Transaction представляет собой логическую финансовую операцию над одним активом.
-/// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Transaction {
-    /// Уникальный ID транзакции.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// ID группы, к которой принадлежит транзакция.
-    #[prost(uint64, tag = "2")]
-    pub group_id: u64,
-    /// ID родительской транзакции (для сторнирования или связанных операций).
-    #[prost(uint64, optional, tag = "3")]
-    pub parent_transaction_id: ::core::option::Option<u64>,
-    /// Актив, с которым работает транзакция.
-    #[prost(message, optional, tag = "4")]
-    pub asset: ::core::option::Option<Asset>,
-    /// Слой исполнения.
-    #[prost(enumeration = "transaction::layer::Id", tag = "5")]
-    pub layer: i32,
-    /// Текущий статус.
-    #[prost(enumeration = "transaction::status::Id", tag = "6")]
-    pub status: i32,
-    #[prost(message, optional, tag = "7")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Список проводок, составляющих эту транзакцию.
-    #[prost(message, repeated, tag = "9")]
-    pub entries: ::prost::alloc::vec::Vec<TransactionEntry>,
-}
-/// Nested message and enum types in `Transaction`.
-pub mod transaction {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Transaction>,
-    }
-    /// Слой, на котором выполняется транзакция.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Layer {}
-    /// Nested message and enum types in `Layer`.
-    pub mod layer {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Основной слой, немедленное исполнение.
-            Primary = 1,
-            /// Запланированная операция, которая будет исполнена в будущем.
-            Scheduled = 2,
-            /// Платежный слой, связанный с внешними системами.
-            Payment = 3,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Primary => "PRIMARY",
-                    Self::Scheduled => "SCHEDULED",
-                    Self::Payment => "PAYMENT",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "PRIMARY" => Some(Self::Primary),
-                    "SCHEDULED" => Some(Self::Scheduled),
-                    "PAYMENT" => Some(Self::Payment),
-                    _ => None,
-                }
-            }
-        }
-    }
-    /// Статус жизненного цикла транзакции.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Status {}
-    /// Nested message and enum types in `Status`.
-    pub mod status {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Операция инициирована, но еще не отражена на счетах.
-            Pending = 1,
-            /// Сумма зарезервирована (например, предавторизация по карте).
-            Authorized = 2,
-            /// Проводка отражена в книге (баланс изменен).
-            Posted = 3,
-            /// Аннулирована до отражения (проводки не было).
-            Voided = 4,
-            /// Отклонена системой (ошибка, лимит, несоответствие).
-            Rejected = 5,
-            /// Сторнирована (была проведена и затем отменена обратной записью).
-            Reversed = 6,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Pending => "PENDING",
-                    Self::Authorized => "AUTHORIZED",
-                    Self::Posted => "POSTED",
-                    Self::Voided => "VOIDED",
-                    Self::Rejected => "REJECTED",
-                    Self::Reversed => "REVERSED",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "PENDING" => Some(Self::Pending),
-                    "AUTHORIZED" => Some(Self::Authorized),
-                    "POSTED" => Some(Self::Posted),
-                    "VOIDED" => Some(Self::Voided),
-                    "REJECTED" => Some(Self::Rejected),
-                    "REVERSED" => Some(Self::Reversed),
-                    _ => None,
-                }
-            }
-        }
-    }
-}
-/// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
-/// по одному счету Ledger. Является дочерним элементом Transaction.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TransactionEntry {
-    /// Уникальный ID проводки.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// ID родительской транзакции.
-    #[prost(uint64, tag = "2")]
-    pub transaction_id: u64,
-    /// ID счета, по которому выполняется проводка.
-    #[prost(uint64, tag = "3")]
-    pub ledger_id: u64,
-    /// Направление (дебет/кредит).
-    #[prost(enumeration = "transaction_entry::direction::Id", tag = "4")]
-    pub direction: i32,
-    /// Сумма проводки в виде строки для высокой точности.
-    #[prost(string, tag = "5")]
-    pub amount: ::prost::alloc::string::String,
-    /// Причина проводки.
-    #[prost(message, optional, tag = "6")]
-    pub reason: ::core::option::Option<transaction_entry::Reason>,
-    /// Необязательное примечание.
-    #[prost(string, optional, tag = "7")]
-    pub note: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-/// Nested message and enum types in `TransactionEntry`.
-pub mod transaction_entry {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TransactionEntry>,
-    }
-    /// Направление движения средств.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Direction {}
-    /// Nested message and enum types in `Direction`.
-    pub mod direction {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Списание со счета.
-            Debit = 1,
-            /// Зачисление на счет.
-            Credit = 2,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Debit => "DEBIT",
-                    Self::Credit => "CREDIT",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "DEBIT" => Some(Self::Debit),
-                    "CREDIT" => Some(Self::Credit),
-                    _ => None,
-                }
-            }
-        }
-    }
-    /// Причина или контекст проводки.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Reason {
-        #[prost(oneof = "reason::Kind", tags = "1")]
-        pub kind: ::core::option::Option<reason::Kind>,
-    }
-    /// Nested message and enum types in `Reason`.
-    pub mod reason {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Kind {
-            /// В будущем здесь будут структурированные причины.
-            /// Например: Fee, Commission, Bonus, etc.
-            #[prost(string, tag = "1")]
-            Json(::prost::alloc::string::String),
-        }
-    }
-}
-/// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
-/// в иерархии транзакций (группу, транзакцию или проводку).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TransactionScopeId {
-    #[prost(oneof = "transaction_scope_id::Id", tags = "1, 2, 3")]
-    pub id: ::core::option::Option<transaction_scope_id::Id>,
-}
-/// Nested message and enum types in `TransactionScopeId`.
-pub mod transaction_scope_id {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Id {
-        #[prost(uint64, tag = "1")]
-        GroupId(u64),
-        #[prost(uint64, tag = "2")]
-        TransactionId(u64),
-        #[prost(uint64, tag = "3")]
-        EntryId(u64),
     }
 }
 /// TreeDistributorPolicy определяет набор правил для группы связей TreeDistributor.

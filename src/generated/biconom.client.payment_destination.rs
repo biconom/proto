@@ -8,25 +8,16 @@ pub struct ListRequest {
         tag = "1"
     )]
     pub status: ::core::option::Option<i32>,
-    /// Фильтр по типу инструмента.
-    #[prost(
-        enumeration = "super::super::types::payment_destination::instrument_type::Id",
-        optional,
-        tag = "2"
-    )]
-    pub instrument_type: ::core::option::Option<i32>,
-    /// Фильтр по формату, специфичному для типа инструмента.
-    /// Должен использоваться только вместе с соответствующим `instrument_type`.
-    #[prost(oneof = "list_request::FormatFilter", tags = "3")]
+    /// Фильтр по типу инструмента и его формату.
+    #[prost(oneof = "list_request::FormatFilter", tags = "2")]
     pub format_filter: ::core::option::Option<list_request::FormatFilter>,
 }
 /// Nested message and enum types in `ListRequest`.
 pub mod list_request {
-    /// Фильтр по формату, специфичному для типа инструмента.
-    /// Должен использоваться только вместе с соответствующим `instrument_type`.
+    /// Фильтр по типу инструмента и его формату.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum FormatFilter {
-        #[prost(message, tag = "3")]
+        #[prost(message, tag = "2")]
         BlockchainFormats(
             super::super::super::types::payment_network_operation_settings::blockchain::address_format::List,
         ),
@@ -37,18 +28,9 @@ pub struct CreateRequest {
     /// Пользовательское название для нового назначения.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
-    /// Конкретные реквизиты, зависящие от типа инструмента.
-    #[prost(oneof = "create_request::InstrumentDetails", tags = "2")]
-    pub instrument_details: ::core::option::Option<create_request::InstrumentDetails>,
-}
-/// Nested message and enum types in `CreateRequest`.
-pub mod create_request {
-    /// Конкретные реквизиты, зависящие от типа инструмента.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum InstrumentDetails {
-        #[prost(message, tag = "2")]
-        Blockchain(super::super::super::types::payment_destination::Blockchain),
-    }
+    /// Реквизиты для нового назначения.
+    #[prost(message, optional, tag = "2")]
+    pub instrument: ::core::option::Option<super::super::types::PaymentInstrument>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateNameRequest {
@@ -101,7 +83,7 @@ pub mod payment_destination_service_server {
             &self,
             request: tonic::Request<super::CreateRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::super::super::types::PaymentDestination>,
+            tonic::Response<super::super::super::types::Confirmation>,
             tonic::Status,
         >;
         /// Обновляет имя существующего назначения.
@@ -351,7 +333,7 @@ pub mod payment_destination_service_server {
                         T: PaymentDestinationService,
                     > tonic::server::UnaryService<super::CreateRequest>
                     for CreateSvc<T> {
-                        type Response = super::super::super::types::PaymentDestination;
+                        type Response = super::super::super::types::Confirmation;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

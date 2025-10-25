@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/payment_network_operation_settings.proto";
+
+// PaymentInstrument представляет собой конкретные, переиспользуемые реквизиты
+// для совершения платежа (например, адрес кошелька).
+// Эта модель не содержит пользовательских или системных данных (имен, статусов),
+// а только сами реквизиты.
+message PaymentInstrument {
+    // Реквизиты для блокчейн-транзакции.
+    message Blockchain {
+        // Формат адреса кошелька. Используется для валидации и фильтрации
+        // совместимых платежных сетей.
+        biconom.types.PaymentNetworkOperationSettings.Blockchain.AddressFormat.Id address_format = 1;
+
+        // Адрес.
+        string address = 2;
+    }
+
+    // Конкретные реквизиты, зависящие от типа инструмента.
+    oneof details {
+        Blockchain blockchain = 1; // В будущем здесь могут быть BankAccount и т.д.
+    }
+}

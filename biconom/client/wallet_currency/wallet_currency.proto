@@ -4,11 +4,13 @@ package biconom.client.wallet_currency;
 
 import "biconom/types/account.proto";
 import "biconom/types/currency.proto";
+import "biconom/types/confirmation.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/ledger_transaction.proto";
 import "biconom/types/wallet_type.proto";
 import "biconom/types/wallet_currency.proto";
+import "biconom/types/payment_network_currency_withdrawal.proto";
 
 // Сервис для получения информации о балансах (валютах) в кошельках пользователя.
 service WalletCurrencyService {
@@ -23,6 +25,9 @@ service WalletCurrencyService {
     // Выполнить внутренний перевод средств другому пользователю.
     // ID аккаунта отправителя берется из контекста авторизации.
     rpc Transfer(TransferRequest) returns (biconom.types.LedgerTransaction.Id);
+
+    // Создает заявку на вывод средств и возвращает форму для ее подтверждения.
+    rpc CreateWithdrawal(biconom.types.PaymentNetworkCurrencyWithdrawal.Body) returns (biconom.types.Confirmation);
 }
 
 // Запрос на получение списка балансов.

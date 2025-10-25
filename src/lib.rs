@@ -51,6 +51,9 @@ pub mod biconom {
 		pub mod password_policy {
 			include!("generated/biconom.client.password_policy.rs");
 		}
+		pub mod payment_destination {
+			include!("generated/biconom.client.payment_destination.rs");
+		}
 		pub mod session {
 			include!("generated/biconom.client.session.rs");
 		}

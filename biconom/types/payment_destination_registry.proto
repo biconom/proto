@@ -11,7 +11,7 @@ message PaymentDestinationRegistry {
     message Limit {
         // Лимит для конкретного типа назначений.
         message PerType {
-            biconom.types.PaymentDestination.InstrumentType.Id type = 1; // Тип назначения.
+            biconom.types.PaymentDestination.InstrumentType.Id instrument_type = 1; // Тип назначения.
             // Максимальное количество записей этого типа. Если поле отсутствует, лимит не применяется.
             optional uint32 value = 2;
         }

@@ -83,6 +83,16 @@ pub mod wallet_currency_service_server {
             tonic::Response<super::super::super::types::ledger_transaction::Id>,
             tonic::Status,
         >;
+        /// Создает заявку на вывод средств и возвращает форму для ее подтверждения.
+        async fn create_withdrawal(
+            &self,
+            request: tonic::Request<
+                super::super::super::types::payment_network_currency_withdrawal::Body,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::Confirmation>,
+            tonic::Status,
+        >;
     }
     /// Сервис для получения информации о балансах (валютах) в кошельках пользователя.
     #[derive(Debug)]
@@ -285,6 +295,58 @@ pub mod wallet_currency_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = TransferSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.wallet_currency.WalletCurrencyService/CreateWithdrawal" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateWithdrawalSvc<T: WalletCurrencyService>(pub Arc<T>);
+                    impl<
+                        T: WalletCurrencyService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::payment_network_currency_withdrawal::Body,
+                    > for CreateWithdrawalSvc<T> {
+                        type Response = super::super::super::types::Confirmation;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::payment_network_currency_withdrawal::Body,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WalletCurrencyService>::create_withdrawal(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateWithdrawalSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

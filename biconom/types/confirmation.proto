@@ -3,7 +3,10 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
+import "biconom/types/transaction.proto";
 import "biconom/types/password_policy.proto";
+import "biconom/types/payment_destination.proto";
+import "biconom/types/payment_network_currency_withdrawal.proto";
 import "biconom/types/session.proto";
 
 // Confirmation представляет собой одноразовую форму или сессию для подтверждения важного действия.
@@ -157,6 +160,9 @@ message Confirmation {
 			biconom.types.Session session = 2;
 			string mnemonic_words = 3;
 			string authorization_bearer = 4;
+			biconom.types.TransactionGroup transaction_group = 5;
+			biconom.types.PaymentDestination payment_destination = 6; // Для подтверждения добавления в "белый список".
+			biconom.types.PaymentNetworkCurrencyWithdrawal.Body payment_network_currency_withdrawal_body = 7; // Для подтверждения заявки на вывод.
 		}
 	}
 

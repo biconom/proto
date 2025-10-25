@@ -50,6 +50,31 @@ pub struct ListRequest {
     #[prost(message, optional, tag = "5")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
+/// Запрос на валидацию реквизитов.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateInstrumentRequest {
+    /// Контекст: ID платежной сети, для которой выполняется проверка.
+    #[prost(uint32, tag = "1")]
+    pub payment_network_id: u32,
+    /// Контекст: ID валюты, для которой выполняется проверка.
+    #[prost(uint32, tag = "2")]
+    pub currency_id: u32,
+    /// Реквизиты, которые нужно проверить.
+    #[prost(message, optional, tag = "3")]
+    pub instrument: ::core::option::Option<super::super::types::PaymentInstrument>,
+}
+/// Ответ на запрос валидации реквизитов.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ValidateInstrumentResponse {
+    /// Результат проверки.
+    #[prost(bool, tag = "1")]
+    pub is_valid: bool,
+    /// Отформатированные/нормализованные реквизиты, если бэкенд выполнил их преобразование.
+    #[prost(message, optional, tag = "2")]
+    pub formatted_instrument: ::core::option::Option<
+        super::super::types::PaymentInstrument,
+    >,
+}
 /// Generated server implementations.
 pub mod payment_network_currency_service_server {
     #![allow(
@@ -89,6 +114,14 @@ pub mod payment_network_currency_service_server {
                 super::super::super::types::payment_network_currency::Id,
             >,
         ) -> std::result::Result<tonic::Response<super::DepositAddress>, tonic::Status>;
+        /// Проверяет, являются ли предоставленные реквизиты (`instrument`) валидными для указанной пары "сеть-валюта".
+        async fn validate_instrument(
+            &self,
+            request: tonic::Request<super::ValidateInstrumentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ValidateInstrumentResponse>,
+            tonic::Status,
+        >;
     }
     /// Сервис для получения информации о поддержке валют в платежных сетях.
     #[derive(Debug)]
@@ -301,6 +334,57 @@ pub mod payment_network_currency_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetDepositAddressSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.payment_network_currency.PaymentNetworkCurrencyService/ValidateInstrument" => {
+                    #[allow(non_camel_case_types)]
+                    struct ValidateInstrumentSvc<T: PaymentNetworkCurrencyService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: PaymentNetworkCurrencyService,
+                    > tonic::server::UnaryService<super::ValidateInstrumentRequest>
+                    for ValidateInstrumentSvc<T> {
+                        type Response = super::ValidateInstrumentResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ValidateInstrumentRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as PaymentNetworkCurrencyService>::validate_instrument(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ValidateInstrumentSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

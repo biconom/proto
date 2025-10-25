@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/payment_instrument.proto";
+import "google/protobuf/timestamp.proto";
+
+// PaymentNetworkCurrencyWithdrawal представляет собой заявку на вывод средств.
+message PaymentNetworkCurrencyWithdrawal {
+    // --- Вложенные типы ---
+
+    message Id {
+        uint64 id = 1;
+    }
+
+    message List {
+        repeated PaymentNetworkCurrencyWithdrawal items = 1;
+    }
+
+    // Статус жизненного цикла заявки на вывод.
+    enum Status {
+        UNSPECIFIED = 0;
+        // Заявка создана и ожидает подтверждения пользователя.
+        PENDING_CONFIRMATION = 1;
+        // Заявка подтверждена и ожидает обработки системой.
+        PENDING_PROCESSING = 2;
+        // Заявка находится в процессе выполнения (транзакция отправлена в сеть).
+        PROCESSING = 3;
+        // Заявка успешно выполнена.
+        COMPLETED = 4;
+        // Заявка отклонена (например, из-за ошибки валидации, недостатка средств).
+        REJECTED = 5;
+        // Заявка отменена пользователем.
+        CANCELLED = 6;
+        // Произошла ошибка во время обработки.
+        FAILED = 7;
+    }
+
+    // Body содержит основные данные заявки на вывод, которые могут быть
+    // использованы как для создания новой заявки, так и для представления существующей.
+    message Body {
+        // ID типа кошелька, с которого осуществляется вывод.
+        uint32 wallet_type_id = 1;
+
+        // ID платежной сети, через которую осуществляется вывод.
+        uint32 payment_network_id = 2;
+        // ID валюты для вывода.
+        uint32 currency_id = 3;
+
+        // ID сохраненного назначения платежа из "белого списка".
+        // Если поле заполнено, это означает, что `instrument` взят из адресной книги.
+        optional uint64 payment_destination_id = 4;
+
+        // Реквизиты для вывода.
+        biconom.types.PaymentInstrument instrument = 5;
+
+        // Сумма вывода.
+        string amount = 6;
+
+        // Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
+        optional string memo = 7;
+    }
+
+    // --- Поля основного сообщения ---
+
+    uint64 id = 1; // Уникальный ID заявки на вывод.
+    Status status = 2; // Текущий статус заявки.
+    Body body = 3; // Тело заявки с деталями вывода.
+
+    // ID связанной транзакции, которая будет создана после успешной обработки.
+    optional uint64 transaction_id = 4;
+
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}
