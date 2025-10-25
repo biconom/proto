@@ -64,6 +64,12 @@ message PaymentNetworkCurrencyWithdrawal {
         // `true`: получатель получит `amount - fee`.
         // `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
         bool deduct_fee_from_amount = 8;
+
+        // Флаг, указывающий, что реквизиты (`instrument`) нужно добавить в "белый список" (адресную книгу).
+        bool add_to_whitelist = 9;
+
+        // Имя для новой записи в "белом списке". Используется, только если `add_to_whitelist` = `true`.
+        optional string new_destination_name = 10;
     }
 
     // --- Поля основного сообщения ---

@@ -1721,6 +1721,12 @@ pub mod payment_network_currency_withdrawal {
         /// `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
         #[prost(bool, tag = "8")]
         pub deduct_fee_from_amount: bool,
+        /// Флаг, указывающий, что реквизиты (`instrument`) нужно добавить в "белый список" (адресную книгу).
+        #[prost(bool, tag = "9")]
+        pub add_to_whitelist: bool,
+        /// Имя для новой записи в "белом списке". Используется, только если `add_to_whitelist` = `true`.
+        #[prost(string, optional, tag = "10")]
+        pub new_destination_name: ::core::option::Option<::prost::alloc::string::String>,
     }
     /// Статус жизненного цикла заявки на вывод.
     #[derive(
