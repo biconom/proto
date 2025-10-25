@@ -59,6 +59,11 @@ message PaymentNetworkCurrencyWithdrawal {
 
         // Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
         optional string memo = 7;
+
+        // Флаг, указывающий, что комиссию нужно вычесть из суммы `amount`.
+        // `true`: получатель получит `amount - fee`.
+        // `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
+        bool deduct_fee_from_amount = 8;
     }
 
     // --- Поля основного сообщения ---

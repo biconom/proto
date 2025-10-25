@@ -1716,6 +1716,11 @@ pub mod payment_network_currency_withdrawal {
         /// Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
         #[prost(string, optional, tag = "7")]
         pub memo: ::core::option::Option<::prost::alloc::string::String>,
+        /// Флаг, указывающий, что комиссию нужно вычесть из суммы `amount`.
+        /// `true`: получатель получит `amount - fee`.
+        /// `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
+        #[prost(bool, tag = "8")]
+        pub deduct_fee_from_amount: bool,
     }
     /// Статус жизненного цикла заявки на вывод.
     #[derive(
