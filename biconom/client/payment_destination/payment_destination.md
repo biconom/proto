@@ -12,19 +12,18 @@
 - **Параметры**: `google.protobuf.Empty` (запрос не требует параметров).
 - **Ответ**: Возвращает модель `PaymentDestinationRegistry`, содержащую список `entries` и структуру `limit`.
 
-### `rpc Get(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination)`
-- **Назначение**: Получить полную информацию о конкретном сохраненном назначении по его ID.
+### `rpc Get(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination)`
+- **Назначение**: Получить полную информацию о конкретном сохраненном назначении по его реквизитам.
 - **Использование**: Полезно для просмотра или редактирования одной конкретной записи.
-- **Параметры**: `biconom.types.PaymentDestination.Id`
-    - `id`: ID записи, которую нужно получить.
+- **Параметры**: Принимает `biconom.types.PaymentInstrument` в качестве естественного ключа для поиска.
 
 ### `rpc List(ListRequest) returns (biconom.types.PaymentDestination.List)`
 - **Назначение**: Получить отфильтрованный список сохраненных назначений платежей.
 - **Параметры `ListRequest`**:
-    - `optional status`: Фильтр по статусу (`ACTIVE` или `ARCHIVED`).
+    - `include_archived`: Флаг для включения в выборку архивных записей. По умолчанию (`false`) возвращаются только активные. Если `true` — в результат добавляются и архивные.
     - `oneof format_filter`: Фильтр по типу инструмента и его формату. Присутствие одного из полей (например, `blockchain_formats`) однозначно определяет тип искомого инструмента.
 - **Логика фильтрации**:
--   Если фильтры не указаны, сервис вернет все записи со статусом `ACTIVE`.
+-   Если `include_archived` не указан (или `false`), сервис вернет только активные записи. Если `true` - вернет и активные, и архивные.
 -   Все указанные фильтры комбинируются по логическому "И".
 -   **Ответ**: Содержит отфильтрованный список `biconom.types.PaymentDestination`.
 
@@ -37,15 +36,13 @@
 ### `rpc UpdateName(UpdateNameRequest) returns (biconom.types.PaymentDestination)`
 - **Назначение**: Изменить пользовательское имя (`name`) существующей записи.
 - **Параметры `UpdateNameRequest`**:
-    - `destination_id`: ID записи, которую нужно обновить.
+    - `instrument`: Реквизиты записи, которую нужно обновить.
     - `name`: Новое имя.
 
-### `rpc Archive(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination)`
-- **Назначение**: Архивировать существующее назначение. Этот метод выполняет "мягкое удаление", меняя статус записи на `ARCHIVED`. После этого она перестанет отображаться в списке по умолчанию.
-- **Параметры**: `biconom.types.PaymentDestination.Id`
-    - `id`: ID записи, которую нужно заархивировать.
+### `rpc Archive(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination)`
+- **Назначение**: Архивировать существующее назначение. Этот метод выполняет "мягкое удаление", меняя флаг `is_active` на `false`. После этого она перестанет отображаться в списке по умолчанию.
+- **Параметры**: Принимает `biconom.types.PaymentInstrument` в качестве ключа для поиска записи, которую нужно заархивировать.
 
-### `rpc Activate(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination)`
-- **Назначение**: Активировать (восстановить из архива) существующее назначение, меняя его статус на `ACTIVE`.
-- **Параметры**: `biconom.types.PaymentDestination.Id`
-    - `id`: ID записи, которую нужно активировать.
+### `rpc Activate(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination)`
+- **Назначение**: Активировать (восстановить из архива) существующее назначение, меняя его флаг `is_active` на `true`.
+- **Параметры**: Принимает `biconom.types.PaymentInstrument` в качестве ключа для поиска записи, которую нужно активировать.

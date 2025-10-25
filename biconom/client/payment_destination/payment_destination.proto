@@ -14,8 +14,8 @@ service PaymentDestinationService {
     // Получает весь реестр (адресную книгу) пользователя, включая список записей и лимиты.
     rpc GetRegistry(google.protobuf.Empty) returns (biconom.types.PaymentDestinationRegistry);
 
-    // Получает одно сохраненное назначение платежа по его ID.
-    rpc Get(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+    // Получает одно сохраненное назначение платежа по его естественному ключу (реквизитам).
+    rpc Get(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination);
 
     // Получает список сохраненных назначений платежей с возможностью гибкой фильтрации.
     rpc List(ListRequest) returns (biconom.types.PaymentDestination.List);
@@ -27,15 +27,17 @@ service PaymentDestinationService {
     rpc UpdateName(UpdateNameRequest) returns (biconom.types.PaymentDestination);
 
     // Архивирует назначение, убирая его из активных списков.
-    rpc Archive(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+    rpc Archive(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination);
 
     // Активирует (восстанавливает из архива) назначение.
-    rpc Activate(biconom.types.PaymentDestination.Id) returns (biconom.types.PaymentDestination);
+    rpc Activate(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination);
 }
 
 message ListRequest {
-    // Фильтр по статусу. Если не указан, возвращаются только ACTIVE.
-    optional biconom.types.PaymentDestination.Status.Id status = 1;
+    // Флаг для фильтрации по статусу.
+    // `false` (по умолчанию): возвращать только активные записи.
+    // `true`: включить в результат также и архивные записи.
+    bool include_archived = 1;
 
     // Фильтр по типу инструмента и его формату.
     oneof format_filter {
@@ -52,8 +54,8 @@ message CreateRequest {
 }
 
 message UpdateNameRequest {
-    // ID назначения, которое нужно обновить.
-    uint64 destination_id = 1;
+    // Реквизиты (`instrument`) назначения, которое нужно обновить.
+    biconom.types.PaymentInstrument instrument = 1;
     // Новое имя.
     string name = 2;
 }

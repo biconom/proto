@@ -1520,20 +1520,15 @@ pub mod payment_instrument {
 /// как правило, для операций вывода.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PaymentDestination {
-    /// --- Основные данные ---
-    ///
-    /// Уникальный ID записи в реестре пользователя.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
+    /// Реквизиты, сохраненные в этой записи. Являются естественным ключом.
+    #[prost(message, optional, tag = "1")]
+    pub instrument: ::core::option::Option<PaymentInstrument>,
     /// Пользовательское название (например, "Мой основной кошелек ETH").
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
-    /// Статус записи (активна/архивирована).
-    #[prost(enumeration = "payment_destination::status::Id", tag = "3")]
-    pub status: i32,
-    /// Реквизиты, сохраненные в этой записи.
-    #[prost(message, optional, tag = "4")]
-    pub instrument: ::core::option::Option<PaymentInstrument>,
+    /// Статус записи. `true` - активна, `false` - архивирована.
+    #[prost(bool, tag = "3")]
+    pub is_active: bool,
     #[prost(message, optional, tag = "5")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "6")]
@@ -1541,115 +1536,6 @@ pub struct PaymentDestination {
 }
 /// Nested message and enum types in `PaymentDestination`.
 pub mod payment_destination {
-    /// Идентификатор для поиска назначения.
-    /// Тип инструмента, используемый для установки лимитов по типам.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InstrumentType {
-        #[prost(enumeration = "instrument_type::Id", tag = "1")]
-        pub id: i32,
-    }
-    /// Nested message and enum types in `InstrumentType`.
-    pub mod instrument_type {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct List {
-            #[prost(enumeration = "Id", repeated, tag = "1")]
-            pub items: ::prost::alloc::vec::Vec<i32>,
-        }
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// BANK_ACCOUNT = 2; // Для будущего использования
-            Blockchain = 1,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Blockchain => "BLOCKCHAIN",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "BLOCKCHAIN" => Some(Self::Blockchain),
-                    _ => None,
-                }
-            }
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        /// Уникальный ID записи в реестре пользователя.
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    /// Статус жизненного цикла записи.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Status {
-        #[prost(enumeration = "status::Id", tag = "1")]
-        pub id: i32,
-    }
-    /// Nested message and enum types in `Status`.
-    pub mod status {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Запись активна и может быть использована для операций.
-            Active = 1,
-            /// Запись архивирована, не отображается в общих списках,
-            /// но доступен по прямому идентификатору.
-            Archived = 2,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Active => "ACTIVE",
-                    Self::Archived => "ARCHIVED",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "ACTIVE" => Some(Self::Active),
-                    "ARCHIVED" => Some(Self::Archived),
-                    _ => None,
-                }
-            }
-        }
-    }
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct List {
         #[prost(message, repeated, tag = "1")]
@@ -3994,45 +3880,16 @@ pub mod network_partition_policy {
         pub items: ::prost::alloc::vec::Vec<super::NetworkPartitionPolicy>,
     }
 }
-/// PaymentDestinationRegistry представляет собой "адресную книгу" (реестр)
-/// назначений платежей, сохраненных пользователем, вместе с лимитами.
+/// PaymentDestinationRegistry представляет собой "адресную книгу" (реестр) назначений
+/// платежей, сохраненных пользователем, вместе с общим лимитом на количество записей.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PaymentDestinationRegistry {
     /// Список сохраненных назначений платежей.
     #[prost(message, repeated, tag = "1")]
     pub entries: ::prost::alloc::vec::Vec<PaymentDestination>,
-    /// Лимиты на количество записей.
-    #[prost(message, optional, tag = "2")]
-    pub limit: ::core::option::Option<payment_destination_registry::Limit>,
-}
-/// Nested message and enum types in `PaymentDestinationRegistry`.
-pub mod payment_destination_registry {
-    /// Лимиты на количество записей в реестре.
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Limit {
-        /// Общий лимит на количество записей в реестре.
-        #[prost(uint32, optional, tag = "1")]
-        pub total: ::core::option::Option<u32>,
-        /// Лимиты для каждого типа назначений.
-        #[prost(message, repeated, tag = "2")]
-        pub per_type: ::prost::alloc::vec::Vec<limit::PerType>,
-    }
-    /// Nested message and enum types in `Limit`.
-    pub mod limit {
-        /// Лимит для конкретного типа назначений.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct PerType {
-            /// Тип назначения.
-            #[prost(
-                enumeration = "super::super::payment_destination::instrument_type::Id",
-                tag = "1"
-            )]
-            pub instrument_type: i32,
-            /// Максимальное количество записей этого типа. Если поле отсутствует, лимит не применяется.
-            #[prost(uint32, optional, tag = "2")]
-            pub value: ::core::option::Option<u32>,
-        }
-    }
+    /// Общий лимит на количество записей в реестре. Если поле отсутствует, лимит не применяется.
+    #[prost(uint32, optional, tag = "2")]
+    pub limit: ::core::option::Option<u32>,
 }
 /// Модель, описывающая платежную сеть или расчетную схему.
 /// Пример: блокчейн (Tron, Ethereum), банковская система (SEPA, SWIFT), внешняя платежная система (PayPal, Stripe).

@@ -10,48 +10,16 @@ import "google/protobuf/timestamp.proto";
 // которые пользователь добавил в свой "белый список" для многократного использования,
 // как правило, для операций вывода.
 message PaymentDestination {
-    // Идентификатор для поиска назначения.
-    // Тип инструмента, используемый для установки лимитов по типам.
-    message InstrumentType {
-        enum Id {
-            UNSPECIFIED = 0;
-            BLOCKCHAIN = 1;
-            // BANK_ACCOUNT = 2; // Для будущего использования
-        }
-        message List {
-            repeated Id items = 1;
-        }
-        Id id = 1;
-    }
-
-    message Id {
-        uint64 id = 1; // Уникальный ID записи в реестре пользователя.
-    }
-
-    // Статус жизненного цикла записи.
-    message Status {
-        enum Id {
-            UNSPECIFIED = 0;
-            // Запись активна и может быть использована для операций.
-            ACTIVE = 1;
-            // Запись архивирована, не отображается в общих списках,
-            // но доступен по прямому идентификатору.
-            ARCHIVED = 2;
-        }
-        Id id = 1;
-    }
-
     message List {
         repeated PaymentDestination items = 1;
     }
 
-    // --- Основные данные ---
-    uint64 id = 1;         // Уникальный ID записи в реестре пользователя.
-    string name = 2;       // Пользовательское название (например, "Мой основной кошелек ETH").
-    Status.Id status = 3;  // Статус записи (активна/архивирована).
-
-    // Реквизиты, сохраненные в этой записи.
-    biconom.types.PaymentInstrument instrument = 4;
+    // Реквизиты, сохраненные в этой записи. Являются естественным ключом.
+    biconom.types.PaymentInstrument instrument = 1;
+    // Пользовательское название (например, "Мой основной кошелек ETH").
+    string name = 2;
+    // Статус записи. `true` - активна, `false` - архивирована.
+    bool is_active = 3;
 
     google.protobuf.Timestamp created_at = 5;
     google.protobuf.Timestamp updated_at = 6;
