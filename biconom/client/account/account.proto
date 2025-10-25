@@ -8,9 +8,6 @@ import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/mnemonic.proto";
 import "biconom/types/google_authenticator.proto";
-import "biconom/types/payment_destination_registry.proto";
-
-option go_package = "github.com/biconom/biconom-proto/gen/go/biconom/client/account;account_client_pb";
 
 // AccountService предоставляет информацию о текущем аутентифицированном аккаунте.
 service AccountService {
@@ -58,6 +55,5 @@ message UserProfile {
 	optional Password password = 2; // Информация о пароле.
 	biconom.types.Mnemonic mnemonic = 3; // Состояние mnemonic.
 	biconom.types.GoogleAuthenticator google_authenticator = 4; // Состояние 2FA.
-	biconom.types.PaymentDestinationRegistry payment_destination_registry = 5; // Реестр платежных реквизитов.
-	uint32 locale_id = 6; // Текущая локаль.
+	uint32 locale_id = 5; // Текущая локаль.
 }

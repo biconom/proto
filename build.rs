@@ -44,7 +44,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				"biconom/types/network_partition_policy.proto",
 				"biconom/types/password_policy.proto",
 				"biconom/types/payment_destination.proto",
-				"biconom/types/payment_destination_registry.proto",
 				"biconom/types/payment_instrument.proto",
 				"biconom/types/payment_network.proto",
 				"biconom/types/payment_network_currency.proto",

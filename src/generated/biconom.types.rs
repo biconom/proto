@@ -3880,17 +3880,6 @@ pub mod network_partition_policy {
         pub items: ::prost::alloc::vec::Vec<super::NetworkPartitionPolicy>,
     }
 }
-/// PaymentDestinationRegistry представляет собой "адресную книгу" (реестр) назначений
-/// платежей, сохраненных пользователем, вместе с общим лимитом на количество записей.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PaymentDestinationRegistry {
-    /// Список сохраненных назначений платежей.
-    #[prost(message, repeated, tag = "1")]
-    pub entries: ::prost::alloc::vec::Vec<PaymentDestination>,
-    /// Общий лимит на количество записей в реестре. Если поле отсутствует, лимит не применяется.
-    #[prost(uint32, optional, tag = "2")]
-    pub limit: ::core::option::Option<u32>,
-}
 /// Модель, описывающая платежную сеть или расчетную схему.
 /// Пример: блокчейн (Tron, Ethereum), банковская система (SEPA, SWIFT), внешняя платежная система (PayPal, Stripe).
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

@@ -54,13 +54,8 @@ pub struct UserProfile {
     pub google_authenticator: ::core::option::Option<
         super::super::types::GoogleAuthenticator,
     >,
-    /// Реестр платежных реквизитов.
-    #[prost(message, optional, tag = "5")]
-    pub payment_destination_registry: ::core::option::Option<
-        super::super::types::PaymentDestinationRegistry,
-    >,
     /// Текущая локаль.
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "5")]
     pub locale_id: u32,
 }
 /// Nested message and enum types in `UserProfile`.

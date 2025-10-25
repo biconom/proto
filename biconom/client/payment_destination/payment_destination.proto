@@ -2,18 +2,13 @@ syntax = "proto3";
 
 package biconom.client.payment_destination;
 
-import "google/protobuf/empty.proto";
 import "biconom/types/confirmation.proto";
-import "biconom/types/payment_destination_registry.proto";
 import "biconom/types/payment_destination.proto";
 import "biconom/types/payment_instrument.proto";
 import "biconom/types/payment_network_operation_settings.proto";
 
 // Сервис для управления "адресной книгой" пользователя (списком назначений платежей).
 service PaymentDestinationService {
-    // Получает весь реестр (адресную книгу) пользователя, включая список записей и лимиты.
-    rpc GetRegistry(google.protobuf.Empty) returns (biconom.types.PaymentDestinationRegistry);
-
     // Получает одно сохраненное назначение платежа по его естественному ключу (реквизитам).
     rpc Get(biconom.types.PaymentInstrument) returns (biconom.types.PaymentDestination);
 

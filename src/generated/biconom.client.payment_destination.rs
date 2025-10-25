@@ -52,14 +52,6 @@ pub mod payment_destination_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with PaymentDestinationServiceServer.
     #[async_trait]
     pub trait PaymentDestinationService: std::marker::Send + std::marker::Sync + 'static {
-        /// Получает весь реестр (адресную книгу) пользователя, включая список записей и лимиты.
-        async fn get_registry(
-            &self,
-            request: tonic::Request<()>,
-        ) -> std::result::Result<
-            tonic::Response<super::super::super::types::PaymentDestinationRegistry>,
-            tonic::Status,
-        >;
         /// Получает одно сохраненное назначение платежа по его естественному ключу (реквизитам).
         async fn get(
             &self,
@@ -187,50 +179,6 @@ pub mod payment_destination_service_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
-                "/biconom.client.payment_destination.PaymentDestinationService/GetRegistry" => {
-                    #[allow(non_camel_case_types)]
-                    struct GetRegistrySvc<T: PaymentDestinationService>(pub Arc<T>);
-                    impl<T: PaymentDestinationService> tonic::server::UnaryService<()>
-                    for GetRegistrySvc<T> {
-                        type Response = super::super::super::types::PaymentDestinationRegistry;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as PaymentDestinationService>::get_registry(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = GetRegistrySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
                 "/biconom.client.payment_destination.PaymentDestinationService/Get" => {
                     #[allow(non_camel_case_types)]
                     struct GetSvc<T: PaymentDestinationService>(pub Arc<T>);
