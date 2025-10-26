@@ -1541,6 +1541,15 @@ pub mod payment_destination {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::PaymentDestination>,
     }
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Request {
+        /// Реквизиты, сохраненные в этой записи. Являются естественным ключом.
+        #[prost(message, optional, tag = "1")]
+        pub instrument: ::core::option::Option<super::PaymentInstrument>,
+        /// Пользовательское название (например, "Мой основной кошелек ETH").
+        #[prost(string, tag = "2")]
+        pub name: ::prost::alloc::string::String,
+    }
 }
 /// PaymentNetworkCurrencyWithdrawal представляет собой заявку на вывод средств.
 ///
@@ -1589,29 +1598,25 @@ pub mod payment_network_currency_withdrawal {
         /// ID валюты для вывода.
         #[prost(uint32, tag = "3")]
         pub currency_id: u32,
-        /// ID сохраненного назначения платежа из "белого списка".
-        /// Если поле заполнено, это означает, что `instrument` взят из адресной книги.
-        #[prost(uint64, optional, tag = "4")]
-        pub payment_destination_id: ::core::option::Option<u64>,
         /// Реквизиты для вывода.
-        #[prost(message, optional, tag = "5")]
+        #[prost(message, optional, tag = "4")]
         pub instrument: ::core::option::Option<super::PaymentInstrument>,
         /// Сумма вывода.
-        #[prost(string, tag = "6")]
+        #[prost(string, tag = "5")]
         pub amount: ::prost::alloc::string::String,
         /// Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
-        #[prost(string, optional, tag = "7")]
+        #[prost(string, optional, tag = "6")]
         pub memo: ::core::option::Option<::prost::alloc::string::String>,
         /// Флаг, указывающий, что комиссию нужно вычесть из суммы `amount`.
         /// `true`: получатель получит `amount - fee`.
         /// `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
-        #[prost(bool, tag = "8")]
+        #[prost(bool, tag = "7")]
         pub deduct_fee_from_amount: bool,
         /// Флаг, указывающий, что реквизиты (`instrument`) нужно добавить в "белый список" (адресную книгу).
-        #[prost(bool, tag = "9")]
+        #[prost(bool, tag = "8")]
         pub add_to_whitelist: bool,
         /// Имя для новой записи в "белом списке". Используется, только если `add_to_whitelist` = `true`.
-        #[prost(string, optional, tag = "10")]
+        #[prost(string, optional, tag = "9")]
         pub new_destination_name: ::core::option::Option<::prost::alloc::string::String>,
     }
     /// Статус жизненного цикла заявки на вывод.
@@ -2210,7 +2215,7 @@ pub mod confirmation {
             TransactionGroup(super::super::TransactionGroup),
             /// Для подтверждения добавления в "белый список".
             #[prost(message, tag = "6")]
-            PaymentDestination(super::super::PaymentDestination),
+            PaymentDestinationRequest(super::super::payment_destination::Request),
             /// Для подтверждения заявки на вывод.
             #[prost(message, tag = "7")]
             PaymentNetworkCurrencyWithdrawalBody(

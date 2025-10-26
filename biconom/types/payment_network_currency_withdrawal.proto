@@ -46,30 +46,26 @@ message PaymentNetworkCurrencyWithdrawal {
         uint32 payment_network_id = 2;
         // ID валюты для вывода.
         uint32 currency_id = 3;
-
-        // ID сохраненного назначения платежа из "белого списка".
-        // Если поле заполнено, это означает, что `instrument` взят из адресной книги.
-        optional uint64 payment_destination_id = 4;
-
+        
         // Реквизиты для вывода.
-        biconom.types.PaymentInstrument instrument = 5;
+        biconom.types.PaymentInstrument instrument = 4;
 
         // Сумма вывода.
-        string amount = 6;
+        string amount = 5;
 
         // Опциональное поле Memo/Tag/Message, если оно требуется для транзакции.
-        optional string memo = 7;
+        optional string memo = 6;
 
         // Флаг, указывающий, что комиссию нужно вычесть из суммы `amount`.
         // `true`: получатель получит `amount - fee`.
         // `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
-        bool deduct_fee_from_amount = 8;
+        bool deduct_fee_from_amount = 7;
 
         // Флаг, указывающий, что реквизиты (`instrument`) нужно добавить в "белый список" (адресную книгу).
-        bool add_to_whitelist = 9;
+        bool add_to_whitelist = 8;
 
         // Имя для новой записи в "белом списке". Используется, только если `add_to_whitelist` = `true`.
-        optional string new_destination_name = 10;
+        optional string new_destination_name = 9;
     }
 
     // --- Поля основного сообщения ---

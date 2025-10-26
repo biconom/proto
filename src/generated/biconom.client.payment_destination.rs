@@ -6,20 +6,14 @@ pub struct ListRequest {
     /// `true`: включить в результат также и архивные записи.
     #[prost(bool, tag = "1")]
     pub include_archived: bool,
-    /// Фильтр по типу инструмента и его формату.
-    #[prost(oneof = "list_request::FormatFilter", tags = "2")]
-    pub format_filter: ::core::option::Option<list_request::FormatFilter>,
-}
-/// Nested message and enum types in `ListRequest`.
-pub mod list_request {
-    /// Фильтр по типу инструмента и его формату.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum FormatFilter {
-        #[prost(message, tag = "2")]
-        BlockchainFormats(
-            super::super::super::types::payment_network_operation_settings::blockchain::address_format::List,
-        ),
-    }
+    /// Фильтр по форматам адресов блокчейна. Если поле заполнено, в результате
+    /// будут только записи с указанными форматами адресов.
+    #[prost(
+        enumeration = "super::super::types::payment_network_operation_settings::blockchain::address_format::Id",
+        repeated,
+        tag = "2"
+    )]
+    pub blockchain_formats: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateRequest {

@@ -13,6 +13,13 @@ message PaymentDestination {
     message List {
         repeated PaymentDestination items = 1;
     }
+    
+    message Request {
+        // Реквизиты, сохраненные в этой записи. Являются естественным ключом.
+        biconom.types.PaymentInstrument instrument = 1;
+        // Пользовательское название (например, "Мой основной кошелек ETH").
+        string name = 2;
+    }
 
     // Реквизиты, сохраненные в этой записи. Являются естественным ключом.
     biconom.types.PaymentInstrument instrument = 1;

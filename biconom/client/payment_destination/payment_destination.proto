@@ -34,10 +34,9 @@ message ListRequest {
     // `true`: включить в результат также и архивные записи.
     bool include_archived = 1;
 
-    // Фильтр по типу инструмента и его формату.
-    oneof format_filter {
-        biconom.types.PaymentNetworkOperationSettings.Blockchain.AddressFormat.List blockchain_formats = 2;
-    }
+    // Фильтр по форматам адресов блокчейна. Если поле заполнено, в результате
+    // будут только записи с указанными форматами адресов.
+    repeated biconom.types.PaymentNetworkOperationSettings.Blockchain.AddressFormat.Id blockchain_formats = 2;
 }
 
 message CreateRequest {

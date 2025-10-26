@@ -161,7 +161,7 @@ message Confirmation {
 			string mnemonic_words = 3;
 			string authorization_bearer = 4;
 			biconom.types.TransactionGroup transaction_group = 5;
-			biconom.types.PaymentDestination payment_destination = 6; // Для подтверждения добавления в "белый список".
+			biconom.types.PaymentDestination.Request payment_destination_request = 6; // Для подтверждения добавления в "белый список".
 			biconom.types.PaymentNetworkCurrencyWithdrawal.Body payment_network_currency_withdrawal_body = 7; // Для подтверждения заявки на вывод.
 		}
 	}
