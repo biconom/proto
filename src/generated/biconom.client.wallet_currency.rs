@@ -62,7 +62,6 @@ pub struct WithdrawalStateGetResponse {
     #[prost(enumeration = "withdrawal_state_get_response::Status", tag = "1")]
     pub status: i32,
     /// Последний активный адрес из "белого списка", который использовался для вывода этого актива.
-    /// Может быть не заполнен, если выводов еще не было.
     #[prost(message, optional, tag = "2")]
     pub last_active_destination: ::core::option::Option<
         super::super::types::PaymentDestination,

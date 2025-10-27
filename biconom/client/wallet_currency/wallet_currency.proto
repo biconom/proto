@@ -97,7 +97,6 @@ message WithdrawalStateGetResponse {
     Status status = 1;
 
     // Последний активный адрес из "белого списка", который использовался для вывода этого актива.
-    // Может быть не заполнен, если выводов еще не было.
     optional biconom.types.PaymentDestination last_active_destination = 2;
 
     // Время, когда вывод станет доступен. Заполняется, если status = TIME_RESTRICTED.

@@ -6176,7 +6176,7 @@ pub mod wallet_type {
             /// Временно на тех. обслуживании.
             Maintenance = 2,
             /// Устарел и больше не используется.
-            Retired = 3,
+            Deprecated = 3,
         }
         impl Id {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -6188,7 +6188,7 @@ pub mod wallet_type {
                     Self::Unspecified => "UNSPECIFIED",
                     Self::Active => "ACTIVE",
                     Self::Maintenance => "MAINTENANCE",
-                    Self::Retired => "RETIRED",
+                    Self::Deprecated => "DEPRECATED",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6197,7 +6197,7 @@ pub mod wallet_type {
                     "UNSPECIFIED" => Some(Self::Unspecified),
                     "ACTIVE" => Some(Self::Active),
                     "MAINTENANCE" => Some(Self::Maintenance),
-                    "RETIRED" => Some(Self::Retired),
+                    "DEPRECATED" => Some(Self::Deprecated),
                     _ => None,
                 }
             }
