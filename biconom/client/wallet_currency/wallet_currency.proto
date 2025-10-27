@@ -9,10 +9,12 @@ import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/ledger_transaction.proto";
 import "biconom/types/wallet_type.proto";
+import "biconom/types/payment_destination.proto";
 import "biconom/types/wallet_currency.proto";
 import "biconom/types/payment_network_currency_withdrawal.proto";
+import "google/protobuf/timestamp.proto";
 
-// Сервис для получения информации о балансах (валютах) в кошельках пользователя.
+// Сервис для получения информации о балансах (валютах) в кошельках пользователя и управления выводом средств.
 service WalletCurrencyService {
     // Получить информацию о конкретном балансе по его составному ключу.
     // ID аккаунта берется из контекста авторизации.
@@ -22,12 +24,18 @@ service WalletCurrencyService {
     // ID аккаунта берется из контекста авторизации.
     rpc List(ListRequest) returns (biconom.types.WalletCurrency.List);
 
+    // --- Методы для управления внутренними переводами ---
+
     // Выполнить внутренний перевод средств другому пользователю.
     // ID аккаунта отправителя берется из контекста авторизации.
     rpc Transfer(TransferRequest) returns (biconom.types.LedgerTransaction.Id);
 
+    // --- Методы для управления выводом средств ---
+
     // Создает заявку на вывод средств и возвращает форму для ее подтверждения.
-    rpc CreateWithdrawal(biconom.types.PaymentNetworkCurrencyWithdrawal.Body) returns (biconom.types.Confirmation);
+    rpc WithdrawalCreate(biconom.types.PaymentNetworkCurrencyWithdrawal.Body) returns (biconom.types.Confirmation);
+    // Проверяет общее состояние сервиса вывода для конкретного актива.
+    rpc WithdrawalStateGet(WithdrawalStateGetRequest) returns (WithdrawalStateGetResponse);
 }
 
 // Запрос на получение списка балансов.
@@ -59,4 +67,39 @@ message TransferRequest {
 
     // Необязательное примечание к переводу.
     optional string memo = 5;
+}
+
+// Запрос на получение статуса сервиса вывода.
+message WithdrawalStateGetRequest {
+    // ID типа кошелька, с которого осуществляется вывод.
+    uint32 wallet_type_id = 1;
+    // ID платежной сети.
+    uint32 payment_network_id = 2;
+    // ID валюты.
+    uint32 currency_id = 3;
+}
+
+// Ответ со статусом сервиса вывода.
+message WithdrawalStateGetResponse {
+    // Состояние сервиса вывода для указанного актива.
+    enum Status {
+        UNSPECIFIED = 0;
+        // Вывод доступен.
+        AVAILABLE = 1;
+        // Вывод временно отключен (например, на время технических работ).
+        MAINTENANCE = 2;
+        // Вывод отключен на неопределенный срок.
+        DISABLED = 3;
+        // Вывод временно ограничен по времени (например, после смены пароля).
+        TIME_RESTRICTED = 4;
+    }
+
+    Status status = 1;
+
+    // Последний активный адрес из "белого списка", который использовался для вывода этого актива.
+    // Может быть не заполнен, если выводов еще не было.
+    optional biconom.types.PaymentDestination last_active_destination = 2;
+
+    // Время, когда вывод станет доступен. Заполняется, если status = TIME_RESTRICTED.
+    optional google.protobuf.Timestamp available_at = 3;
 }

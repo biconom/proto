@@ -45,6 +45,11 @@ message CreateRequest {
 
     // Реквизиты для нового назначения.
     biconom.types.PaymentInstrument instrument = 2;
+
+    // Если `true`, все существующие назначения того же типа (категории,
+    // например, по формату адреса) будут архивированы, и только новое
+    // назначение останется активным.
+    bool archive_others_in_category = 3;
 }
 
 message UpdateNameRequest {

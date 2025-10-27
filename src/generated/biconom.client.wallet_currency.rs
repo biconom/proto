@@ -43,6 +43,87 @@ pub mod transfer_request {
         DistributorId(super::super::super::types::distributor::Id),
     }
 }
+/// Запрос на получение статуса сервиса вывода.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WithdrawalStateGetRequest {
+    /// ID типа кошелька, с которого осуществляется вывод.
+    #[prost(uint32, tag = "1")]
+    pub wallet_type_id: u32,
+    /// ID платежной сети.
+    #[prost(uint32, tag = "2")]
+    pub payment_network_id: u32,
+    /// ID валюты.
+    #[prost(uint32, tag = "3")]
+    pub currency_id: u32,
+}
+/// Ответ со статусом сервиса вывода.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WithdrawalStateGetResponse {
+    #[prost(enumeration = "withdrawal_state_get_response::Status", tag = "1")]
+    pub status: i32,
+    /// Последний активный адрес из "белого списка", который использовался для вывода этого актива.
+    /// Может быть не заполнен, если выводов еще не было.
+    #[prost(message, optional, tag = "2")]
+    pub last_active_destination: ::core::option::Option<
+        super::super::types::PaymentDestination,
+    >,
+    /// Время, когда вывод станет доступен. Заполняется, если status = TIME_RESTRICTED.
+    #[prost(message, optional, tag = "3")]
+    pub available_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Nested message and enum types in `WithdrawalStateGetResponse`.
+pub mod withdrawal_state_get_response {
+    /// Состояние сервиса вывода для указанного актива.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Вывод доступен.
+        Available = 1,
+        /// Вывод временно отключен (например, на время технических работ).
+        Maintenance = 2,
+        /// Вывод отключен на неопределенный срок.
+        Disabled = 3,
+        /// Вывод временно ограничен по времени (например, после смены пароля).
+        TimeRestricted = 4,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Available => "AVAILABLE",
+                Self::Maintenance => "MAINTENANCE",
+                Self::Disabled => "DISABLED",
+                Self::TimeRestricted => "TIME_RESTRICTED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "AVAILABLE" => Some(Self::Available),
+                "MAINTENANCE" => Some(Self::Maintenance),
+                "DISABLED" => Some(Self::Disabled),
+                "TIME_RESTRICTED" => Some(Self::TimeRestricted),
+                _ => None,
+            }
+        }
+    }
+}
 /// Generated server implementations.
 pub mod wallet_currency_service_server {
     #![allow(
@@ -84,7 +165,7 @@ pub mod wallet_currency_service_server {
             tonic::Status,
         >;
         /// Создает заявку на вывод средств и возвращает форму для ее подтверждения.
-        async fn create_withdrawal(
+        async fn withdrawal_create(
             &self,
             request: tonic::Request<
                 super::super::super::types::payment_network_currency_withdrawal::Body,
@@ -93,8 +174,16 @@ pub mod wallet_currency_service_server {
             tonic::Response<super::super::super::types::Confirmation>,
             tonic::Status,
         >;
+        /// Проверяет общее состояние сервиса вывода для конкретного актива.
+        async fn withdrawal_state_get(
+            &self,
+            request: tonic::Request<super::WithdrawalStateGetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::WithdrawalStateGetResponse>,
+            tonic::Status,
+        >;
     }
-    /// Сервис для получения информации о балансах (валютах) в кошельках пользователя.
+    /// Сервис для получения информации о балансах (валютах) в кошельках пользователя и управления выводом средств.
     #[derive(Debug)]
     pub struct WalletCurrencyServiceServer<T> {
         inner: Arc<T>,
@@ -310,14 +399,14 @@ pub mod wallet_currency_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/biconom.client.wallet_currency.WalletCurrencyService/CreateWithdrawal" => {
+                "/biconom.client.wallet_currency.WalletCurrencyService/WithdrawalCreate" => {
                     #[allow(non_camel_case_types)]
-                    struct CreateWithdrawalSvc<T: WalletCurrencyService>(pub Arc<T>);
+                    struct WithdrawalCreateSvc<T: WalletCurrencyService>(pub Arc<T>);
                     impl<
                         T: WalletCurrencyService,
                     > tonic::server::UnaryService<
                         super::super::super::types::payment_network_currency_withdrawal::Body,
-                    > for CreateWithdrawalSvc<T> {
+                    > for WithdrawalCreateSvc<T> {
                         type Response = super::super::super::types::Confirmation;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -331,7 +420,7 @@ pub mod wallet_currency_service_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as WalletCurrencyService>::create_withdrawal(
+                                <T as WalletCurrencyService>::withdrawal_create(
                                         &inner,
                                         request,
                                     )
@@ -346,7 +435,56 @@ pub mod wallet_currency_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = CreateWithdrawalSvc(inner);
+                        let method = WithdrawalCreateSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.wallet_currency.WalletCurrencyService/WithdrawalStateGet" => {
+                    #[allow(non_camel_case_types)]
+                    struct WithdrawalStateGetSvc<T: WalletCurrencyService>(pub Arc<T>);
+                    impl<
+                        T: WalletCurrencyService,
+                    > tonic::server::UnaryService<super::WithdrawalStateGetRequest>
+                    for WithdrawalStateGetSvc<T> {
+                        type Response = super::WithdrawalStateGetResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::WithdrawalStateGetRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WalletCurrencyService>::withdrawal_state_get(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = WithdrawalStateGetSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

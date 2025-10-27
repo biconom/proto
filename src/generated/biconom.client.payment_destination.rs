@@ -23,6 +23,11 @@ pub struct CreateRequest {
     /// Реквизиты для нового назначения.
     #[prost(message, optional, tag = "2")]
     pub instrument: ::core::option::Option<super::super::types::PaymentInstrument>,
+    /// Если `true`, все существующие назначения того же типа (категории,
+    /// например, по формату адреса) будут архивированы, и только новое
+    /// назначение останется активным.
+    #[prost(bool, tag = "3")]
+    pub archive_others_in_category: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateNameRequest {

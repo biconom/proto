@@ -75,6 +75,39 @@ pub struct ValidateInstrumentResponse {
         super::super::types::PaymentInstrument,
     >,
 }
+/// Запрос на расчет комиссии за вывод.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CalculateWithdrawalFeeRequest {
+    /// ID платежной сети.
+    #[prost(uint32, tag = "1")]
+    pub payment_network_id: u32,
+    /// ID валюты.
+    #[prost(uint32, tag = "2")]
+    pub currency_id: u32,
+    /// Сумма вывода, для которой нужно рассчитать комиссию.
+    #[prost(string, tag = "3")]
+    pub amount: ::prost::alloc::string::String,
+    /// Флаг, указывающий, как комиссия должна быть обработана.
+    /// `true`: получатель получит `amount - fee`.
+    /// `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
+    /// Этот флаг влияет на итоговую сумму `amount_to_receive` в ответе.
+    #[prost(bool, tag = "4")]
+    pub deduct_fee_from_amount: bool,
+}
+/// Ответ с рассчитанной комиссией.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CalculateWithdrawalFeeResponse {
+    /// Детализация комиссии. Ключ - название компонента комиссии (из CalculationGroup),
+    /// значение - рассчитанная сумма для этого компонента.
+    #[prost(map = "string, string", tag = "1")]
+    pub fee_breakdown: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    /// Итоговая сумма, которую получит адресат после вычета всех комиссий.
+    #[prost(string, tag = "2")]
+    pub amount_to_receive: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod payment_network_currency_service_server {
     #![allow(
@@ -120,6 +153,14 @@ pub mod payment_network_currency_service_server {
             request: tonic::Request<super::ValidateInstrumentRequest>,
         ) -> std::result::Result<
             tonic::Response<super::ValidateInstrumentResponse>,
+            tonic::Status,
+        >;
+        /// Рассчитывает комиссию для вывода по указанным параметрам.
+        async fn calculate_withdrawal_fee(
+            &self,
+            request: tonic::Request<super::CalculateWithdrawalFeeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CalculateWithdrawalFeeResponse>,
             tonic::Status,
         >;
     }
@@ -385,6 +426,57 @@ pub mod payment_network_currency_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ValidateInstrumentSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.payment_network_currency.PaymentNetworkCurrencyService/CalculateWithdrawalFee" => {
+                    #[allow(non_camel_case_types)]
+                    struct CalculateWithdrawalFeeSvc<T: PaymentNetworkCurrencyService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: PaymentNetworkCurrencyService,
+                    > tonic::server::UnaryService<super::CalculateWithdrawalFeeRequest>
+                    for CalculateWithdrawalFeeSvc<T> {
+                        type Response = super::CalculateWithdrawalFeeResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CalculateWithdrawalFeeRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as PaymentNetworkCurrencyService>::calculate_withdrawal_fee(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CalculateWithdrawalFeeSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

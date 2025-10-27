@@ -22,6 +22,9 @@ service PaymentNetworkCurrencyService {
 
 	// Проверяет, являются ли предоставленные реквизиты (`instrument`) валидными для указанной пары "сеть-валюта".
 	rpc ValidateInstrument(ValidateInstrumentRequest) returns (ValidateInstrumentResponse);
+
+	// Рассчитывает комиссию для вывода по указанным параметрам.
+	rpc CalculateWithdrawalFee(CalculateWithdrawalFeeRequest) returns (CalculateWithdrawalFeeResponse);
 }
 
 // DepositAddress представляет собой набор реквизитов для пополнения счета.
@@ -76,4 +79,28 @@ message ValidateInstrumentResponse {
 
 	// Отформатированные/нормализованные реквизиты, если бэкенд выполнил их преобразование.
 	optional biconom.types.PaymentInstrument formatted_instrument = 2;
+}
+
+// Запрос на расчет комиссии за вывод.
+message CalculateWithdrawalFeeRequest {
+    // ID платежной сети.
+    uint32 payment_network_id = 1;
+    // ID валюты.
+    uint32 currency_id = 2;
+    // Сумма вывода, для которой нужно рассчитать комиссию.
+    string amount = 3;
+    // Флаг, указывающий, как комиссия должна быть обработана.
+    // `true`: получатель получит `amount - fee`.
+    // `false` (по умолчанию): получатель получит `amount`, а с баланса будет списано `amount + fee`.
+    // Этот флаг влияет на итоговую сумму `amount_to_receive` в ответе.
+    bool deduct_fee_from_amount = 4;
+}
+
+// Ответ с рассчитанной комиссией.
+message CalculateWithdrawalFeeResponse {
+    // Детализация комиссии. Ключ - название компонента комиссии (из CalculationGroup),
+    // значение - рассчитанная сумма для этого компонента.
+    map<string, string> fee_breakdown = 1;
+    // Итоговая сумма, которую получит адресат после вычета всех комиссий.
+    string amount_to_receive = 2;
 }
