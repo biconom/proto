@@ -1560,8 +1560,8 @@ pub struct PaymentNetworkCurrencyWithdrawal {
     #[prost(uint64, tag = "1")]
     pub id: u64,
     /// Текущий статус заявки.
-    #[prost(enumeration = "payment_network_currency_withdrawal::Status", tag = "2")]
-    pub status: i32,
+    #[prost(message, optional, tag = "2")]
+    pub status: ::core::option::Option<payment_network_currency_withdrawal::Status>,
     /// Тело заявки с деталями вывода.
     #[prost(message, optional, tag = "3")]
     pub body: ::core::option::Option<payment_network_currency_withdrawal::Body>,
@@ -1584,6 +1584,76 @@ pub mod payment_network_currency_withdrawal {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::PaymentNetworkCurrencyWithdrawal>,
+    }
+    /// Статус жизненного цикла заявки на вывод.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {
+        #[prost(enumeration = "status::Id", tag = "1")]
+        pub id: i32,
+    }
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Заявка создана и ожидает подтверждения пользователя.
+            PendingConfirmation = 1,
+            /// Заявка подтверждена и ожидает обработки системой.
+            PendingProcessing = 2,
+            /// Заявка находится в процессе выполнения (транзакция отправлена в сеть).
+            Processing = 3,
+            /// Заявка успешно выполнена.
+            Completed = 4,
+            /// Заявка отклонена (например, из-за ошибки валидации, недостатка средств).
+            Rejected = 5,
+            /// Заявка отменена пользователем.
+            Cancelled = 6,
+            /// Произошла ошибка во время обработки.
+            Failed = 7,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::PendingConfirmation => "PENDING_CONFIRMATION",
+                    Self::PendingProcessing => "PENDING_PROCESSING",
+                    Self::Processing => "PROCESSING",
+                    Self::Completed => "COMPLETED",
+                    Self::Rejected => "REJECTED",
+                    Self::Cancelled => "CANCELLED",
+                    Self::Failed => "FAILED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PENDING_CONFIRMATION" => Some(Self::PendingConfirmation),
+                    "PENDING_PROCESSING" => Some(Self::PendingProcessing),
+                    "PROCESSING" => Some(Self::Processing),
+                    "COMPLETED" => Some(Self::Completed),
+                    "REJECTED" => Some(Self::Rejected),
+                    "CANCELLED" => Some(Self::Cancelled),
+                    "FAILED" => Some(Self::Failed),
+                    _ => None,
+                }
+            }
+        }
     }
     /// Body содержит основные данные заявки на вывод, которые могут быть
     /// использованы как для создания новой заявки, так и для представления существующей.
@@ -1618,68 +1688,6 @@ pub mod payment_network_currency_withdrawal {
         /// Имя для новой записи в "белом списке". Используется, только если `add_to_whitelist` = `true`.
         #[prost(string, optional, tag = "9")]
         pub new_destination_name: ::core::option::Option<::prost::alloc::string::String>,
-    }
-    /// Статус жизненного цикла заявки на вывод.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum Status {
-        Unspecified = 0,
-        /// Заявка создана и ожидает подтверждения пользователя.
-        PendingConfirmation = 1,
-        /// Заявка подтверждена и ожидает обработки системой.
-        PendingProcessing = 2,
-        /// Заявка находится в процессе выполнения (транзакция отправлена в сеть).
-        Processing = 3,
-        /// Заявка успешно выполнена.
-        Completed = 4,
-        /// Заявка отклонена (например, из-за ошибки валидации, недостатка средств).
-        Rejected = 5,
-        /// Заявка отменена пользователем.
-        Cancelled = 6,
-        /// Произошла ошибка во время обработки.
-        Failed = 7,
-    }
-    impl Status {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "UNSPECIFIED",
-                Self::PendingConfirmation => "PENDING_CONFIRMATION",
-                Self::PendingProcessing => "PENDING_PROCESSING",
-                Self::Processing => "PROCESSING",
-                Self::Completed => "COMPLETED",
-                Self::Rejected => "REJECTED",
-                Self::Cancelled => "CANCELLED",
-                Self::Failed => "FAILED",
-            }
-        }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "UNSPECIFIED" => Some(Self::Unspecified),
-                "PENDING_CONFIRMATION" => Some(Self::PendingConfirmation),
-                "PENDING_PROCESSING" => Some(Self::PendingProcessing),
-                "PROCESSING" => Some(Self::Processing),
-                "COMPLETED" => Some(Self::Completed),
-                "REJECTED" => Some(Self::Rejected),
-                "CANCELLED" => Some(Self::Cancelled),
-                "FAILED" => Some(Self::Failed),
-                _ => None,
-            }
-        }
     }
 }
 /// Session представляет собой активную сессию пользователя в системе.
