@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package biconom.client.user;
+
+import "google/protobuf/empty.proto";
+
+// UserService предоставляет методы для работы с данными, специфичными для пользователя.
+service UserService {
+    // Получает битовые маски прав доступа для текущего аутентифицированного пользователя.
+    rpc GetPermissions(google.protobuf.Empty) returns (GetPermissionsResponse);
+}
+
+// Ответ, содержащий битовые маски прав доступа.
+message GetPermissionsResponse {
+    // Персональная битовая маска прав доступа, определяющая, что пользователь может делать для себя.
+    uint64 personal_permissions_bit_mask = 1;
+
+    // Делегированная битовая маска прав, определяющая, что текущий пользователь может делать над другими пользователями.
+    uint64 delegated_permissions_bit_mask = 2;
+}

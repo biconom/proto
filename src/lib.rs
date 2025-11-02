@@ -69,6 +69,9 @@ pub mod biconom {
 		pub mod trade {
 			include!("generated/biconom.client.trade.rs");
 		}
+		pub mod user {
+			include!("generated/biconom.client.user.rs");
+		}
 		pub mod payment_network {
 			include!("generated/biconom.client.payment_network.rs");
 		}

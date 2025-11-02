@@ -103,6 +103,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				"biconom/client/payment_destination/payment_destination.proto",
 				"biconom/client/ticker/ticker.proto",
 				"biconom/client/trade/trade.proto",
+				"biconom/client/user/user.proto",
 				"biconom/client/payment_network/payment_network.proto",
 				"biconom/client/payment_network_currency/payment_network_currency.proto",
 				"biconom/client/session/session.proto",
