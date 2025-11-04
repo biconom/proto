@@ -12,6 +12,9 @@ pub mod biconom {
 		pub mod account {
 			include!("generated/biconom.client.account.rs");
 		}
+		pub mod analytics {
+			include!("generated/biconom.client.analytics.rs");
+		}
 		pub mod auth {
 			include!("generated/biconom.client.auth.rs");
 		}

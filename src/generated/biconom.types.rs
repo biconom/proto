@@ -676,6 +676,87 @@ pub struct CalculationGroup {
         Calculation,
     >,
 }
+/// 'Chart' представляет собой единую сущность графика для аналитического отчета.
+/// Эта модель является полиморфной и может содержать данные
+/// как для денежных, так и для числовых типов графиков.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Chart {
+    /// Логическое имя (идентификатор) графика, (например, "income", "registrations").
+    /// Используется клиентом для группировки или идентификации.
+    #[prost(string, tag = "1")]
+    pub chart_name: ::prost::alloc::string::String,
+    /// 'data_type' обеспечивает полиморфизм данных, позволяя графику
+    /// содержать либо денежные, либо числовые данные.
+    #[prost(oneof = "chart::DataType", tags = "2, 3")]
+    pub data_type: ::core::option::Option<chart::DataType>,
+}
+/// Nested message and enum types in `Chart`.
+pub mod chart {
+    /// 'List' представляет собой обертку для списка графиков.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Chart>,
+    }
+    /// 'Monetary' определяет структуру данных для графика с денежными значениями.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Monetary {
+        /// Числовой идентификатор валюты (uint32).
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// Набор данных (свечей) для этого графика.
+        #[prost(message, repeated, tag = "2")]
+        pub candles: ::prost::alloc::vec::Vec<monetary::Candle>,
+    }
+    /// Nested message and enum types in `Monetary`.
+    pub mod monetary {
+        /// 'Candle' представляет единичный элемент данных (свечу) для денежного графика.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Candle {
+            /// Временная метка начала интервала агрегации (Unix timestamp, uint32).
+            #[prost(uint32, tag = "1")]
+            pub timestamp_start: u32,
+            /// Временная метка окончания интервала агрегации (Unix timestamp, uint32).
+            #[prost(uint32, tag = "2")]
+            pub timestamp_end: u32,
+            /// Строковое представление значения для обеспечения высокой точности (например, "123.456").
+            #[prost(string, tag = "3")]
+            pub value: ::prost::alloc::string::String,
+        }
+    }
+    /// 'Numeric' определяет структуру данных для графика со числовыми значениями.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Numeric {
+        /// Набор данных (свечей) для этого графика.
+        #[prost(message, repeated, tag = "1")]
+        pub candles: ::prost::alloc::vec::Vec<numeric::Candle>,
+    }
+    /// Nested message and enum types in `Numeric`.
+    pub mod numeric {
+        /// 'Candle' представляет единичный элемент данных (свечу) для числового графика.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Candle {
+            /// Временная метка начала интервала агрегации (Unix timestamp, uint32).
+            #[prost(uint32, tag = "1")]
+            pub timestamp_start: u32,
+            /// Временная метка окончания интервала агрегации (Unix timestamp, uint32).
+            #[prost(uint32, tag = "2")]
+            pub timestamp_end: u32,
+            /// Значение со знаком (int64).
+            #[prost(int64, tag = "3")]
+            pub value: i64,
+        }
+    }
+    /// 'data_type' обеспечивает полиморфизм данных, позволяя графику
+    /// содержать либо денежные, либо числовые данные.
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum DataType {
+        #[prost(message, tag = "2")]
+        MonetaryData(Monetary),
+        #[prost(message, tag = "3")]
+        NumericData(Numeric),
+    }
+}
 /// CommunityPolicy определяет набор правил для группы сообществ.
 /// Конкретная логика политики реализуется на бэкенде.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -3518,6 +3599,82 @@ pub mod google_authenticator_policy {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::GoogleAuthenticatorPolicy>,
+    }
+}
+/// 'Interval' определяет поддерживаемые типы временных интервалов.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Interval {
+    /// Атрибут "id" с типом Enum "Id".
+    /// Используется для явного указания типа в структурах, где это необходимо.
+    #[prost(enumeration = "interval::Id", tag = "1")]
+    pub id: i32,
+    /// Смещение часового пояса в секундах от UTC (например, для UTC+3 это будет 10800).
+    /// Используется для корректной агрегации данных по дневным, недельным и месячным интервалам.
+    #[prost(int32, tag = "2")]
+    pub timezone_offset_seconds: i32,
+}
+/// Nested message and enum types in `Interval`.
+pub mod interval {
+    /// Enum "Id" представляет собой перечисление доступных интервалов.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Id {
+        Unspecified = 0,
+        Minute = 1,
+        Hour = 2,
+        Day = 3,
+        /// Неделя, начинающаяся с понедельника (согласно ISO 8601).
+        WeekMondayStart = 4,
+        /// Неделя, начинающаяся с воскресенья.
+        WeekSundayStart = 5,
+        /// Неделя, начинающаяся с субботы.
+        WeekSaturdayStart = 6,
+        Month = 7,
+        Year = 8,
+    }
+    impl Id {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::Minute => "MINUTE",
+                Self::Hour => "HOUR",
+                Self::Day => "DAY",
+                Self::WeekMondayStart => "WEEK_MONDAY_START",
+                Self::WeekSundayStart => "WEEK_SUNDAY_START",
+                Self::WeekSaturdayStart => "WEEK_SATURDAY_START",
+                Self::Month => "MONTH",
+                Self::Year => "YEAR",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "MINUTE" => Some(Self::Minute),
+                "HOUR" => Some(Self::Hour),
+                "DAY" => Some(Self::Day),
+                "WEEK_MONDAY_START" => Some(Self::WeekMondayStart),
+                "WEEK_SUNDAY_START" => Some(Self::WeekSundayStart),
+                "WEEK_SATURDAY_START" => Some(Self::WeekSaturdayStart),
+                "MONTH" => Some(Self::Month),
+                "YEAR" => Some(Self::Year),
+                _ => None,
+            }
+        }
     }
 }
 /// Mnemonic представляет конфигурацию для мнемонических фраз.

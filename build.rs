@@ -17,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				"biconom/types/bonus_policy.proto",
 				"biconom/types/boundary.proto",
 				"biconom/types/calculation.proto",
+				"biconom/types/chart.proto",
 				"biconom/types/community.proto",
 				"biconom/types/community_policy.proto",
 				"biconom/types/confirmation.proto",
@@ -35,6 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				"biconom/types/exchange_policy.proto",
 				"biconom/types/ticker.proto",
 				"biconom/types/google_authenticator_policy.proto",
+				"biconom/types/interval.proto",
 				"biconom/types/mnemonic.proto",
 				"biconom/types/network.proto",
 				"biconom/types/network_policy.proto",
@@ -87,6 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				"biconom/admin/transaction/transaction.proto",
 
 				"biconom/client/account/account.proto",
+				"biconom/client/analytics/analytics.proto",
 				"biconom/client/auth/auth.proto",
 				"biconom/client/confirmation/confirmation.proto",
 				"biconom/client/currency/currency.proto",

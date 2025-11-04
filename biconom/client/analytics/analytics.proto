@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package biconom.client.analytics;
+
+import "biconom/types/chart.proto";
+import "biconom/types/interval.proto";
+import "biconom/types/sort.proto";
+
+// AnalyticsService предоставляет методы для получения аналитических данных, таких как графики.
+service AnalyticsService {
+    // Получает один график по его идентификатору и параметрам.
+    rpc GetChart(GetChartRequest) returns (biconom.types.Chart);
+
+    // Получает список графиков по их идентификаторам и параметрам в одном пакетном запросе.
+    rpc GetCharts(GetChartRequest.List) returns (biconom.types.Chart.List);
+}
+
+// Запрос на получение одного графика.
+message GetChartRequest {
+    // 'List' представляет собой запрос на получение нескольких графиков.
+    message List {
+        repeated GetChartRequest items = 1;
+    }
+
+    // Логическое имя (идентификатор) графика (например, "income", "registrations").
+    string chart_name = 1;
+
+    // Идентификатор валюты. Если указан, запрашивается монетарный график (например, "income" для USDT).
+    // Если не указан, запрашивается количественный график (например, "registrations").
+    optional uint32 currency_id = 2;
+
+    // 'ScopeOptions' определяет область видимости данных для графика.
+    message ScopeOptions {
+        // 'Id' представляет собой перечисление доступных областей видимости.
+        enum Id {
+            UNSPECIFIED = 0;
+            // Только персональные данные.
+            PERSONAL = 1;
+            // Данные по команде (структуре) дистрибьютора.
+            TEAM = 2;
+            // Данные по всей компании.
+            COMPANY_WIDE = 3;
+        }
+
+        // Выбранная область видимости данных.
+        Id id = 1;
+
+        // Максимальная глубина структуры, которую нужно включить в отчет (начиная с текущего пользователя).
+        // Если не указана, включается вся доступная глубина.
+        optional uint32 team_depth_limit = 2;
+
+        // Включать ли персональные данные в отчет по команде.
+        // Если true, в отчет будут включены данные текущего пользователя и его структуры.
+        // Если false, в отчет будут включены только данные структуры (без данных пользователя).
+        bool include_personal = 3;
+    }
+
+    // Область видимости данных для графика.
+    ScopeOptions scope = 3;
+
+    // Интервал агрегации данных (таймфрейм).
+    biconom.types.Interval interval = 4;
+
+    // Курсор для пагинации свечей. В качестве значения используется
+    // временная метка (Unix timestamp) свечи, с которой нужно начать выборку.
+    optional uint32 cursor_timestamp = 5;
+
+    // Направление и лимит загружаемых свечей.
+    // `direction: FORWARD` - загрузить свечи после курсора.
+    // `direction: BACKWARD` - загрузить свечи до курсора.
+    optional biconom.types.Sort sort = 6;
+}
