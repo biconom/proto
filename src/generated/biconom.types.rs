@@ -685,9 +685,14 @@ pub struct Chart {
     /// Используется клиентом для группировки или идентификации.
     #[prost(string, tag = "1")]
     pub chart_name: ::prost::alloc::string::String,
+    /// Произвольный строковый идентификатор, установленный клиентом в запросе.
+    /// Позволяет клиенту однозначно сопоставить ответ с конкретным запросом,
+    /// особенно при пакетном получении графиков.
+    #[prost(string, optional, tag = "2")]
+    pub custom_id: ::core::option::Option<::prost::alloc::string::String>,
     /// 'data_type' обеспечивает полиморфизм данных, позволяя графику
     /// содержать либо денежные, либо числовые данные.
-    #[prost(oneof = "chart::DataType", tags = "2, 3")]
+    #[prost(oneof = "chart::DataType", tags = "3, 4")]
     pub data_type: ::core::option::Option<chart::DataType>,
 }
 /// Nested message and enum types in `Chart`.
@@ -751,9 +756,9 @@ pub mod chart {
     /// содержать либо денежные, либо числовые данные.
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum DataType {
-        #[prost(message, tag = "2")]
-        MonetaryData(Monetary),
         #[prost(message, tag = "3")]
+        MonetaryData(Monetary),
+        #[prost(message, tag = "4")]
         NumericData(Numeric),
     }
 }

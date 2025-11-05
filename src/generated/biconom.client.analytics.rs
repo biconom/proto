@@ -5,25 +5,27 @@ pub struct GetChartRequest {
     /// Логическое имя (идентификатор) графика (например, "income", "registrations").
     #[prost(string, tag = "1")]
     pub chart_name: ::prost::alloc::string::String,
+    /// Произвольный строковый идентификатор, устанавливаемый клиентом.
+    /// Позволяет различать несколько запросов на один и тот же тип графика с разными параметрами.
+    /// Этот же идентификатор будет возвращен в ответе `biconom.types.Chart`.
+    #[prost(string, optional, tag = "2")]
+    pub custom_id: ::core::option::Option<::prost::alloc::string::String>,
     /// Идентификатор валюты. Если указан, запрашивается монетарный график (например, "income" для USDT).
     /// Если не указан, запрашивается количественный график (например, "registrations").
-    #[prost(uint32, optional, tag = "2")]
+    #[prost(uint32, optional, tag = "3")]
     pub currency_id: ::core::option::Option<u32>,
     /// Область видимости данных для графика.
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "4")]
     pub scope: ::core::option::Option<get_chart_request::ScopeOptions>,
     /// Интервал агрегации данных (таймфрейм).
-    #[prost(message, optional, tag = "4")]
+    #[prost(message, optional, tag = "5")]
     pub interval: ::core::option::Option<super::super::types::Interval>,
-    /// Курсор для пагинации свечей. В качестве значения используется
-    /// временная метка (Unix timestamp) свечи, с которой нужно начать выборку.
-    #[prost(uint32, optional, tag = "5")]
-    pub cursor_timestamp: ::core::option::Option<u32>,
-    /// Направление и лимит загружаемых свечей.
-    /// `direction: FORWARD` - загрузить свечи после курсора.
-    /// `direction: BACKWARD` - загрузить свечи до курсора.
-    #[prost(message, optional, tag = "6")]
-    pub sort: ::core::option::Option<super::super::types::Sort>,
+    /// Начало временного диапазона для запроса данных (Unix timestamp).
+    #[prost(uint32, tag = "6")]
+    pub timestamp_start: u32,
+    /// Конец временного диапазона для запроса данных (Unix timestamp).
+    #[prost(uint32, tag = "7")]
+    pub timestamp_end: u32,
 }
 /// Nested message and enum types in `GetChartRequest`.
 pub mod get_chart_request {

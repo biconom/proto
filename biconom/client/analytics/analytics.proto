@@ -4,7 +4,6 @@ package biconom.client.analytics;
 
 import "biconom/types/chart.proto";
 import "biconom/types/interval.proto";
-import "biconom/types/sort.proto";
 
 // AnalyticsService предоставляет методы для получения аналитических данных, таких как графики.
 service AnalyticsService {
@@ -25,9 +24,14 @@ message GetChartRequest {
     // Логическое имя (идентификатор) графика (например, "income", "registrations").
     string chart_name = 1;
 
+    // Произвольный строковый идентификатор, устанавливаемый клиентом.
+    // Позволяет различать несколько запросов на один и тот же тип графика с разными параметрами.
+    // Этот же идентификатор будет возвращен в ответе `biconom.types.Chart`.
+    optional string custom_id = 2;
+
     // Идентификатор валюты. Если указан, запрашивается монетарный график (например, "income" для USDT).
     // Если не указан, запрашивается количественный график (например, "registrations").
-    optional uint32 currency_id = 2;
+    optional uint32 currency_id = 3;
 
     // 'ScopeOptions' определяет область видимости данных для графика.
     message ScopeOptions {
@@ -56,17 +60,14 @@ message GetChartRequest {
     }
 
     // Область видимости данных для графика.
-    ScopeOptions scope = 3;
+    ScopeOptions scope = 4;
 
     // Интервал агрегации данных (таймфрейм).
-    biconom.types.Interval interval = 4;
+    biconom.types.Interval interval = 5;
 
-    // Курсор для пагинации свечей. В качестве значения используется
-    // временная метка (Unix timestamp) свечи, с которой нужно начать выборку.
-    optional uint32 cursor_timestamp = 5;
+    // Начало временного диапазона для запроса данных (Unix timestamp).
+    uint32 timestamp_start = 6;
 
-    // Направление и лимит загружаемых свечей.
-    // `direction: FORWARD` - загрузить свечи после курсора.
-    // `direction: BACKWARD` - загрузить свечи до курсора.
-    optional biconom.types.Sort sort = 6;
+    // Конец временного диапазона для запроса данных (Unix timestamp).
+    uint32 timestamp_end = 7;
 }

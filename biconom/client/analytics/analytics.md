@@ -9,6 +9,7 @@
 ### Идентификация графика
 
 Система различает два типа графиков по комбинации полей в запросе `GetChartRequest`:
+- **`custom_id` (опционально)**: Произвольный строковый идентификатор, который клиент может установить для связи запроса с ответом. Сервер вернет это же значение в модели `Chart`.
 - **Количественный график**: Запрашивается только по `chart_name` (например, `chart_name: "registrations"`).
 - **Монетарный (денежный) график**: Запрашивается по `chart_name` и `currency_id` (например, `chart_name: "income", currency_id: 123`).
 
@@ -21,11 +22,12 @@
   - `include_personal`: Флаг, который определяет, нужно ли включать в командный отчет данные самого пользователя.
 - **`COMPANY_WIDE`**: Данные по всей компании. Доступно только пользователям с соответствующими правами.
 
-### Пагинация свечей
+### Запрос данных по временному диапазону
 
-Сервис поддерживает курсорную пагинацию для загрузки исторических данных графика.
-- **`cursor_timestamp`**: Временная метка (Unix timestamp) свечи, с которой нужно начать загрузку.
-- **`sort`**: Определяет направление (`FORWARD` — в будущее, `BACKWARD` — в прошлое) и количество (`limit`) свечей для загрузки.
+Сервис позволяет запрашивать данные за произвольный временной диапазон. Сервер автоматически сегментирует этот диапазон на "свечи" в соответствии с указанным интервалом (`interval`) и часовым поясом.
+
+- **`timestamp_start`**: Временная метка Unix, определяющая начало периода.
+- **`timestamp_end`**: Временная метка Unix, определяющая конец периода.
 
 ## 3. Описание методов (RPC)
 
@@ -53,14 +55,16 @@
         -   `chart_name`: "income"
         -   `currency_id`: (ID для USDT)
         -   `scope`: `{ id: PERSONAL }`
-        -   `interval`: `{ id: DAY, timezone_offset_seconds: ... }`
-        -   `sort`: `{ direction: BACKWARD, limit: 30 }`
+	-   `interval`: `{ id: DAY, timezone_offset_seconds: 10800 }`
+	-   `timestamp_start`: (Unix timestamp начала месяца)
+	-   `timestamp_end`: (Unix timestamp конца месяца)
 
     -   **Запрос 2 (Регистрации)**:
         -   `chart_name`: "registrations"
         -   `scope`: `{ id: TEAM, team_depth_limit: 5, include_personal: true }`
-        -   `interval`: `{ id: WEEK_MONDAY_START, timezone_offset_seconds: ... }`
-        -   `sort`: `{ direction: BACKWARD, limit: 4 }`
+        -   `interval`: `{ id: WEEK_MONDAY_START, timezone_offset_seconds: 10800 }`
+        -   `timestamp_start`: (Unix timestamp начала месяца)
+        -   `timestamp_end`: (Unix timestamp конца месяца)
 
 2.  Оба запроса упаковываются в `GetChartRequest.List`:
     ```
