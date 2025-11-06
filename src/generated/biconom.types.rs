@@ -3607,16 +3607,16 @@ pub mod google_authenticator_policy {
     }
 }
 /// 'Interval' определяет поддерживаемые типы временных интервалов.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Interval {
     /// Атрибут "id" с типом Enum "Id".
     /// Используется для явного указания типа в структурах, где это необходимо.
     #[prost(enumeration = "interval::Id", tag = "1")]
     pub id: i32,
-    /// Смещение часового пояса в секундах от UTC (например, для UTC+3 это будет 10800).
+    /// Идентификатор часового пояса из базы данных IANA (например, "Etc/UTC", "Asia/Dubai", "America/New_York").
     /// Используется для корректной агрегации данных по дневным, недельным и месячным интервалам.
-    #[prost(int32, tag = "2")]
-    pub timezone_offset_seconds: i32,
+    #[prost(string, tag = "2")]
+    pub timezone_id: ::prost::alloc::string::String,
 }
 /// Nested message and enum types in `Interval`.
 pub mod interval {

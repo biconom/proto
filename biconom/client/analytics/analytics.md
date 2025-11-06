@@ -55,14 +55,14 @@
         -   `chart_name`: "income"
         -   `currency_id`: (ID для USDT)
         -   `scope`: `{ id: PERSONAL }`
-	-   `interval`: `{ id: DAY, timezone_offset_seconds: 10800 }`
+	-   `interval`: `{ id: DAY, timezone_id: "Asia/Dubai" }`
 	-   `timestamp_start`: (Unix timestamp начала месяца)
 	-   `timestamp_end`: (Unix timestamp конца месяца)
 
     -   **Запрос 2 (Регистрации)**:
         -   `chart_name`: "registrations"
         -   `scope`: `{ id: TEAM, team_depth_limit: 5, include_personal: true }`
-        -   `interval`: `{ id: WEEK_MONDAY_START, timezone_offset_seconds: 10800 }`
+        -   `interval`: `{ id: WEEK_MONDAY_START, timezone_id: "Asia/Dubai" }`
         -   `timestamp_start`: (Unix timestamp начала месяца)
         -   `timestamp_end`: (Unix timestamp конца месяца)
 
