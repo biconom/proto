@@ -9,6 +9,13 @@ pub struct GetPermissionsResponse {
     #[prost(uint64, tag = "2")]
     pub delegated_permissions_bit_mask: u64,
 }
+/// Ответ, содержащий ссылку на телеграм бота.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetTelegramBotLinkResponse {
+    /// Ссылка для подключения к телеграм боту.
+    #[prost(string, tag = "1")]
+    pub link: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod user_service_server {
     #![allow(
@@ -28,6 +35,14 @@ pub mod user_service_server {
             request: tonic::Request<()>,
         ) -> std::result::Result<
             tonic::Response<super::GetPermissionsResponse>,
+            tonic::Status,
+        >;
+        /// Запрашивает ссылку на телеграм бота для подключения.
+        async fn get_telegram_bot_link(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetTelegramBotLinkResponse>,
             tonic::Status,
         >;
     }
@@ -133,6 +148,47 @@ pub mod user_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetPermissionsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.user.UserService/GetTelegramBotLink" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetTelegramBotLinkSvc<T: UserService>(pub Arc<T>);
+                    impl<T: UserService> tonic::server::UnaryService<()>
+                    for GetTelegramBotLinkSvc<T> {
+                        type Response = super::GetTelegramBotLinkResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as UserService>::get_telegram_bot_link(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetTelegramBotLinkSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

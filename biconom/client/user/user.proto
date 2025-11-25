@@ -8,6 +8,9 @@ import "google/protobuf/empty.proto";
 service UserService {
     // Получает битовые маски прав доступа для текущего аутентифицированного пользователя.
     rpc GetPermissions(google.protobuf.Empty) returns (GetPermissionsResponse);
+
+    // Запрашивает ссылку на телеграм бота для подключения.
+    rpc GetTelegramBotLink(google.protobuf.Empty) returns (GetTelegramBotLinkResponse);
 }
 
 // Ответ, содержащий битовые маски прав доступа.
@@ -17,4 +20,10 @@ message GetPermissionsResponse {
 
     // Делегированная битовая маска прав, определяющая, что текущий пользователь может делать над другими пользователями.
     uint64 delegated_permissions_bit_mask = 2;
+}
+
+// Ответ, содержащий ссылку на телеграм бота.
+message GetTelegramBotLinkResponse {
+    // Ссылка для подключения к телеграм боту.
+    string link = 1;
 }

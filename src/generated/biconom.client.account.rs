@@ -62,6 +62,9 @@ pub struct UserProfile {
     /// Текущая локаль.
     #[prost(uint32, tag = "6")]
     pub locale_id: u32,
+    /// Информация о telegram.
+    #[prost(message, optional, tag = "7")]
+    pub telegram: ::core::option::Option<user_profile::Telegram>,
 }
 /// Nested message and enum types in `UserProfile`.
 pub mod user_profile {
@@ -83,6 +86,17 @@ pub mod user_profile {
         pub password_policy_id: u32,
         /// Дата последней смены пароля.
         #[prost(message, optional, tag = "2")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Информация об telegram пользователя.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Telegram {
+        #[prost(int64, tag = "1")]
+        pub telegram_user_id: i64,
+        #[prost(string, tag = "2")]
+        pub telegram_username: ::prost::alloc::string::String,
+        /// Дата установки telegram.
+        #[prost(message, optional, tag = "3")]
         pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     }
 }

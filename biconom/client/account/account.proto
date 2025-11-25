@@ -52,10 +52,18 @@ message UserProfile {
 		google.protobuf.Timestamp created_at = 2; // Дата последней смены пароля.
 	}
 
+	// Информация об telegram пользователя.
+	message Telegram {
+		int64 telegram_user_id = 1;
+		string telegram_username = 2;
+		google.protobuf.Timestamp created_at = 3; // Дата установки telegram.
+	}
+
 	optional Email email = 1; // Информация о почте.
 	optional Password password = 2; // Информация о пароле.
 	biconom.types.Mnemonic mnemonic = 3; // Состояние mnemonic.
 	biconom.types.GoogleAuthenticator google_authenticator = 4; // Состояние 2FA.
 	repeated biconom.types.PaymentDestination payment_destinations = 5; // Активные платежные реквизиты.
 	uint32 locale_id = 6; // Текущая локаль.
+	optional Telegram telegram = 7; // Информация о telegram.
 }
