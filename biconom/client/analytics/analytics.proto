@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package biconom.client.analytics;
 
+import "google/protobuf/empty.proto";
 import "biconom/types/chart.proto";
 import "biconom/types/interval.proto";
 
@@ -12,6 +13,9 @@ service AnalyticsService {
 
     // Получает список графиков по их идентификаторам и параметрам в одном пакетном запросе.
     rpc GetCharts(GetChartRequest.List) returns (biconom.types.Chart.List);
+
+    // Получает суммарную статистику.
+    rpc GetSummary(google.protobuf.Empty) returns (SummaryStatisticsResponse);
 }
 
 // Запрос на получение одного графика.
@@ -70,4 +74,43 @@ message GetChartRequest {
 
     // Конец временного диапазона для запроса данных (Unix timestamp).
     uint32 timestamp_end = 7;
+}
+
+// Ответ на запрос суммарной статистики.
+message SummaryStatisticsResponse {
+    // Суммарная статистика для одной валюты.
+    message CurrencySummary {
+        // Статистика по конкретной платежной сети.
+        message PaymentNetworkSummary {
+            // Идентификатор платежной сети.
+            uint32 payment_network_id = 1;
+
+            // Общая сумма пополнений через эту платежную сеть.
+            string total_deposit = 2;
+
+            // Суммарная комиссия (сбор) за пополнения.
+            string total_deposit_fee = 3;
+
+            // Общая сумма выводов через эту платежную сеть.
+            string total_withdrawal = 4;
+
+            // Суммарная комиссия (сбор) за выводы.
+            string total_withdrawal_fee = 5;
+
+            // Количество денежных средств на горячем кошельке.
+            optional string hot_wallet_balance = 6;
+        }
+
+        // Идентификатор валюты.
+        uint32 currency_id = 1;
+
+        // Общая сумма средств пользователей в данной валюте на их счетах.
+        string total_user_balance = 2;
+
+        // Статистика по каждой платежной сети для данной валюты.
+        repeated PaymentNetworkSummary payment_network_stats = 3;
+    }
+
+    // Список суммарных статистик по каждой валюте.
+    repeated CurrencySummary summaries = 1;
 }

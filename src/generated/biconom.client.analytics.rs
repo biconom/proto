@@ -101,6 +101,60 @@ pub mod get_chart_request {
         }
     }
 }
+/// Ответ на запрос суммарной статистики.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SummaryStatisticsResponse {
+    /// Список суммарных статистик по каждой валюте.
+    #[prost(message, repeated, tag = "1")]
+    pub summaries: ::prost::alloc::vec::Vec<
+        summary_statistics_response::CurrencySummary,
+    >,
+}
+/// Nested message and enum types in `SummaryStatisticsResponse`.
+pub mod summary_statistics_response {
+    /// Суммарная статистика для одной валюты.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct CurrencySummary {
+        /// Идентификатор валюты.
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// Общая сумма средств пользователей в данной валюте на их счетах.
+        #[prost(string, tag = "2")]
+        pub total_user_balance: ::prost::alloc::string::String,
+        /// Статистика по каждой платежной сети для данной валюты.
+        #[prost(message, repeated, tag = "3")]
+        pub payment_network_stats: ::prost::alloc::vec::Vec<
+            currency_summary::PaymentNetworkSummary,
+        >,
+    }
+    /// Nested message and enum types in `CurrencySummary`.
+    pub mod currency_summary {
+        /// Статистика по конкретной платежной сети.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct PaymentNetworkSummary {
+            /// Идентификатор платежной сети.
+            #[prost(uint32, tag = "1")]
+            pub payment_network_id: u32,
+            /// Общая сумма пополнений через эту платежную сеть.
+            #[prost(string, tag = "2")]
+            pub total_deposit: ::prost::alloc::string::String,
+            /// Суммарная комиссия (сбор) за пополнения.
+            #[prost(string, tag = "3")]
+            pub total_deposit_fee: ::prost::alloc::string::String,
+            /// Общая сумма выводов через эту платежную сеть.
+            #[prost(string, tag = "4")]
+            pub total_withdrawal: ::prost::alloc::string::String,
+            /// Суммарная комиссия (сбор) за выводы.
+            #[prost(string, tag = "5")]
+            pub total_withdrawal_fee: ::prost::alloc::string::String,
+            /// Количество денежных средств на горячем кошельке.
+            #[prost(string, optional, tag = "6")]
+            pub hot_wallet_balance: ::core::option::Option<
+                ::prost::alloc::string::String,
+            >,
+        }
+    }
+}
 /// Generated server implementations.
 pub mod analytics_service_server {
     #![allow(
@@ -128,6 +182,14 @@ pub mod analytics_service_server {
             request: tonic::Request<super::get_chart_request::List>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::chart::List>,
+            tonic::Status,
+        >;
+        /// Получает суммарную статистику.
+        async fn get_summary(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::SummaryStatisticsResponse>,
             tonic::Status,
         >;
     }
@@ -283,6 +345,46 @@ pub mod analytics_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetChartsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.analytics.AnalyticsService/GetSummary" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSummarySvc<T: AnalyticsService>(pub Arc<T>);
+                    impl<T: AnalyticsService> tonic::server::UnaryService<()>
+                    for GetSummarySvc<T> {
+                        type Response = super::SummaryStatisticsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AnalyticsService>::get_summary(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSummarySvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
