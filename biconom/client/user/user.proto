@@ -11,6 +11,9 @@ service UserService {
 
     // Запрашивает ссылку на телеграм бота для подключения.
     rpc GetTelegramBotLink(google.protobuf.Empty) returns (GetTelegramBotLinkResponse);
+
+    // Удаляет привязку телеграм от аккаунта.
+    rpc DeleteTelegram(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 // Ответ, содержащий битовые маски прав доступа.
