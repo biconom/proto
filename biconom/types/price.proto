@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// Price представляет собой универсальную модель для передачи денежных значений.
+message Price {
+    message List {
+        repeated Price items = 1;
+    }
+
+    uint32 currency_id = 1; // Идентификатор валюты
+    string amount = 2; // Денежное значение (decimal string для точности)
+}

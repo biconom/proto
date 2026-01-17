@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "biconom/types/price.proto";
+import "biconom/types/license.proto";
+
+// Subscription объединяет продукт и список доступных для него тарифных планов.
+message Subscription {
+    message Plan {
+        message Id {
+            uint32 license_id = 1;
+            uint32 plan_id = 2;
+        }
+
+        message List {
+            repeated Plan items = 1;
+        }
+
+        uint32 license_id = 1; // Идентификатор лицензии, к которой относится план
+        uint32 plan_id = 2;
+        string title = 3; // Название плана (например, "Premium Monthly")
+        uint32 duration = 4; // Длительность расчетного периода (биллинг-цикла) в секундах
+        biconom.types.Price price = 5; // Стоимость подписки за один период
+        optional string metadata = 6; // Бизнес-параметры плана (JSON с условиями применения)
+        bool trial_supported = 7; // Поддерживается ли пробный период для данного плана
+    }
+
+    // State описывает коммерческое состояние подписки (биллинг).
+    message State {
+        enum Status {
+            UNSPECIFIED = 0;
+            TRIALING = 1; // Пробный период
+            ACTIVE = 2;   // Оплачена и активна
+            PAST_DUE = 3; // Оплата не прошла, ожидается повтор
+            CANCELED = 4; // Отменена пользователем
+            UNPAID = 5;   // Не оплачена, услуги остановлены
+        }
+        uint32 license_id = 1;
+        uint32 plan_id = 2;
+        Status status = 3;
+        bool is_auto_renew_enabled = 4;
+        optional google.protobuf.Timestamp next_billing_at = 5; // Дата следующего списания
+    }
+
+    message List {
+        repeated Subscription items = 1;
+    }
+
+    biconom.types.License license = 1;
+    repeated Plan plans = 2;
+}

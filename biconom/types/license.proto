@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// License представляет собой право на использование конкретного функционала или сущности.
+message License {
+    message Id {
+        uint32 id = 1;
+    }
+
+    message List {
+        repeated License items = 1;
+    }
+
+    // State содержит информацию о текущем динамическом состоянии лицензии.
+    message State {
+        enum Status {
+            UNSPECIFIED = 0;
+            INACTIVE = 1; // Не активная
+            ACTIVE = 2;   // Активная
+            EXPIRED = 3;  // Срок действия завершен
+            GRACE_PERIOD = 4; // Срок истек, но доступ временно сохранен (льготный период)
+            SUSPENDED = 5;    // Заблокирована административно
+        }
+        uint32 license_id = 1; // Ссылка на тип лицензии
+        uint32 plan_id = 2;    // Ссылка на план, по которому была получена/продлена лицензия
+        Status status = 3;
+        optional google.protobuf.Timestamp activated_at = 4;      // Момент самой первой активации
+        optional google.protobuf.Timestamp started_at = 5;        // Начало текущего оплаченного периода
+        optional google.protobuf.Timestamp expires_at = 6;        // Конец текущего оплаченного периода
+        optional google.protobuf.Timestamp grace_period_expires_at = 7; // Конец льготного периода
+        bool is_trial = 8; // Является ли лицензия пробной
+    }
+
+    uint32 id = 1;
+    string title = 2; // Название лицензии (например, "Slot License")
+    optional string metadata = 3; // Бизнес-атрибуты лицензии (JSON с параметрами логики)
+}
