@@ -21,8 +21,8 @@ service MarketingService {
     rpc PurchaseSubscriptionPlan(PurchaseSubscriptionPlanRequest) returns (biconom.types.MarketingSlot);
     
     // Управление автопродлением подписки
-    rpc DeactivateAutoRenewal(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot.State);
-    rpc RestoreAutoRenewal(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot.State);
+    rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
+    rpc RestoreAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
 }
 
 message PurchaseSubscriptionPlanRequest {

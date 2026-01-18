@@ -55,14 +55,14 @@ pub mod marketing_service_server {
         /// Управление автопродлением подписки
         async fn deactivate_auto_renewal(
             &self,
-            request: tonic::Request<super::super::super::types::slot::Id>,
+            request: tonic::Request<()>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::marketing_slot::State>,
             tonic::Status,
         >;
         async fn restore_auto_renewal(
             &self,
-            request: tonic::Request<super::super::super::types::slot::Id>,
+            request: tonic::Request<()>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::marketing_slot::State>,
             tonic::Status,
@@ -333,19 +333,14 @@ pub mod marketing_service_server {
                 "/biconom.client.marketing.MarketingService/DeactivateAutoRenewal" => {
                     #[allow(non_camel_case_types)]
                     struct DeactivateAutoRenewalSvc<T: MarketingService>(pub Arc<T>);
-                    impl<
-                        T: MarketingService,
-                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
+                    impl<T: MarketingService> tonic::server::UnaryService<()>
                     for DeactivateAutoRenewalSvc<T> {
                         type Response = super::super::super::types::marketing_slot::State;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::super::super::types::slot::Id>,
-                        ) -> Self::Future {
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
                                 <T as MarketingService>::deactivate_auto_renewal(
@@ -382,19 +377,14 @@ pub mod marketing_service_server {
                 "/biconom.client.marketing.MarketingService/RestoreAutoRenewal" => {
                     #[allow(non_camel_case_types)]
                     struct RestoreAutoRenewalSvc<T: MarketingService>(pub Arc<T>);
-                    impl<
-                        T: MarketingService,
-                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
+                    impl<T: MarketingService> tonic::server::UnaryService<()>
                     for RestoreAutoRenewalSvc<T> {
                         type Response = super::super::super::types::marketing_slot::State;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::super::super::types::slot::Id>,
-                        ) -> Self::Future {
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
                                 <T as MarketingService>::restore_auto_renewal(
