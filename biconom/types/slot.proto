@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
+import "biconom/types/relationship.proto";
 
 // Slot представляет собой ячейку или позицию в иерархической структуре (Tree).
 // Каждый слот принадлежит определенному дистрибьютору (Distributor).
@@ -61,11 +62,11 @@ message Slot {
 
 	uint32 structure_quantity = 14; // Количество слотов в структуре
 	uint64 structure_capacity = 15; // Вместимость слотов в структуре
-	uint32 structure_last_id = 16; // Последний ID слота в структуре
-	uint32 structure_level_max = 17; // Максимальный уровень слота в структуре
+	uint32 structure_level_max = 16; // Максимальный уровень слота в структуре
 
-	uint64 trace_id = 18;
-	uint32 policy_id = 19; // ID политики, применяемой к этому слоту.
-	google.protobuf.Timestamp created_at = 20;
-	google.protobuf.Timestamp updated_at = 21;
+	uint32 policy_id = 17; // ID политики, применяемой к этому слоту.
+	google.protobuf.Timestamp created_at = 18;
+	google.protobuf.Timestamp updated_at = 19;
+
+	biconom.types.Relationship.State relationship_state = 20;
 }

@@ -3,65 +3,26 @@ syntax = "proto3";
 package biconom.client.marketing;
 
 import "biconom/types/slot.proto";
-import "biconom/types/distributor.proto";
-import "biconom/types/account.proto";
 import "biconom/types/subscription.proto";
-import "biconom/types/price.proto";
-import "biconom/types/license.proto";
+import "biconom/types/marketing_slot.proto";
 import "google/protobuf/empty.proto";
 
 // MarketingService предоставляет функционал для управления аффилейт маркетингом,
 // включая работу со слотами, подписками и расширением структуры.
 service MarketingService {
-    // Получить список собственных слотов с их текущими состояниями.
-    rpc GetOwnSlots(google.protobuf.Empty) returns (MarketingSlot.State.List);
+    // Получить список состояний всех собственных слотов.
+    rpc ListOwnSlotStates(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State.List);
 
-    // Получить информацию о собственном слоте с расширенными мета-данными.
-    rpc GetOwnSlot(google.protobuf.Empty) returns (MarketingSlot);
+    // Получить детальную информацию о выбранном слоте.
+    rpc GetSlot(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot);
 
     // Работа с тарифными планами подписки
     rpc ListSubscriptionPlans(google.protobuf.Empty) returns (biconom.types.Subscription);
-    rpc PurchaseSubscriptionPlan(PurchaseSubscriptionPlanRequest) returns (MarketingSlot);
+    rpc PurchaseSubscriptionPlan(PurchaseSubscriptionPlanRequest) returns (biconom.types.MarketingSlot);
     
     // Управление автопродлением подписки
-    rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (MarketingSlot.State);
-    rpc RestoreAutoRenewal(google.protobuf.Empty) returns (MarketingSlot.State);
-}
-
-message MarketingSlot {
-    message List {
-        repeated MarketingSlot items = 1;
-    }
-    // State содержит динамическую информацию о состоянии слота и лицензии.
-    message State {
-        message List {
-            repeated State items = 1;
-        }
-        uint32 slot_id = 1;
-        biconom.types.License.State license_state = 2;      // Техническое право доступа
-        biconom.types.Subscription.State subscription_state = 3; // Состояние оплаты/биллинга
-        uint32 pending_manual_placement_count = 4;
-    }
-
-    // Chain представляет собой цепочку (ответвление) в структуре маркетинга.
-    message Chain {
-        uint32 parent_branch_number = 1;
-        repeated uint32 slot_ids = 2; // Массив ID слотов, входящих в цепочку
-
-        message Income {
-            uint32 bonus_id = 1;
-            biconom.types.Price value = 2; // Сумма дохода
-        }
-        repeated Income incomes = 3;
-    }
-
-    State state = 1; // Состояние запрашиваемого слота
-    repeated Chain chains = 2; // Список доступных цепочек
-    
-    // Списки для гидратации данных на клиенте
-    repeated biconom.types.Slot slots = 3; // Все связанные слоты
-    repeated biconom.types.Distributor distributors = 4; // Дистрибьюторы, владеющие слотами
-    repeated biconom.types.Account accounts = 5; // Аккаунты, владеющие дистрибьюторами
+    rpc DeactivateAutoRenewal(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot.State);
+    rpc RestoreAutoRenewal(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot.State);
 }
 
 message PurchaseSubscriptionPlanRequest {

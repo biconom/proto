@@ -48,6 +48,9 @@ pub mod biconom {
 		pub mod locale {
 			include!("generated/biconom.client.locale.rs");
 		}
+		pub mod marketing {
+			include!("generated/biconom.client.marketing.rs");
+		}
 		pub mod invite_link {
 			include!("generated/biconom.client.invite_link.rs");
 		}

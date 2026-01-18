@@ -4409,6 +4409,24 @@ pub mod payment_network_currency {
         }
     }
 }
+/// Price представляет собой универсальную модель для передачи денежных значений.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Price {
+    /// Идентификатор валюты
+    #[prost(uint32, tag = "1")]
+    pub currency_id: u32,
+    /// Денежное значение (decimal string для точности)
+    #[prost(string, tag = "2")]
+    pub amount: ::prost::alloc::string::String,
+}
+/// Nested message and enum types in `Price`.
+pub mod price {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Price>,
+    }
+}
 /// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InviteLink {
@@ -5229,6 +5247,114 @@ pub mod ledger_policy {
         pub items: ::prost::alloc::vec::Vec<super::LedgerPolicy>,
     }
 }
+/// License представляет собой право на использование конкретного функционала или сущности.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct License {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Название лицензии (например, "Slot License")
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    /// Бизнес-атрибуты лицензии (JSON с параметрами логики)
+    #[prost(string, optional, tag = "3")]
+    pub metadata: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// Nested message and enum types in `License`.
+pub mod license {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::License>,
+    }
+    /// State содержит информацию о текущем динамическом состоянии лицензии.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct State {
+        /// Ссылка на тип лицензии
+        #[prost(uint32, tag = "1")]
+        pub license_id: u32,
+        /// Ссылка на план, по которому была получена/продлена лицензия
+        #[prost(uint32, tag = "2")]
+        pub plan_id: u32,
+        #[prost(enumeration = "state::Status", tag = "3")]
+        pub status: i32,
+        /// Момент самой первой активации
+        #[prost(message, optional, tag = "4")]
+        pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Начало текущего оплаченного периода
+        #[prost(message, optional, tag = "5")]
+        pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Конец текущего оплаченного периода
+        #[prost(message, optional, tag = "6")]
+        pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Конец льготного периода
+        #[prost(message, optional, tag = "7")]
+        pub grace_period_expires_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Является ли лицензия пробной
+        #[prost(bool, tag = "8")]
+        pub is_trial: bool,
+    }
+    /// Nested message and enum types in `State`.
+    pub mod state {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Не активная
+            Inactive = 1,
+            /// Активная
+            Active = 2,
+            /// Срок действия завершен
+            Expired = 3,
+            /// Срок истек, но доступ временно сохранен (льготный период)
+            GracePeriod = 4,
+            /// Заблокирована административно
+            Suspended = 5,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Inactive => "INACTIVE",
+                    Self::Active => "ACTIVE",
+                    Self::Expired => "EXPIRED",
+                    Self::GracePeriod => "GRACE_PERIOD",
+                    Self::Suspended => "SUSPENDED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "INACTIVE" => Some(Self::Inactive),
+                    "ACTIVE" => Some(Self::Active),
+                    "EXPIRED" => Some(Self::Expired),
+                    "GRACE_PERIOD" => Some(Self::GracePeriod),
+                    "SUSPENDED" => Some(Self::Suspended),
+                    _ => None,
+                }
+            }
+        }
+    }
+}
 /// Locale представляет собой языковую локаль, используемую в системе для интернационализации.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Locale {
@@ -5319,61 +5445,6 @@ pub mod locale {
         }
     }
 }
-/// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SessionPolicy {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
-    /// Время жизни сессии в секундах. 0 означает "бессрочная".
-    #[prost(uint32, tag = "4")]
-    pub expires_in_seconds: u32,
-    /// Время неактивности в секундах, после которого сессия истекает. 0 означает "не проверять".
-    #[prost(uint32, tag = "5")]
-    pub inactivity_timeout_seconds: u32,
-    /// Максимальное количество одновременных активных сессий для одного пользователя.
-    #[prost(uint32, tag = "6")]
-    pub max_concurrent_sessions: u32,
-    /// Требовать ли, чтобы IP-адрес сессии не менялся.
-    #[prost(bool, tag = "7")]
-    pub bind_to_ip: bool,
-    #[prost(uint64, tag = "8")]
-    pub trace_id: u64,
-    #[prost(message, optional, tag = "9")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "10")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "11")]
-    pub additional_data: ::core::option::Option<::prost_types::Any>,
-}
-/// Nested message and enum types in `SessionPolicy`.
-pub mod session_policy {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(oneof = "id::Identifier", tags = "1, 2")]
-        pub identifier: ::core::option::Option<id::Identifier>,
-    }
-    /// Nested message and enum types in `Id`.
-    pub mod id {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Identifier {
-            /// Глобальный ID политики
-            #[prost(uint32, tag = "1")]
-            Id(u32),
-            /// Уникальное имя политики
-            #[prost(string, tag = "2")]
-            Name(::prost::alloc::string::String),
-        }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::SessionPolicy>,
-    }
-}
 /// Slot представляет собой ячейку или позицию в иерархической структуре (Tree).
 /// Каждый слот принадлежит определенному дистрибьютору (Distributor).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -5422,21 +5493,18 @@ pub struct Slot {
     /// Вместимость слотов в структуре
     #[prost(uint64, tag = "15")]
     pub structure_capacity: u64,
-    /// Последний ID слота в структуре
-    #[prost(uint32, tag = "16")]
-    pub structure_last_id: u32,
     /// Максимальный уровень слота в структуре
-    #[prost(uint32, tag = "17")]
+    #[prost(uint32, tag = "16")]
     pub structure_level_max: u32,
-    #[prost(uint64, tag = "18")]
-    pub trace_id: u64,
     /// ID политики, применяемой к этому слоту.
-    #[prost(uint32, tag = "19")]
+    #[prost(uint32, tag = "17")]
     pub policy_id: u32,
-    #[prost(message, optional, tag = "20")]
+    #[prost(message, optional, tag = "18")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "21")]
+    #[prost(message, optional, tag = "19")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "20")]
+    pub relationship_state: ::core::option::Option<relationship::State>,
 }
 /// Nested message and enum types in `Slot`.
 pub mod slot {
@@ -5523,6 +5591,280 @@ pub mod slot {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Slot>,
+    }
+}
+/// Subscription объединяет продукт и список доступных для него тарифных планов.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Subscription {
+    #[prost(message, optional, tag = "1")]
+    pub license: ::core::option::Option<License>,
+    #[prost(message, repeated, tag = "2")]
+    pub plans: ::prost::alloc::vec::Vec<subscription::Plan>,
+}
+/// Nested message and enum types in `Subscription`.
+pub mod subscription {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Plan {
+        /// Идентификатор лицензии, к которой относится план
+        #[prost(uint32, tag = "1")]
+        pub license_id: u32,
+        #[prost(uint32, tag = "2")]
+        pub plan_id: u32,
+        /// Название плана (например, "Premium Monthly")
+        #[prost(string, tag = "3")]
+        pub title: ::prost::alloc::string::String,
+        /// Длительность расчетного периода (биллинг-цикла) в секундах
+        #[prost(uint32, tag = "4")]
+        pub duration: u32,
+        /// Стоимость подписки за один период
+        #[prost(message, optional, tag = "5")]
+        pub price: ::core::option::Option<super::Price>,
+        /// Бизнес-параметры плана (JSON с условиями применения)
+        #[prost(string, optional, tag = "6")]
+        pub metadata: ::core::option::Option<::prost::alloc::string::String>,
+        /// Поддерживается ли пробный период для данного плана
+        #[prost(bool, tag = "7")]
+        pub trial_supported: bool,
+    }
+    /// Nested message and enum types in `Plan`.
+    pub mod plan {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(uint32, tag = "1")]
+            pub license_id: u32,
+            #[prost(uint32, tag = "2")]
+            pub plan_id: u32,
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Plan>,
+        }
+    }
+    /// State описывает коммерческое состояние подписки (биллинг).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct State {
+        #[prost(uint32, tag = "1")]
+        pub license_id: u32,
+        #[prost(uint32, tag = "2")]
+        pub plan_id: u32,
+        #[prost(enumeration = "state::Status", tag = "3")]
+        pub status: i32,
+        #[prost(bool, tag = "4")]
+        pub is_auto_renew_enabled: bool,
+        /// Дата следующего списания
+        #[prost(message, optional, tag = "5")]
+        pub next_billing_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `State`.
+    pub mod state {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Пробный период
+            Trialing = 1,
+            /// Оплачена и активна
+            Active = 2,
+            /// Оплата не прошла, ожидается повтор
+            PastDue = 3,
+            /// Отменена пользователем
+            Canceled = 4,
+            /// Не оплачена, услуги остановлены
+            Unpaid = 5,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Trialing => "TRIALING",
+                    Self::Active => "ACTIVE",
+                    Self::PastDue => "PAST_DUE",
+                    Self::Canceled => "CANCELED",
+                    Self::Unpaid => "UNPAID",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "TRIALING" => Some(Self::Trialing),
+                    "ACTIVE" => Some(Self::Active),
+                    "PAST_DUE" => Some(Self::PastDue),
+                    "CANCELED" => Some(Self::Canceled),
+                    "UNPAID" => Some(Self::Unpaid),
+                    _ => None,
+                }
+            }
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Subscription>,
+    }
+}
+/// MarketingSlot представляет собой агрегированную модель данных маркетингового слота.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MarketingSlot {
+    #[prost(uint32, tag = "1")]
+    pub executor_slot_id: u32,
+    /// Идентификатор просматриваемого слота в иерархии
+    #[prost(uint32, tag = "2")]
+    pub view_slot_id: u32,
+    /// Путь (хлебные крошки) между executor и view
+    #[prost(message, repeated, tag = "3")]
+    pub breadcrumbs: ::prost::alloc::vec::Vec<marketing_slot::Breadcrumb>,
+    /// Структура дочерних цепочек для view_slot_id
+    #[prost(message, repeated, tag = "4")]
+    pub view_chains: ::prost::alloc::vec::Vec<marketing_slot::Chain>,
+    /// Список состояний для интересующих слотов
+    #[prost(message, repeated, tag = "5")]
+    pub slot_states: ::prost::alloc::vec::Vec<marketing_slot::State>,
+    /// Все связанные слоты
+    #[prost(message, repeated, tag = "6")]
+    pub slots: ::prost::alloc::vec::Vec<Slot>,
+    /// Дистрибьюторы, владеющие слотами
+    #[prost(message, repeated, tag = "7")]
+    pub distributors: ::prost::alloc::vec::Vec<Distributor>,
+    /// Аккаунты, владеющие дистрибьюторами
+    #[prost(message, repeated, tag = "8")]
+    pub accounts: ::prost::alloc::vec::Vec<Account>,
+}
+/// Nested message and enum types in `MarketingSlot`.
+pub mod marketing_slot {
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::MarketingSlot>,
+    }
+    /// State содержит динамическую информацию о состоянии слота и лицензии.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct State {
+        #[prost(uint32, tag = "1")]
+        pub slot_id: u32,
+        /// Идентификатор дистрибьютора, владеющего слотом
+        #[prost(uint32, tag = "2")]
+        pub distributor_id: u32,
+        /// Техническое право доступа
+        #[prost(message, optional, tag = "3")]
+        pub license_state: ::core::option::Option<super::license::State>,
+        /// Состояние оплаты/биллинга
+        #[prost(message, optional, tag = "4")]
+        pub subscription_state: ::core::option::Option<super::subscription::State>,
+        #[prost(uint32, tag = "5")]
+        pub pending_manual_placement_count: u32,
+    }
+    /// Nested message and enum types in `State`.
+    pub mod state {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::State>,
+        }
+    }
+    /// Chain представляет собой цепочку (ответвление) в структуре маркетинга.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Chain {
+        #[prost(uint32, tag = "1")]
+        pub parent_branch_number: u32,
+        /// Массив ID слотов, входящих в цепочку
+        #[prost(uint32, repeated, tag = "2")]
+        pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+        #[prost(message, repeated, tag = "3")]
+        pub incomes: ::prost::alloc::vec::Vec<chain::Income>,
+    }
+    /// Nested message and enum types in `Chain`.
+    pub mod chain {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Income {
+            #[prost(uint32, tag = "1")]
+            pub bonus_id: u32,
+            /// Сумма дохода
+            #[prost(message, optional, tag = "2")]
+            pub value: ::core::option::Option<super::super::Price>,
+        }
+    }
+    /// Breadcrumb описывает элемент пути навигации (хлебную крошку).
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Breadcrumb {
+        #[prost(uint32, tag = "1")]
+        pub parent_branch_number: u32,
+        /// Выбранный слот в цепочке
+        #[prost(uint32, tag = "2")]
+        pub slot_id: u32,
+        /// Список всех ID слотов, относящихся к цепочке
+        #[prost(uint32, repeated, tag = "3")]
+        pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+    }
+}
+/// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SessionPolicy {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub description: ::prost::alloc::string::String,
+    /// Время жизни сессии в секундах. 0 означает "бессрочная".
+    #[prost(uint32, tag = "4")]
+    pub expires_in_seconds: u32,
+    /// Время неактивности в секундах, после которого сессия истекает. 0 означает "не проверять".
+    #[prost(uint32, tag = "5")]
+    pub inactivity_timeout_seconds: u32,
+    /// Максимальное количество одновременных активных сессий для одного пользователя.
+    #[prost(uint32, tag = "6")]
+    pub max_concurrent_sessions: u32,
+    /// Требовать ли, чтобы IP-адрес сессии не менялся.
+    #[prost(bool, tag = "7")]
+    pub bind_to_ip: bool,
+    #[prost(uint64, tag = "8")]
+    pub trace_id: u64,
+    #[prost(message, optional, tag = "9")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "10")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub additional_data: ::core::option::Option<::prost_types::Any>,
+}
+/// Nested message and enum types in `SessionPolicy`.
+pub mod session_policy {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Глобальный ID политики
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Уникальное имя политики
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::SessionPolicy>,
     }
 }
 /// SlotPolicy определяет набор правил для группы слотов.

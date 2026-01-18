@@ -2,7 +2,7 @@
 /// Response - это ответ для одиночной сущности, который включает в себя связанные данные.
 /// Такой подход (Data Transfer Object) позволяет клиенту получить всю необходимую информацию
 /// (дистрибьютор, его владелец-аккаунт и сеть) за один запрос, избегая дополнительных обращений.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Response {
     /// Аккаунт-владелец дистрибьютора.
     #[prost(message, optional, tag = "1")]
@@ -10,6 +10,11 @@ pub struct Response {
     /// Сам дистрибьютор.
     #[prost(message, optional, tag = "2")]
     pub distributor: ::core::option::Option<super::super::types::Distributor>,
+    /// Список состояний маркетинговых слотов данного дистрибьютора.
+    #[prost(message, repeated, tag = "3")]
+    pub slot_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::State,
+    >,
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их
@@ -34,6 +39,11 @@ pub struct ListResponse {
     /// Список идентификаторов вышестоящих дистрибьюторов для `view_distributor_id`.
     #[prost(uint32, repeated, tag = "6")]
     pub upline_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Список состояний маркетинговых слотов для всех найденных дистрибьюторов.
+    #[prost(message, repeated, tag = "7")]
+    pub slot_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::State,
+    >,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchResponse {
@@ -46,6 +56,11 @@ pub struct SearchResponse {
     /// ID дистрибьютора, который выполняет запрос (авторизованный пользователь).
     #[prost(uint32, optional, tag = "3")]
     pub executor_distributor_id: ::core::option::Option<u32>,
+    /// Список состояний маркетинговых слотов для найденных дистрибьюторов.
+    #[prost(message, repeated, tag = "4")]
+    pub slot_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::State,
+    >,
 }
 /// Сообщение-запрос для метода List.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -103,6 +118,11 @@ pub struct GetStructureOverviewResponse {
     /// ID дистрибьютора, чья структура просматривается в данный момент (например, distributor_id из запроса GetStructureOverviewRequest).
     #[prost(uint32, tag = "5")]
     pub view_distributor_id: u32,
+    /// Список состояний маркетинговых слотов для дистрибьюторов, упомянутых в статистике.
+    #[prost(message, repeated, tag = "6")]
+    pub slot_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::State,
+    >,
 }
 /// Nested message and enum types in `GetStructureOverviewResponse`.
 pub mod get_structure_overview_response {

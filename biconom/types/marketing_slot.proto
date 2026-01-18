@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "biconom/types/slot.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/account.proto";
+import "biconom/types/subscription.proto";
+import "biconom/types/price.proto";
+import "biconom/types/license.proto";
+
+// MarketingSlot представляет собой агрегированную модель данных маркетингового слота.
+message MarketingSlot {
+    message List {
+        repeated MarketingSlot items = 1;
+    }
+
+    // State содержит динамическую информацию о состоянии слота и лицензии.
+    message State {
+        message List {
+            repeated State items = 1;
+        }
+        uint32 slot_id = 1;
+        uint32 distributor_id = 2; // Идентификатор дистрибьютора, владеющего слотом
+        biconom.types.License.State license_state = 3;      // Техническое право доступа
+        biconom.types.Subscription.State subscription_state = 4; // Состояние оплаты/биллинга
+        uint32 pending_manual_placement_count = 5;
+    }
+
+    // Chain представляет собой цепочку (ответвление) в структуре маркетинга.
+    message Chain {
+        uint32 parent_branch_number = 1;
+        repeated uint32 slot_ids = 2; // Массив ID слотов, входящих в цепочку
+
+        message Income {
+            uint32 bonus_id = 1;
+            biconom.types.Price value = 2; // Сумма дохода
+        }
+        repeated Income incomes = 3;
+    }
+
+    // Breadcrumb описывает элемент пути навигации (хлебную крошку).
+    message Breadcrumb {
+        uint32 parent_branch_number = 1;
+        uint32 slot_id = 2; // Выбранный слот в цепочке
+        repeated uint32 slot_ids = 3; // Список всех ID слотов, относящихся к цепочке
+    }
+
+    uint32 executor_slot_id = 1;
+    uint32 view_slot_id = 2; // Идентификатор просматриваемого слота в иерархии
+    repeated Breadcrumb breadcrumbs = 3; // Путь (хлебные крошки) между executor и view
+    repeated Chain view_chains = 4; // Структура дочерних цепочек для view_slot_id
+    repeated State slot_states = 5; // Список состояний для интересующих слотов
+    repeated biconom.types.Slot slots = 6; // Все связанные слоты
+    repeated biconom.types.Distributor distributors = 7; // Дистрибьюторы, владеющие слотами
+    repeated biconom.types.Account accounts = 8; // Аккаунты, владеющие дистрибьюторами
+}
