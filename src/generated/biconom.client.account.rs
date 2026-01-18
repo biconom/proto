@@ -27,6 +27,10 @@ pub mod account_view {
         pub upline_distributors: ::prost::alloc::vec::Vec<
             super::super::super::types::Distributor,
         >,
+        #[prost(message, repeated, tag = "3")]
+        pub slot_states: ::prost::alloc::vec::Vec<
+            super::super::super::types::marketing_slot::State,
+        >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {

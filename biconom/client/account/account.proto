@@ -7,6 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/mnemonic.proto";
+import "biconom/types/marketing_slot.proto";
 import "biconom/types/payment_destination.proto";
 import "biconom/types/google_authenticator.proto";
 
@@ -25,6 +26,7 @@ message AccountView {
 	message Distributor {
 		biconom.types.Distributor value = 1;
 		repeated biconom.types.Distributor upline_distributors = 2;
+		repeated biconom.types.MarketingSlot.State slot_states = 3;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;
