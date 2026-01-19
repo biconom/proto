@@ -5,6 +5,7 @@ package biconom.client.marketing;
 import "biconom/types/slot.proto";
 import "biconom/types/subscription.proto";
 import "biconom/types/marketing_slot.proto";
+import "biconom/types/license.proto";
 import "google/protobuf/empty.proto";
 
 // MarketingService предоставляет функционал для управления аффилейт маркетингом,
@@ -18,14 +19,9 @@ service MarketingService {
 
     // Работа с тарифными планами подписки
     rpc ListSubscriptionPlans(google.protobuf.Empty) returns (biconom.types.Subscription);
-    rpc PurchaseSubscriptionPlan(PurchaseSubscriptionPlanRequest) returns (biconom.types.MarketingSlot);
+    rpc PurchaseSubscriptionPlan(biconom.types.License.Plan.Id) returns (biconom.types.MarketingSlot);
     
     // Управление автопродлением подписки
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
     rpc RestoreAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
-}
-
-message PurchaseSubscriptionPlanRequest {
-    uint32 plan_id = 1; // Идентификатор плана внутри системной лицензии маркетинга
-    bool is_trial = 2; // Флаг приобретения пробного периода
 }

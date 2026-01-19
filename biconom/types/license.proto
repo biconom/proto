@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
+import "biconom/types/price.proto";
 
 // License представляет собой право на использование конкретного функционала или сущности.
 message License {
@@ -14,24 +15,55 @@ message License {
         repeated License items = 1;
     }
 
+    // Plan описывает конкретные условия подписки на лицензию.
+    message Plan {
+        message Id {
+            uint32 license_id = 1;
+            uint32 license_entity_id = 2;
+        }
+
+        message List {
+            repeated Plan items = 1;
+        }
+
+        uint32 license_id = 1; // Идентификатор лицензии, к которой относится план
+        uint32 license_entity_id = 2; // Инкременальный идентификатор пакета внутри лицензии
+        string title = 3; // Название плана (например, "Premium Monthly")
+        uint32 duration = 4; // Длительность расчетного периода (биллинг-цикла) в секундах
+        biconom.types.Price price = 5; // Стоимость подписки за один период
+        optional string metadata = 6; // Бизнес-параметры плана (JSON с условиями применения)
+    }
+
+    // Voucher представляет собой предоплаченный, но еще не активированный тарифный план.
+    message Voucher {
+        message List {
+            repeated Voucher items = 1;
+        }
+
+        uint32 id = 1; // Идентификатор ваучера
+        Plan plan = 2; // Тарифный план, который будет активирован при использовании ваучера
+        bool activated = 3; // Флаг активации
+        optional google.protobuf.Timestamp activated_at = 4; // Дата активации (заполняется при activated=true)
+        google.protobuf.Timestamp created_at = 5; // Дата создания ваучера
+    }
+
     // State содержит информацию о текущем динамическом состоянии лицензии.
     message State {
         enum Status {
             UNSPECIFIED = 0;
-            INACTIVE = 1; // Не активная
+            INACTIVE = 1; // Начальное состояние (лицензия никогда не активировалась)
             ACTIVE = 2;   // Активная
             EXPIRED = 3;  // Срок действия завершен
             GRACE_PERIOD = 4; // Срок истек, но доступ временно сохранен (льготный период)
-            SUSPENDED = 5;    // Заблокирована административно
+            SUSPENDED = 5;    // Заблокирована административно (остановлена)
         }
-        uint32 license_id = 1; // Ссылка на тип лицензии
-        uint32 plan_id = 2;    // Ссылка на план, по которому была получена/продлена лицензия
-        Status status = 3;
+        Status status = 1;
+        uint32 current_voucher_id = 2; // Идентификатор текущего активного ваучера
+        repeated Voucher vouchers = 3; // Список ваучеров, связанных с лицензией
         optional google.protobuf.Timestamp activated_at = 4;      // Момент самой первой активации
         optional google.protobuf.Timestamp started_at = 5;        // Начало текущего оплаченного периода
         optional google.protobuf.Timestamp expires_at = 6;        // Конец текущего оплаченного периода
         optional google.protobuf.Timestamp grace_period_expires_at = 7; // Конец льготного периода
-        bool is_trial = 8; // Является ли лицензия пробной
     }
 
     uint32 id = 1;

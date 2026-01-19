@@ -5271,17 +5271,81 @@ pub mod license {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::License>,
     }
-    /// State содержит информацию о текущем динамическом состоянии лицензии.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct State {
-        /// Ссылка на тип лицензии
+    /// Plan описывает конкретные условия подписки на лицензию.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Plan {
+        /// Идентификатор лицензии, к которой относится план
         #[prost(uint32, tag = "1")]
         pub license_id: u32,
-        /// Ссылка на план, по которому была получена/продлена лицензия
+        /// Инкременальный идентификатор пакета внутри лицензии
         #[prost(uint32, tag = "2")]
-        pub plan_id: u32,
-        #[prost(enumeration = "state::Status", tag = "3")]
+        pub license_entity_id: u32,
+        /// Название плана (например, "Premium Monthly")
+        #[prost(string, tag = "3")]
+        pub title: ::prost::alloc::string::String,
+        /// Длительность расчетного периода (биллинг-цикла) в секундах
+        #[prost(uint32, tag = "4")]
+        pub duration: u32,
+        /// Стоимость подписки за один период
+        #[prost(message, optional, tag = "5")]
+        pub price: ::core::option::Option<super::Price>,
+        /// Бизнес-параметры плана (JSON с условиями применения)
+        #[prost(string, optional, tag = "6")]
+        pub metadata: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    /// Nested message and enum types in `Plan`.
+    pub mod plan {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(uint32, tag = "1")]
+            pub license_id: u32,
+            #[prost(uint32, tag = "2")]
+            pub license_entity_id: u32,
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Plan>,
+        }
+    }
+    /// Voucher представляет собой предоплаченный, но еще не активированный тарифный план.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Voucher {
+        /// Идентификатор ваучера
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        /// Тарифный план, который будет активирован при использовании ваучера
+        #[prost(message, optional, tag = "2")]
+        pub plan: ::core::option::Option<Plan>,
+        /// Флаг активации
+        #[prost(bool, tag = "3")]
+        pub activated: bool,
+        /// Дата активации (заполняется при activated=true)
+        #[prost(message, optional, tag = "4")]
+        pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Дата создания ваучера
+        #[prost(message, optional, tag = "5")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `Voucher`.
+    pub mod voucher {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Voucher>,
+        }
+    }
+    /// State содержит информацию о текущем динамическом состоянии лицензии.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct State {
+        #[prost(enumeration = "state::Status", tag = "1")]
         pub status: i32,
+        /// Идентификатор текущего активного ваучера
+        #[prost(uint32, tag = "2")]
+        pub current_voucher_id: u32,
+        /// Список ваучеров, связанных с лицензией
+        #[prost(message, repeated, tag = "3")]
+        pub vouchers: ::prost::alloc::vec::Vec<Voucher>,
         /// Момент самой первой активации
         #[prost(message, optional, tag = "4")]
         pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
@@ -5294,9 +5358,6 @@ pub mod license {
         /// Конец льготного периода
         #[prost(message, optional, tag = "7")]
         pub grace_period_expires_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Является ли лицензия пробной
-        #[prost(bool, tag = "8")]
-        pub is_trial: bool,
     }
     /// Nested message and enum types in `State`.
     pub mod state {
@@ -5314,7 +5375,7 @@ pub mod license {
         #[repr(i32)]
         pub enum Status {
             Unspecified = 0,
-            /// Не активная
+            /// Начальное состояние (лицензия никогда не активировалась)
             Inactive = 1,
             /// Активная
             Active = 2,
@@ -5322,7 +5383,7 @@ pub mod license {
             Expired = 3,
             /// Срок истек, но доступ временно сохранен (льготный период)
             GracePeriod = 4,
-            /// Заблокирована административно
+            /// Заблокирована административно (остановлена)
             Suspended = 5,
         }
         impl Status {
@@ -5599,61 +5660,25 @@ pub struct Subscription {
     #[prost(message, optional, tag = "1")]
     pub license: ::core::option::Option<License>,
     #[prost(message, repeated, tag = "2")]
-    pub plans: ::prost::alloc::vec::Vec<subscription::Plan>,
+    pub plans: ::prost::alloc::vec::Vec<license::Plan>,
 }
 /// Nested message and enum types in `Subscription`.
 pub mod subscription {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Plan {
-        /// Идентификатор лицензии, к которой относится план
-        #[prost(uint32, tag = "1")]
-        pub license_id: u32,
-        #[prost(uint32, tag = "2")]
-        pub plan_id: u32,
-        /// Название плана (например, "Premium Monthly")
-        #[prost(string, tag = "3")]
-        pub title: ::prost::alloc::string::String,
-        /// Длительность расчетного периода (биллинг-цикла) в секундах
-        #[prost(uint32, tag = "4")]
-        pub duration: u32,
-        /// Стоимость подписки за один период
-        #[prost(message, optional, tag = "5")]
-        pub price: ::core::option::Option<super::Price>,
-        /// Бизнес-параметры плана (JSON с условиями применения)
-        #[prost(string, optional, tag = "6")]
-        pub metadata: ::core::option::Option<::prost::alloc::string::String>,
-        /// Поддерживается ли пробный период для данного плана
-        #[prost(bool, tag = "7")]
-        pub trial_supported: bool,
-    }
-    /// Nested message and enum types in `Plan`.
-    pub mod plan {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Id {
-            #[prost(uint32, tag = "1")]
-            pub license_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub plan_id: u32,
-        }
-        #[derive(Clone, PartialEq, ::prost::Message)]
-        pub struct List {
-            #[prost(message, repeated, tag = "1")]
-            pub items: ::prost::alloc::vec::Vec<super::Plan>,
-        }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Subscription>,
     }
     /// State описывает коммерческое состояние подписки (биллинг).
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct State {
-        #[prost(uint32, tag = "1")]
-        pub license_id: u32,
-        #[prost(uint32, tag = "2")]
-        pub plan_id: u32,
-        #[prost(enumeration = "state::Status", tag = "3")]
+        #[prost(enumeration = "state::Status", tag = "1")]
         pub status: i32,
-        #[prost(bool, tag = "4")]
-        pub is_auto_renew_enabled: bool,
+        /// Тарифный план, по которому оформлена подписка
+        #[prost(message, optional, tag = "2")]
+        pub plan: ::core::option::Option<super::license::Plan>,
         /// Дата следующего списания
-        #[prost(message, optional, tag = "5")]
+        #[prost(message, optional, tag = "3")]
         pub next_billing_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `State`.
@@ -5672,13 +5697,13 @@ pub mod subscription {
         #[repr(i32)]
         pub enum Status {
             Unspecified = 0,
-            /// Пробный период
-            Trialing = 1,
+            /// Начальное состояние (подписка никогда не приобреталась)
+            Inactive = 1,
             /// Оплачена и активна
             Active = 2,
             /// Оплата не прошла, ожидается повтор
             PastDue = 3,
-            /// Отменена пользователем
+            /// Подписка завершена или отменена
             Canceled = 4,
             /// Не оплачена, услуги остановлены
             Unpaid = 5,
@@ -5691,7 +5716,7 @@ pub mod subscription {
             pub fn as_str_name(&self) -> &'static str {
                 match self {
                     Self::Unspecified => "UNSPECIFIED",
-                    Self::Trialing => "TRIALING",
+                    Self::Inactive => "INACTIVE",
                     Self::Active => "ACTIVE",
                     Self::PastDue => "PAST_DUE",
                     Self::Canceled => "CANCELED",
@@ -5702,7 +5727,7 @@ pub mod subscription {
             pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
                 match value {
                     "UNSPECIFIED" => Some(Self::Unspecified),
-                    "TRIALING" => Some(Self::Trialing),
+                    "INACTIVE" => Some(Self::Inactive),
                     "ACTIVE" => Some(Self::Active),
                     "PAST_DUE" => Some(Self::PastDue),
                     "CANCELED" => Some(Self::Canceled),
@@ -5711,11 +5736,6 @@ pub mod subscription {
                 }
             }
         }
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Subscription>,
     }
 }
 /// MarketingSlot представляет собой агрегированную модель данных маркетингового слота.
@@ -5753,7 +5773,7 @@ pub mod marketing_slot {
         pub items: ::prost::alloc::vec::Vec<super::MarketingSlot>,
     }
     /// State содержит динамическую информацию о состоянии слота и лицензии.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct State {
         #[prost(uint32, tag = "1")]
         pub slot_id: u32,
