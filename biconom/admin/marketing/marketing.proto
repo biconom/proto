@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package biconom.admin.marketing;
+
+import "biconom/types/license.proto";
+import "biconom/types/marketing_slot.proto";
+
+// MarketingService - админский сервис для управления маркетинговыми сущностями.
+service MarketingService {
+    // Выдает (дарит) лицензионный ваучер для слота или дистрибьютора.
+    // Если указан дистрибьютор, ваучер будет применен к его основному (дефолтному) слоту
+    // или создан новый слот, если это предусмотрено логикой тарифного плана.
+    rpc GrantSubscription(GrantSubscriptionRequest) returns (biconom.types.MarketingSlot);
+}
+
+// Запрос на выдачу подписки (лицензии) администратором.
+message GrantSubscriptionRequest {
+    // Идентификатор тарифного плана, который необходимо выдать.
+    biconom.types.License.Plan.Id plan_id = 1;
+
+    // Цель назначения подписки.
+    oneof target {
+        // ID конкретного слота, которому присваивается лицензия.
+        uint32 slot_id = 2;
+        // ID дистрибьютора. В этом случае система выберет подходящий слот или создаст его.
+        uint32 distributor_id = 3;
+    }
+
+    // Опционально: комментарий администратора к операции (для аудита).
+    string admin_comment = 4;
+}

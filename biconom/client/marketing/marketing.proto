@@ -7,6 +7,12 @@ import "biconom/types/subscription.proto";
 import "biconom/types/marketing_slot.proto";
 import "biconom/types/license.proto";
 import "google/protobuf/empty.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/price.proto";
+import "biconom/types/relationship.proto";
+import "biconom/types/sort.proto";
+import "google/protobuf/timestamp.proto";
 
 // MarketingService предоставляет функционал для управления аффилейт маркетингом,
 // включая работу со слотами, подписками и расширением структуры.
@@ -24,4 +30,131 @@ service MarketingService {
     // Управление автопродлением подписки
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
     rpc RestoreAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
+
+    // Поиск слотов в иерархии по логину дистрибьютора.
+    rpc SearchSlots(SearchSlotsRequest) returns (SearchSlotsResponse);
+
+    // Рассчитать стоимость увеличения вместимости первой линии (ширины) слота.
+    rpc CalculateCapacityUpgradePrice(CapacityUpgradeRequest) returns (biconom.types.Price);
+
+    // Приобрести увеличение вместимости первой линии.
+    // Слот выбирается автоматически на основе контекста авторизации.
+    rpc PurchaseCapacityUpgrade(CapacityUpgradeRequest) returns (biconom.types.Slot);
+
+    // Получить список слотов, ожидающих ручной расстановки.
+    rpc ListPendingManualPlacementSlots(ListPendingManualPlacementSlotsRequest) returns (ListPendingManualPlacementSlotsResponse);
+
+    // Рассчитать стоимость и предпросмотр расстановки слота (автоматической или ручной).
+    // Если target_location не передан, рассчитывается автоматическое место.
+    rpc CalculateManualPlacementPrice(ManualPlacementRequest) returns (CalculateManualPlacementPriceResponse);
+
+    // Оплатить возможность досрочного расставления (ручная расстановка).
+    // Если целевая позиция совпадает с автоматической, оплата может быть нулевой, но операция фиксируется.
+    rpc PurchaseManualPlacement(ManualPlacementRequest) returns (biconom.types.MarketingSlot);
+}
+
+// Запрос на поиск слотов по префиксу имени пользователя дистрибьютора.
+message SearchSlotsRequest {
+    // Префикс логина (username) дистрибьютора для поиска.
+    string username_prefix = 1;
+
+    // Опционально: ограничение количества результатов.
+    optional uint32 limit = 2;
+
+    // Фильтр по типу иерархической связи ДИСТРИБЬЮТОРОВ (реферальная структура).
+    // Если поле не заполнено, поиск производится без учета иерархической связи дистрибьюторов.
+    repeated biconom.types.Relationship.State.Kind filter_distributor_relationship_state_kinds = 3;
+
+    // Фильтр по типу иерархической связи СЛОТОВ (маркетинговая структура).
+    // Если поле не заполнено, поиск производится без учета иерархической связи слотов.
+    repeated biconom.types.Relationship.State.Kind filter_slot_relationship_state_kinds = 4;
+}
+
+// Ответ на поиск слотов, содержащий плоские списки найденных сущностей.
+message SearchSlotsResponse {
+    // Список найденных слотов, удовлетворяющих условиям поиска.
+    repeated biconom.types.Slot slots = 1;
+    // Список состояний для найденных слотов.
+    repeated biconom.types.MarketingSlot.State slot_states = 2;
+    // Список дистрибьюторов-владельцев найденных слотов.
+    repeated biconom.types.Distributor distributors = 3;
+    // Список аккаунтов-владельцев дистрибьюторов.
+    repeated biconom.types.Account accounts = 4;
+}
+
+// Запрос на изменение вместимости (ширины) первой линии слота.
+message CapacityUpgradeRequest {
+    // Желаемое итоговое количество мест в первой линии (должно быть больше текущего).
+    uint32 target_children_capacity = 1;
+}
+
+// Запрос на получение списка слотов для ручной расстановки.
+message ListPendingManualPlacementSlotsRequest {
+    // Опционально: лимит количества возвращаемых записей.
+    optional uint32 limit = 1;
+    // Опционально: курсор для пагинации (ID последнего полученного слота).
+    optional biconom.types.Slot.Id cursor = 2;
+    // Опционально: параметры сортировки.
+    optional biconom.types.Sort sort = 3;
+}
+
+// Ответ со списком слотов для ручной расстановки и связанными данными.
+message ListPendingManualPlacementSlotsResponse {
+    // Сущность, описывающая слот, ожидающий расстановки.
+    message PendingSlot {
+        uint32 slot_id = 1; // ID слота, который нужно расставить.
+        optional google.protobuf.Timestamp auto_placement_at = 2; // Время, когда произойдет автоматическая расстановка (если не будет выполнена ручная).
+    }
+
+    // Список слотов, ожидающих расстановки.
+    repeated PendingSlot pending_slots = 1;
+
+    // --- Связанные данные для обогащения интерфейса ---
+    // Список объектов слотов.
+    repeated biconom.types.Slot slots = 2;
+    // Список состояний слотов.
+    repeated biconom.types.MarketingSlot.State slot_states = 3;
+    // Список дистрибьюторов-владельцев.
+    repeated biconom.types.Distributor distributors = 4;
+    // Список аккаунтов-владельцев дистрибьюторов.
+    repeated biconom.types.Account accounts = 5;
+}
+
+// Запрос на ручную расстановку (расчет или покупка).
+message ManualPlacementRequest {
+    // ID слота, который необходимо расставить (из списка ожидания).
+    biconom.types.Slot.Id slot_id = 1;
+
+    // Опционально: Целевое место расстановки (ID родителя и номер ветки).
+    // Если не указано, будет использовано место, выбранное алгоритмом автоматической расстановки.
+    optional biconom.types.Slot.Id.ParentBranch target_location = 2;
+}
+
+// Ответ с расчетом стоимости и предпросмотром расстановки.
+message CalculateManualPlacementPriceResponse {
+    // --- Данные контекста ---
+    uint32 executor_slot_id = 1;
+    uint32 target_slot_id = 2; // ID слота, для которого выполняется расчет.
+
+    // --- Данные целевого выбора (пользователя или авто-алгоритма) ---
+    uint32 target_parent_id = 3; // ID родительского слота (выбранного вручную или автоматически).
+    uint32 target_parent_branch_number = 4; // Ветка (выбранная вручную или автоматически).
+    
+    // --- Данные автоматического прогноза ---
+    uint32 predicted_parent_id = 5; // ID слота, куда бы встал слот автоматически.
+    uint32 predicted_parent_branch_number = 6; // Ветка, куда бы встал слот автоматически.
+
+    // --- Данные стоимости ---
+    biconom.types.Price price = 7; // Стоимость расстановки в target_parent_id (0 при совпадении с predicted).
+    
+    // Хлебные крошки до target_parent_id.
+    repeated biconom.types.MarketingSlot.Breadcrumb breadcrumbs = 8;
+    // Цепочки выбранного родителя (target_parent_id).
+    repeated biconom.types.MarketingSlot.Chain view_chains = 9;
+
+    // --- Связанные данные ---
+    repeated biconom.types.MarketingSlot.State slot_states = 10;
+    repeated biconom.types.Slot slots = 11;
+    repeated biconom.types.Distributor distributors = 12;
+    repeated biconom.types.Account accounts = 13;
 }
