@@ -53,38 +53,38 @@ pub struct CapacityUpgradeRequest {
 /// Запрос на получение списка слотов для ручной расстановки.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListPendingManualPlacementSlotsRequest {
-    /// Опционально: лимит количества возвращаемых записей.
-    #[prost(uint32, optional, tag = "1")]
-    pub limit: ::core::option::Option<u32>,
     /// Опционально: курсор для пагинации (ID последнего полученного слота).
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "1")]
     pub cursor: ::core::option::Option<super::super::types::slot::Id>,
     /// Опционально: параметры сортировки.
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
 /// Ответ со списком слотов для ручной расстановки и связанными данными.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListPendingManualPlacementSlotsResponse {
+    /// Общее количество слотов, доступных для ручной расстановки (для пагинации).
+    #[prost(uint32, tag = "1")]
+    pub total_count: u32,
     /// Список слотов, ожидающих расстановки.
-    #[prost(message, repeated, tag = "1")]
+    #[prost(message, repeated, tag = "2")]
     pub pending_slots: ::prost::alloc::vec::Vec<
         list_pending_manual_placement_slots_response::PendingSlot,
     >,
     /// --- Связанные данные для обогащения интерфейса ---
     /// Список объектов слотов.
-    #[prost(message, repeated, tag = "2")]
+    #[prost(message, repeated, tag = "3")]
     pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
     /// Список состояний слотов.
-    #[prost(message, repeated, tag = "3")]
+    #[prost(message, repeated, tag = "4")]
     pub slot_states: ::prost::alloc::vec::Vec<
         super::super::types::marketing_slot::State,
     >,
     /// Список дистрибьюторов-владельцев.
-    #[prost(message, repeated, tag = "4")]
+    #[prost(message, repeated, tag = "5")]
     pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
     /// Список аккаунтов-владельцев дистрибьюторов.
-    #[prost(message, repeated, tag = "5")]
+    #[prost(message, repeated, tag = "6")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
 }
 /// Nested message and enum types in `ListPendingManualPlacementSlotsResponse`.

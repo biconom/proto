@@ -90,16 +90,17 @@ message CapacityUpgradeRequest {
 
 // Запрос на получение списка слотов для ручной расстановки.
 message ListPendingManualPlacementSlotsRequest {
-    // Опционально: лимит количества возвращаемых записей.
-    optional uint32 limit = 1;
     // Опционально: курсор для пагинации (ID последнего полученного слота).
-    optional biconom.types.Slot.Id cursor = 2;
+    optional biconom.types.Slot.Id cursor = 1;
     // Опционально: параметры сортировки.
-    optional biconom.types.Sort sort = 3;
+    optional biconom.types.Sort sort = 2;
 }
 
 // Ответ со списком слотов для ручной расстановки и связанными данными.
 message ListPendingManualPlacementSlotsResponse {
+    // Общее количество слотов, доступных для ручной расстановки (для пагинации).
+    uint32 total_count = 1;
+
     // Сущность, описывающая слот, ожидающий расстановки.
     message PendingSlot {
         uint32 slot_id = 1; // ID слота, который нужно расставить.
@@ -107,17 +108,17 @@ message ListPendingManualPlacementSlotsResponse {
     }
 
     // Список слотов, ожидающих расстановки.
-    repeated PendingSlot pending_slots = 1;
+    repeated PendingSlot pending_slots = 2;
 
     // --- Связанные данные для обогащения интерфейса ---
     // Список объектов слотов.
-    repeated biconom.types.Slot slots = 2;
+    repeated biconom.types.Slot slots = 3;
     // Список состояний слотов.
-    repeated biconom.types.MarketingSlot.State slot_states = 3;
+    repeated biconom.types.MarketingSlot.State slot_states = 4;
     // Список дистрибьюторов-владельцев.
-    repeated biconom.types.Distributor distributors = 4;
+    repeated biconom.types.Distributor distributors = 5;
     // Список аккаунтов-владельцев дистрибьюторов.
-    repeated biconom.types.Account accounts = 5;
+    repeated biconom.types.Account accounts = 6;
 }
 
 // Запрос на ручную расстановку (расчет или покупка).
