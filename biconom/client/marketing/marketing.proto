@@ -68,6 +68,18 @@ message SearchSlotsRequest {
     // Фильтр по типу иерархической связи СЛОТОВ (маркетинговая структура).
     // Если поле не заполнено, поиск производится без учета иерархической связи слотов.
     repeated biconom.types.Relationship.State.Kind filter_slot_relationship_state_kinds = 4;
+
+    // --- Параметры глубины поиска (опционально) ---
+
+    // Лимит глубины поиска по иерархии ДИСТРИБЬЮТОРОВ вверх (родители/спонсоры).
+    optional uint32 filter_distributor_depth_limit_up = 5;
+    // Лимит глубины поиска по иерархии ДИСТРИБЬЮТОРОВ вниз (команда/рефералы).
+    optional uint32 filter_distributor_depth_limit_down = 6;
+
+    // Лимит глубины поиска по иерархии СЛОТОВ вверх (аплайны).
+    optional uint32 filter_slot_depth_limit_up = 7;
+    // Лимит глубины поиска по иерархии СЛОТОВ вниз (структура).
+    optional uint32 filter_slot_depth_limit_down = 8;
 }
 
 // Ответ на поиск слотов, содержащий плоские списки найденных сущностей.

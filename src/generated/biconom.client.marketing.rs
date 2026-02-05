@@ -24,6 +24,18 @@ pub struct SearchSlotsRequest {
         tag = "4"
     )]
     pub filter_slot_relationship_state_kinds: ::prost::alloc::vec::Vec<i32>,
+    /// Лимит глубины поиска по иерархии ДИСТРИБЬЮТОРОВ вверх (родители/спонсоры).
+    #[prost(uint32, optional, tag = "5")]
+    pub filter_distributor_depth_limit_up: ::core::option::Option<u32>,
+    /// Лимит глубины поиска по иерархии ДИСТРИБЬЮТОРОВ вниз (команда/рефералы).
+    #[prost(uint32, optional, tag = "6")]
+    pub filter_distributor_depth_limit_down: ::core::option::Option<u32>,
+    /// Лимит глубины поиска по иерархии СЛОТОВ вверх (аплайны).
+    #[prost(uint32, optional, tag = "7")]
+    pub filter_slot_depth_limit_up: ::core::option::Option<u32>,
+    /// Лимит глубины поиска по иерархии СЛОТОВ вниз (структура).
+    #[prost(uint32, optional, tag = "8")]
+    pub filter_slot_depth_limit_down: ::core::option::Option<u32>,
 }
 /// Ответ на поиск слотов, содержащий плоские списки найденных сущностей.
 #[derive(Clone, PartialEq, ::prost::Message)]
