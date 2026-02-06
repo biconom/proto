@@ -35,3 +35,11 @@
 - **`ExchangeCurrencyPair`**: `Ticker` логически связан с `ExchangeCurrencyPair` через общий `id`. `Ticker` предоставляет динамические данные, а `ExchangeCurrencyPair` — статическую конфигурацию.
 - **`ExchangePolicy`**: Модель `ExchangePolicy` через поле `trading_model` определяет, какой `oneof` (`exchanger_rate` или `market_rate`) будет использоваться в `Ticker` для данной биржи.
 - **`MarketDataService`**: Этот сервис является основным поставщиком моделей `Ticker`.
+
+## 6. Интеграция с Квестами
+
+Поле `quest` содержит объект `Quest.ExchangeTradeQuest`, если для данной пары активен какой-либо квест.
+
+- **Доступ к данным**: Клиент проверяет наличие поля `quest`.
+- **Этапы**: Список этапов доступен через `quest.stages`.
+- **Контекст**: Тип `ExchangeTradeQuest` гарантирует наличие торговых условий.

@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Quest - это высокоуровневая модель, описывающая квест или кампанию.
+// Квесты используются для геймификации и мотивации пользователей, объединяя их общими целями.
+message Quest {
+    message Id {
+        uint32 id = 1;
+    }
+
+    message List {
+        repeated Quest items = 1;
+    }
+
+    // Состояние квеста или его отдельного этапа.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            PENDING = 1;    // Запланирован, но еще не активен (условия не отслеживаются).
+            ACTIVE = 2;     // Активен, прогресс накапливается.
+            PAUSED = 3;     // Приостановлен администратором.
+            COMPLETED = 4;  // Успешно выполнен.
+        }
+    }
+
+    // Условия прохождения квеста.
+    message Condition {
+        // Условие достижения определенного объема торгов.
+        message CurrencyVolume {
+            uint32 currency_id = 1;        // ID валюты, в которой считается объем.
+            string target_amount = 2;      // Целевой объем, который необходимо достичь (например, "200000").
+            string accumulated_amount = 3; // Текущий накопленный объем пользователей.
+        }
+    }
+
+    // Торговый квест, привязанный к конкретной бирже и валютной паре.
+    message ExchangeTradeQuest {
+        // Этап квеста. Квест может состоять из последовательности этапов.
+        message Stage {
+            // Возможные награды за выполнение этапа.
+            message Reward {
+                // Награда в виде изменения курса обмена валюты.
+                message PriceChange {
+                    string buy_price = 1;  // Новая цена покупки (базовой валюты).
+                    string sell_price = 2; // Новая цена продажи (базовой валюты).
+                }
+            }
+
+            uint32 id = 1;
+            Status.Id status = 2; // Текущий статус этапа.
+            
+            // Временные метки жизненного цикла этапа.
+            google.protobuf.Timestamp created_at = 3;
+            google.protobuf.Timestamp activated_at = 4;  // Когда этап стал активным (начался подсчет).
+            google.protobuf.Timestamp completed_at = 5;  // Когда условия были выполнены.
+
+            // Условия этапа. Может быть задано условие по базовой валюте, котируемой или обоим сразу.
+            optional Condition.CurrencyVolume condition_base_currency = 6;
+            optional Condition.CurrencyVolume condition_quote_currency = 7;
+
+            // Награда, выдаваемая/активируемая по завершению этапа.
+            oneof reward_kind {
+                Reward.PriceChange price_change = 8;
+            }
+        }
+
+        uint32 exchange_id = 1;      // ID биржи, где проводится квест.
+        uint32 currency_pair_id = 2; // ID валютной пары.
+        
+        // Список этапов квеста. Этапы обычно проходятся последовательно.
+        repeated Stage stages = 3;
+    }
+
+    // Тип квеста. Позволяет расширять модель новыми механиками в будущем.
+    oneof kind {
+        ExchangeTradeQuest exchange_trade = 1; 
+    }
+}

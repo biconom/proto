@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
+import "biconom/types/quest.proto";
 
 // Ticker представляет собой сводку рыночных данных (тикер) для торговой пары на конкретной бирже.
 // Эта модель содержит высокодинамичные данные, которые часто обновляются.
@@ -44,4 +45,7 @@ message Ticker {
     }
 
     google.protobuf.Timestamp updated_at = 4; // Время последнего обновления тикера.
+
+    // Торговый квест, связанный с этой парой (опционально).
+    optional biconom.types.Quest.ExchangeTradeQuest quest = 5;
 }

@@ -3487,15 +3487,190 @@ pub mod exchange_policy {
         }
     }
 }
+/// Quest - это высокоуровневая модель, описывающая квест или кампанию.
+/// Квесты используются для геймификации и мотивации пользователей, объединяя их общими целями.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Quest {
+    /// Тип квеста. Позволяет расширять модель новыми механиками в будущем.
+    #[prost(oneof = "quest::Kind", tags = "1")]
+    pub kind: ::core::option::Option<quest::Kind>,
+}
+/// Nested message and enum types in `Quest`.
+pub mod quest {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Quest>,
+    }
+    /// Состояние квеста или его отдельного этапа.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Запланирован, но еще не активен (условия не отслеживаются).
+            Pending = 1,
+            /// Активен, прогресс накапливается.
+            Active = 2,
+            /// Приостановлен администратором.
+            Paused = 3,
+            /// Успешно выполнен.
+            Completed = 4,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Pending => "PENDING",
+                    Self::Active => "ACTIVE",
+                    Self::Paused => "PAUSED",
+                    Self::Completed => "COMPLETED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PENDING" => Some(Self::Pending),
+                    "ACTIVE" => Some(Self::Active),
+                    "PAUSED" => Some(Self::Paused),
+                    "COMPLETED" => Some(Self::Completed),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Условия прохождения квеста.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Condition {}
+    /// Nested message and enum types in `Condition`.
+    pub mod condition {
+        /// Условие достижения определенного объема торгов.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct CurrencyVolume {
+            /// ID валюты, в которой считается объем.
+            #[prost(uint32, tag = "1")]
+            pub currency_id: u32,
+            /// Целевой объем, который необходимо достичь (например, "200000").
+            #[prost(string, tag = "2")]
+            pub target_amount: ::prost::alloc::string::String,
+            /// Текущий накопленный объем пользователей.
+            #[prost(string, tag = "3")]
+            pub accumulated_amount: ::prost::alloc::string::String,
+        }
+    }
+    /// Торговый квест, привязанный к конкретной бирже и валютной паре.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ExchangeTradeQuest {
+        /// ID биржи, где проводится квест.
+        #[prost(uint32, tag = "1")]
+        pub exchange_id: u32,
+        /// ID валютной пары.
+        #[prost(uint32, tag = "2")]
+        pub currency_pair_id: u32,
+        /// Список этапов квеста. Этапы обычно проходятся последовательно.
+        #[prost(message, repeated, tag = "3")]
+        pub stages: ::prost::alloc::vec::Vec<exchange_trade_quest::Stage>,
+    }
+    /// Nested message and enum types in `ExchangeTradeQuest`.
+    pub mod exchange_trade_quest {
+        /// Этап квеста. Квест может состоять из последовательности этапов.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Stage {
+            #[prost(uint32, tag = "1")]
+            pub id: u32,
+            /// Текущий статус этапа.
+            #[prost(enumeration = "super::status::Id", tag = "2")]
+            pub status: i32,
+            /// Временные метки жизненного цикла этапа.
+            #[prost(message, optional, tag = "3")]
+            pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+            /// Когда этап стал активным (начался подсчет).
+            #[prost(message, optional, tag = "4")]
+            pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
+            /// Когда условия были выполнены.
+            #[prost(message, optional, tag = "5")]
+            pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
+            /// Условия этапа. Может быть задано условие по базовой валюте, котируемой или обоим сразу.
+            #[prost(message, optional, tag = "6")]
+            pub condition_base_currency: ::core::option::Option<
+                super::condition::CurrencyVolume,
+            >,
+            #[prost(message, optional, tag = "7")]
+            pub condition_quote_currency: ::core::option::Option<
+                super::condition::CurrencyVolume,
+            >,
+            /// Награда, выдаваемая/активируемая по завершению этапа.
+            #[prost(oneof = "stage::RewardKind", tags = "8")]
+            pub reward_kind: ::core::option::Option<stage::RewardKind>,
+        }
+        /// Nested message and enum types in `Stage`.
+        pub mod stage {
+            /// Возможные награды за выполнение этапа.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct Reward {}
+            /// Nested message and enum types in `Reward`.
+            pub mod reward {
+                /// Награда в виде изменения курса обмена валюты.
+                #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+                pub struct PriceChange {
+                    /// Новая цена покупки (базовой валюты).
+                    #[prost(string, tag = "1")]
+                    pub buy_price: ::prost::alloc::string::String,
+                    /// Новая цена продажи (базовой валюты).
+                    #[prost(string, tag = "2")]
+                    pub sell_price: ::prost::alloc::string::String,
+                }
+            }
+            /// Награда, выдаваемая/активируемая по завершению этапа.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum RewardKind {
+                #[prost(message, tag = "8")]
+                PriceChange(reward::PriceChange),
+            }
+        }
+    }
+    /// Тип квеста. Позволяет расширять модель новыми механиками в будущем.
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Kind {
+        #[prost(message, tag = "1")]
+        ExchangeTrade(ExchangeTradeQuest),
+    }
+}
 /// Ticker представляет собой сводку рыночных данных (тикер) для торговой пары на конкретной бирже.
 /// Эта модель содержит высокодинамичные данные, которые часто обновляются.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Ticker {
     #[prost(message, optional, tag = "1")]
     pub id: ::core::option::Option<ticker::Id>,
     /// Время последнего обновления тикера.
     #[prost(message, optional, tag = "4")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Торговый квест, связанный с этой парой (опционально).
+    #[prost(message, optional, tag = "5")]
+    pub quest: ::core::option::Option<quest::ExchangeTradeQuest>,
     #[prost(oneof = "ticker::RateKind", tags = "2, 3")]
     pub rate_kind: ::core::option::Option<ticker::RateKind>,
 }

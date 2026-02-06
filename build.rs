@@ -55,6 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/payment_operation_settings.proto",
                 "biconom/types/presence.proto",
                 "biconom/types/price.proto",
+                "biconom/types/quest.proto",
                 "biconom/types/invite_link.proto",
                 "biconom/types/invite_link_policy.proto",
                 "biconom/types/ledger.proto",
