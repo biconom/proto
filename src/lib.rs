@@ -7,6 +7,9 @@ pub mod biconom {
         pub mod marketing {
             include!("generated/biconom.admin.marketing.rs");
         }
+        pub mod tasks {
+            include!("generated/biconom.admin.tasks.rs");
+        }
         pub mod transaction {
             include!("generated/biconom.admin.transaction.rs");
         }

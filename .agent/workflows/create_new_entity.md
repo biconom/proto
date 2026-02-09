@@ -4,7 +4,7 @@ description: Create a new Data Model Entity (Proto + MD)
 
 # Create New Data Model Entity
 
-This workflow streamlines the creation of new Biconom data models, ensuring they adhere to the strict project standards defined in `.agent/rules/protobuf_style.md`.
+This workflow streamlines the creation of new Mentor data models, ensuring they adhere to the strict project standards defined in the `grpc-designer` skill.
 
 ## Steps
 
@@ -13,8 +13,8 @@ This workflow streamlines the creation of new Biconom data models, ensuring they
    - (Optional) Ask for a brief description to pre-fill the documentation.
 
 2. **File Generation**:
-   - Create `biconom/types/[snake_case_name].proto`
-   - Create `biconom/types/[snake_case_name].md`
+   - Create `mentor/types/[snake_case_name].proto`
+   - Create `mentor/types/[snake_case_name].md`
 
 3. **Proto Template Application**:
    - Apply the standard template with:

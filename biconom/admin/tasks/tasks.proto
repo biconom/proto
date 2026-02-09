@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package biconom.admin.tasks;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/slot.proto";
+
+// TasksService предоставляет административные задачи и пакетные операции для обслуживания системы.
+service TasksService {
+  // Активирует все неактивные лицензии в модуле маркетинга.
+  // Возвращает статистику по успешно активированным и failed операциям.
+  rpc LicenseActivateAllInactive(google.protobuf.Empty) returns (LicenseActivateAllInactiveResponse);
+
+  // Запускает процесс расстановки обязательств на выплату по маркетингу для указанного слота.
+  rpc MarketingProcessPaymentObligations(biconom.types.Slot.Id) returns (google.protobuf.Empty);
+}
+
+// Ответ с результатами массовой активации лицензий.
+message LicenseActivateAllInactiveResponse {
+  // Количество успешно активированных лицензий.
+  uint32 success_count = 1;
+
+  // Количество лицензий, которые не удалось активировать (ошибки валидации и т.д.).
+  uint32 failure_count = 2;
+}

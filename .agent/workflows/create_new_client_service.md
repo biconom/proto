@@ -4,7 +4,7 @@ description: Create a new Client API Service (RPC + MD)
 
 # Create New Client Service
 
-This workflow standardizes the creation of new Client API Services in `biconom/client`, ensuring they follow the project's service-oriented architecture.
+This workflow standardizes the creation of new Client API Services, ensuring they follow the project's architecture managed by the `grpc-designer` skill.
 
 ## Steps
 
