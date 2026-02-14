@@ -5427,50 +5427,25 @@ pub mod ledger_policy {
     }
 }
 /// License представляет собой право на использование конкретного функционала или сущности.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct License {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
-    /// Название лицензии (например, "Slot License")
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    /// Бизнес-атрибуты лицензии (JSON с параметрами логики)
-    #[prost(string, optional, tag = "3")]
-    pub metadata: ::core::option::Option<::prost::alloc::string::String>,
-}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct License {}
 /// Nested message and enum types in `License`.
 pub mod license {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::License>,
-    }
     /// Plan описывает конкретные условия подписки на лицензию.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Plan {
         /// Идентификатор дерева, к которой относится план
         #[prost(uint32, tag = "1")]
         pub tree_id: u32,
-        /// Инкременальный идентификатор пакета внутри лицензии
-        #[prost(uint32, tag = "2")]
-        pub license_entity_id: u32,
         /// Название плана (например, "Premium Monthly")
-        #[prost(string, tag = "3")]
+        #[prost(string, tag = "2")]
         pub title: ::prost::alloc::string::String,
         /// Длительность расчетного периода (биллинг-цикла) в секундах
-        #[prost(uint32, tag = "4")]
+        #[prost(uint32, tag = "3")]
         pub duration: u32,
         /// Стоимость подписки за один период
-        #[prost(message, optional, tag = "5")]
+        #[prost(message, optional, tag = "4")]
         pub price: ::core::option::Option<super::Price>,
-        /// Бизнес-параметры плана (JSON с условиями применения)
-        #[prost(string, optional, tag = "6")]
-        pub metadata: ::core::option::Option<::prost::alloc::string::String>,
     }
     /// Nested message and enum types in `Plan`.
     pub mod plan {
@@ -5478,8 +5453,6 @@ pub mod license {
         pub struct Id {
             #[prost(uint32, tag = "1")]
             pub tree_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub license_entity_id: u32,
         }
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct List {
@@ -5493,17 +5466,23 @@ pub mod license {
         /// Идентификатор ваучера
         #[prost(uint32, tag = "1")]
         pub id: u32,
-        /// Тарифный план, который будет активирован при использовании ваучера
-        #[prost(message, optional, tag = "2")]
-        pub plan: ::core::option::Option<Plan>,
+        /// Идентификатор слота, которому принадлежит ваучер
+        #[prost(uint32, tag = "2")]
+        pub slot_id: u32,
+        /// Длительность периода действия ваучера (в секундах)
+        #[prost(uint32, tag = "3")]
+        pub duration: u32,
+        /// Стоимость, по которой был приобретён ваучер
+        #[prost(message, optional, tag = "4")]
+        pub price: ::core::option::Option<super::Price>,
         /// Флаг активации
-        #[prost(bool, tag = "3")]
+        #[prost(bool, tag = "5")]
         pub activated: bool,
         /// Дата активации (заполняется при activated=true)
-        #[prost(message, optional, tag = "4")]
+        #[prost(message, optional, tag = "6")]
         pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Дата создания ваучера
-        #[prost(message, optional, tag = "5")]
+        #[prost(message, optional, tag = "7")]
         pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `Voucher`.
@@ -5826,31 +5805,18 @@ pub mod slot {
         pub items: ::prost::alloc::vec::Vec<super::Slot>,
     }
 }
-/// Subscription объединяет продукт и список доступных для него тарифных планов.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Subscription {
-    #[prost(message, optional, tag = "1")]
-    pub license: ::core::option::Option<License>,
-    #[prost(message, repeated, tag = "2")]
-    pub plans: ::prost::alloc::vec::Vec<license::Plan>,
-}
+/// Subscription описывает коммерческое состояние подписки (биллинг).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Subscription {}
 /// Nested message and enum types in `Subscription`.
 pub mod subscription {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Subscription>,
-    }
     /// State описывает коммерческое состояние подписки (биллинг).
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct State {
         #[prost(enumeration = "state::Status", tag = "1")]
         pub status: i32,
-        /// Тарифный план, по которому оформлена подписка
-        #[prost(message, optional, tag = "2")]
-        pub plan: ::core::option::Option<super::license::Plan>,
         /// Дата следующего списания
-        #[prost(message, optional, tag = "3")]
+        #[prost(message, optional, tag = "2")]
         pub next_billing_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `State`.
@@ -5969,9 +5935,9 @@ pub mod marketing_slot {
         /// Нуждается ли слот в расстановке
         #[prost(bool, tag = "7")]
         pub placement_required: bool,
-        /// Когда запланирована автоматическая расстановка
+        /// Дедлайн ручной расстановки; после этого момента сработает автоматическая
         #[prost(message, optional, tag = "8")]
-        pub placement_scheduled_at: ::core::option::Option<::prost_types::Timestamp>,
+        pub placement_deadline_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Когда по факту произошла расстановка слота в иерархии
         #[prost(message, optional, tag = "9")]
         pub placement_executed_at: ::core::option::Option<::prost_types::Timestamp>,
