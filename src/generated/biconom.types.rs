@@ -957,6 +957,8 @@ pub mod transaction {
             Rejected = 5,
             /// Сторнирована (была проведена и затем отменена обратной записью).
             Reversed = 6,
+            /// Сторнирующая (транзакция, которая отменяет другую транзакцию).
+            Reversal = 7,
         }
         impl Id {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -972,6 +974,7 @@ pub mod transaction {
                     Self::Voided => "VOIDED",
                     Self::Rejected => "REJECTED",
                     Self::Reversed => "REVERSED",
+                    Self::Reversal => "REVERSAL",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
@@ -984,6 +987,7 @@ pub mod transaction {
                     "VOIDED" => Some(Self::Voided),
                     "REJECTED" => Some(Self::Rejected),
                     "REVERSED" => Some(Self::Reversed),
+                    "REVERSAL" => Some(Self::Reversal),
                     _ => None,
                 }
             }
@@ -5449,9 +5453,9 @@ pub mod license {
     /// Plan описывает конкретные условия подписки на лицензию.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Plan {
-        /// Идентификатор лицензии, к которой относится план
+        /// Идентификатор дерева, к которой относится план
         #[prost(uint32, tag = "1")]
-        pub license_id: u32,
+        pub tree_id: u32,
         /// Инкременальный идентификатор пакета внутри лицензии
         #[prost(uint32, tag = "2")]
         pub license_entity_id: u32,
@@ -5473,7 +5477,7 @@ pub mod license {
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Id {
             #[prost(uint32, tag = "1")]
-            pub license_id: u32,
+            pub tree_id: u32,
             #[prost(uint32, tag = "2")]
             pub license_entity_id: u32,
         }
@@ -5530,9 +5534,6 @@ pub mod license {
         /// Конец текущего оплаченного периода
         #[prost(message, optional, tag = "6")]
         pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Конец льготного периода
-        #[prost(message, optional, tag = "7")]
-        pub grace_period_expires_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `State`.
     pub mod state {
@@ -5556,8 +5557,6 @@ pub mod license {
             Active = 2,
             /// Срок действия завершен
             Expired = 3,
-            /// Срок истек, но доступ временно сохранен (льготный период)
-            GracePeriod = 4,
             /// Заблокирована административно (остановлена)
             Suspended = 5,
         }
@@ -5572,7 +5571,6 @@ pub mod license {
                     Self::Inactive => "INACTIVE",
                     Self::Active => "ACTIVE",
                     Self::Expired => "EXPIRED",
-                    Self::GracePeriod => "GRACE_PERIOD",
                     Self::Suspended => "SUSPENDED",
                 }
             }
@@ -5583,7 +5581,6 @@ pub mod license {
                     "INACTIVE" => Some(Self::Inactive),
                     "ACTIVE" => Some(Self::Active),
                     "EXPIRED" => Some(Self::Expired),
-                    "GRACE_PERIOD" => Some(Self::GracePeriod),
                     "SUSPENDED" => Some(Self::Suspended),
                     _ => None,
                 }
@@ -5921,6 +5918,9 @@ pub struct MarketingSlot {
     /// Идентификатор просматриваемого слота в иерархии
     #[prost(uint32, tag = "2")]
     pub view_slot_id: u32,
+    /// Идентификатор дерева, в котором находятся слоты (executor_slot_id и view_slot_id принадлежат этому дереву)
+    #[prost(uint32, tag = "9")]
+    pub tree_id: u32,
     /// Путь (хлебные крошки) между executor и view
     #[prost(message, repeated, tag = "3")]
     pub breadcrumbs: ::prost::alloc::vec::Vec<marketing_slot::Breadcrumb>,
@@ -5963,6 +5963,18 @@ pub mod marketing_slot {
         pub subscription_state: ::core::option::Option<super::subscription::State>,
         #[prost(uint32, tag = "5")]
         pub pending_manual_placement_count: u32,
+        /// Идентификатор дерева, к которому относится слот
+        #[prost(uint32, tag = "6")]
+        pub tree_id: u32,
+        /// Нуждается ли слот в расстановке
+        #[prost(bool, tag = "7")]
+        pub placement_required: bool,
+        /// Когда запланирована автоматическая расстановка
+        #[prost(message, optional, tag = "8")]
+        pub placement_scheduled_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Когда по факту произошла расстановка слота в иерархии
+        #[prost(message, optional, tag = "9")]
+        pub placement_executed_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `State`.
     pub mod state {

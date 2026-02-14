@@ -8,6 +8,7 @@ import "biconom/types/account.proto";
 import "biconom/types/subscription.proto";
 import "biconom/types/price.proto";
 import "biconom/types/license.proto";
+import "google/protobuf/timestamp.proto";
 
 // MarketingSlot представляет собой агрегированную модель данных маркетингового слота.
 message MarketingSlot {
@@ -25,6 +26,10 @@ message MarketingSlot {
         biconom.types.License.State license_state = 3;      // Техническое право доступа
         biconom.types.Subscription.State subscription_state = 4; // Состояние оплаты/биллинга
         uint32 pending_manual_placement_count = 5;
+        uint32 tree_id = 6; // Идентификатор дерева, к которому относится слот
+        bool placement_required = 7; // Нуждается ли слот в расстановке
+        google.protobuf.Timestamp placement_deadline_at = 8; // Дедлайн ручной расстановки; после этого момента сработает автоматическая
+        optional google.protobuf.Timestamp placement_executed_at = 9; // Когда по факту произошла расстановка слота в иерархии
     }
 
     // Chain представляет собой цепочку (ответвление) в структуре маркетинга.
@@ -48,6 +53,7 @@ message MarketingSlot {
 
     uint32 executor_slot_id = 1;
     uint32 view_slot_id = 2; // Идентификатор просматриваемого слота в иерархии
+    uint32 tree_id = 9; // Идентификатор дерева, в котором находятся слоты (executor_slot_id и view_slot_id принадлежат этому дереву)
     repeated Breadcrumb breadcrumbs = 3; // Путь (хлебные крошки) между executor и view
     repeated Chain view_chains = 4; // Структура дочерних цепочек для view_slot_id
     repeated State slot_states = 5; // Список состояний для интересующих слотов

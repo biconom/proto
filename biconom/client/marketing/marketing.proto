@@ -3,7 +3,6 @@ syntax = "proto3";
 package biconom.client.marketing;
 
 import "biconom/types/slot.proto";
-import "biconom/types/subscription.proto";
 import "biconom/types/marketing_slot.proto";
 import "biconom/types/license.proto";
 import "google/protobuf/empty.proto";
@@ -17,18 +16,39 @@ import "google/protobuf/timestamp.proto";
 // MarketingService предоставляет функционал для управления аффилейт маркетингом,
 // включая работу со слотами, подписками и расширением структуры.
 service MarketingService {
-    // Получить список состояний всех собственных слотов.
+
+    // =========================================================================
+    // Контекст авторизации: distributor_id
+    // Методы, требующие авторизации от имени дистрибьютора.
+    // =========================================================================
+
+    // Получить список состояний всех собственных слотов дистрибьютора.
     rpc ListOwnSlotStates(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State.List);
+
+    // Получить тарифный план по идентификатору.
+    rpc GetLicensePlan(biconom.types.License.Plan.Id) returns (biconom.types.License.Plan);
+
+    // Получить список доступных тарифных планов подписки.
+    rpc ListLicensePlans(google.protobuf.Empty) returns (biconom.types.License.Plan.List);
+
+    // Приобрести тарифный план подписки.
+    // При повторной покупке создаются дополнительные ваучеры, продлевающие период действия.
+    rpc PurchaseLicensePlan(biconom.types.License.Plan.Id) returns (biconom.types.MarketingSlot.State);
+
+    // Получить список слотов, ожидающих ручной расстановки.
+    rpc ListPendingManualPlacementSlots(ListPendingManualPlacementSlotsRequest) returns (ListPendingManualPlacementSlotsResponse);
+
+    // =========================================================================
+    // Контекст авторизации: slot_id
+    // Методы, требующие авторизации от имени конкретного слота.
+    // =========================================================================
 
     // Получить детальную информацию о выбранном слоте.
     rpc GetSlot(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot);
 
-    // Работа с тарифными планами подписки
-    rpc ListSubscriptionPlans(google.protobuf.Empty) returns (biconom.types.Subscription);
-    rpc PurchaseSubscriptionPlan(biconom.types.License.Plan.Id) returns (biconom.types.MarketingSlot);
-    
-    // Управление автопродлением подписки
+    // Деактивировать автопродление подписки для текущего слота.
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
+    // Восстановить автопродление подписки для текущего слота.
     rpc RestoreAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
 
     // Поиск слотов в иерархии по логину дистрибьютора.
@@ -36,13 +56,8 @@ service MarketingService {
 
     // Рассчитать стоимость увеличения вместимости первой линии (ширины) слота.
     rpc CalculateCapacityUpgradePrice(CapacityUpgradeRequest) returns (biconom.types.Price);
-
     // Приобрести увеличение вместимости первой линии.
-    // Слот выбирается автоматически на основе контекста авторизации.
     rpc PurchaseCapacityUpgrade(CapacityUpgradeRequest) returns (biconom.types.Slot);
-
-    // Получить список слотов, ожидающих ручной расстановки.
-    rpc ListPendingManualPlacementSlots(ListPendingManualPlacementSlotsRequest) returns (ListPendingManualPlacementSlotsResponse);
 
     // Рассчитать стоимость и предпросмотр расстановки слота (автоматической или ручной).
     // Если target_location не передан, рассчитывается автоматическое место.
@@ -80,6 +95,9 @@ message SearchSlotsRequest {
     optional uint32 filter_slot_depth_limit_up = 7;
     // Лимит глубины поиска по иерархии СЛОТОВ вниз (структура).
     optional uint32 filter_slot_depth_limit_down = 8;
+
+    // Фильтр по деревьям (маркетинговым структурам).
+    repeated uint32 tree_ids = 9;
 }
 
 // Ответ на поиск слотов, содержащий плоские списки найденных сущностей.
@@ -102,10 +120,12 @@ message CapacityUpgradeRequest {
 
 // Запрос на получение списка слотов для ручной расстановки.
 message ListPendingManualPlacementSlotsRequest {
+    // Опционально: идентификатор дистрибьютора. Если не указан — используется авторизованный пользователь.
+    optional biconom.types.Distributor.Id distributor_id = 1;
     // Опционально: курсор для пагинации (ID последнего полученного слота).
-    optional biconom.types.Slot.Id cursor = 1;
+    optional biconom.types.Slot.Id cursor = 2;
     // Опционально: параметры сортировки.
-    optional biconom.types.Sort sort = 2;
+    optional biconom.types.Sort sort = 3;
 }
 
 // Ответ со списком слотов для ручной расстановки и связанными данными.

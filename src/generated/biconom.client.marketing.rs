@@ -36,6 +36,9 @@ pub struct SearchSlotsRequest {
     /// Лимит глубины поиска по иерархии СЛОТОВ вниз (структура).
     #[prost(uint32, optional, tag = "8")]
     pub filter_slot_depth_limit_down: ::core::option::Option<u32>,
+    /// Фильтр по деревьям (маркетинговым структурам).
+    #[prost(uint32, repeated, tag = "9")]
+    pub tree_ids: ::prost::alloc::vec::Vec<u32>,
 }
 /// Ответ на поиск слотов, содержащий плоские списки найденных сущностей.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -71,6 +74,9 @@ pub struct ListPendingManualPlacementSlotsRequest {
     /// Опционально: параметры сортировки.
     #[prost(message, optional, tag = "2")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
+    /// Идентификатор слота, от имени которого запрашивается список (контекст просмотра).
+    #[prost(uint32, tag = "3")]
+    pub slot_id: u32,
 }
 /// Ответ со списком слотов для ручной расстановки и связанными данными.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -190,12 +196,29 @@ pub mod marketing_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with MarketingServiceServer.
     #[async_trait]
     pub trait MarketingService: std::marker::Send + std::marker::Sync + 'static {
-        /// Получить список состояний всех собственных слотов.
+        /// Получить список состояний всех собственных слотов дистрибьютора.
         async fn list_own_slot_states(
             &self,
             request: tonic::Request<()>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::marketing_slot::state::List>,
+            tonic::Status,
+        >;
+        /// Получить список доступных тарифных планов подписки.
+        async fn list_subscription_plans(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::Subscription>,
+            tonic::Status,
+        >;
+        /// Приобрести тарифный план подписки.
+        /// При повторной покупке создаются дополнительные ваучеры, продлевающие период действия.
+        async fn purchase_subscription_plan(
+            &self,
+            request: tonic::Request<super::super::super::types::license::plan::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::MarketingSlot>,
             tonic::Status,
         >;
         /// Получить детальную информацию о выбранном слоте.
@@ -206,22 +229,7 @@ pub mod marketing_service_server {
             tonic::Response<super::super::super::types::MarketingSlot>,
             tonic::Status,
         >;
-        /// Работа с тарифными планами подписки
-        async fn list_subscription_plans(
-            &self,
-            request: tonic::Request<()>,
-        ) -> std::result::Result<
-            tonic::Response<super::super::super::types::Subscription>,
-            tonic::Status,
-        >;
-        async fn purchase_subscription_plan(
-            &self,
-            request: tonic::Request<super::super::super::types::license::plan::Id>,
-        ) -> std::result::Result<
-            tonic::Response<super::super::super::types::MarketingSlot>,
-            tonic::Status,
-        >;
-        /// Управление автопродлением подписки
+        /// Деактивировать автопродление подписки для текущего слота.
         async fn deactivate_auto_renewal(
             &self,
             request: tonic::Request<()>,
@@ -229,6 +237,7 @@ pub mod marketing_service_server {
             tonic::Response<super::super::super::types::marketing_slot::State>,
             tonic::Status,
         >;
+        /// Восстановить автопродление подписки для текущего слота.
         async fn restore_auto_renewal(
             &self,
             request: tonic::Request<()>,
@@ -253,7 +262,6 @@ pub mod marketing_service_server {
             tonic::Status,
         >;
         /// Приобрести увеличение вместимости первой линии.
-        /// Слот выбирается автоматически на основе контекста авторизации.
         async fn purchase_capacity_upgrade(
             &self,
             request: tonic::Request<super::CapacityUpgradeRequest>,
@@ -410,51 +418,6 @@ pub mod marketing_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/biconom.client.marketing.MarketingService/GetSlot" => {
-                    #[allow(non_camel_case_types)]
-                    struct GetSlotSvc<T: MarketingService>(pub Arc<T>);
-                    impl<
-                        T: MarketingService,
-                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
-                    for GetSlotSvc<T> {
-                        type Response = super::super::super::types::MarketingSlot;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::super::super::types::slot::Id>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as MarketingService>::get_slot(&inner, request).await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = GetSlotSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
                 "/biconom.client.marketing.MarketingService/ListSubscriptionPlans" => {
                     #[allow(non_camel_case_types)]
                     struct ListSubscriptionPlansSvc<T: MarketingService>(pub Arc<T>);
@@ -536,6 +499,51 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = PurchaseSubscriptionPlanSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/GetSlot" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSlotSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
+                    for GetSlotSvc<T> {
+                        type Response = super::super::super::types::MarketingSlot;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::super::super::types::slot::Id>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_slot(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSlotSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

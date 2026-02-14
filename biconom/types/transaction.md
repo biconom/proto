@@ -26,7 +26,7 @@
   - `parent_transaction_id`: Для связи с родительской операцией (например, при сторнировании).
   - `asset`: Актив, с которым проводится операция.
   - `layer`: Слой исполнения (`PRIMARY`, `SCHEDULED`, `PAYMENT`).
-  - `status`: Жизненный цикл транзакции (`PENDING`, `POSTED`, `REVERSED` и т.д.).
+  - `status`: Жизненный цикл транзакции (`PENDING`, `POSTED`, `REVERSED`, `REVERSAL` и т.д.).
   - `entries`: Список вложенных проводок.
 
 ### `TransactionEntry`

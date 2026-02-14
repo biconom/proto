@@ -15,6 +15,7 @@ import "biconom/types/payment_network_currency.proto";
 import "biconom/types/wallet_type.proto";
 import "biconom/types/wallet_type_currency.proto";
 import "biconom/types/network.proto";
+import "biconom/types/tree.proto";
 
 import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
@@ -48,6 +49,7 @@ message PublicResponse {
     repeated biconom.types.Exchange exchanges = 10;
     repeated biconom.types.ExchangeCurrencyPair exchange_currency_pairs = 11;
     repeated biconom.types.Ticker tickers = 12;
+    repeated biconom.types.Tree trees = 13;
 }
 
 // Ответ, содержащий все данные текущего пользователя.

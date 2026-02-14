@@ -3,13 +3,9 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
-import "biconom/types/license.proto";
 
-// Subscription объединяет продукт и список доступных для него тарифных планов.
+// Subscription описывает коммерческое состояние подписки (биллинг).
 message Subscription {
-    message List {
-        repeated Subscription items = 1;
-    }
     // State описывает коммерческое состояние подписки (биллинг).
     message State {
         enum Status {
@@ -21,10 +17,6 @@ message Subscription {
             UNPAID = 5;   // Не оплачена, услуги остановлены
         }
         Status status = 1;
-        optional biconom.types.License.Plan plan = 2; // Тарифный план, по которому оформлена подписка
-        optional google.protobuf.Timestamp next_billing_at = 3; // Дата следующего списания
+        optional google.protobuf.Timestamp next_billing_at = 2; // Дата следующего списания
     }
-
-    biconom.types.License license = 1;
-    repeated biconom.types.License.Plan plans = 2;
 }

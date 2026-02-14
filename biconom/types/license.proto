@@ -7,31 +7,21 @@ import "biconom/types/price.proto";
 
 // License представляет собой право на использование конкретного функционала или сущности.
 message License {
-    message Id {
-        uint32 id = 1;
-    }
-
-    message List {
-        repeated License items = 1;
-    }
 
     // Plan описывает конкретные условия подписки на лицензию.
     message Plan {
         message Id {
-            uint32 license_id = 1;
-            uint32 license_entity_id = 2;
+            uint32 tree_id = 1;
         }
 
         message List {
             repeated Plan items = 1;
         }
 
-        uint32 license_id = 1; // Идентификатор лицензии, к которой относится план
-        uint32 license_entity_id = 2; // Инкременальный идентификатор пакета внутри лицензии
-        string title = 3; // Название плана (например, "Premium Monthly")
-        uint32 duration = 4; // Длительность расчетного периода (биллинг-цикла) в секундах
-        biconom.types.Price price = 5; // Стоимость подписки за один период
-        optional string metadata = 6; // Бизнес-параметры плана (JSON с условиями применения)
+        uint32 tree_id = 1; // Идентификатор дерева, к которой относится план
+        string title = 2; // Название плана (например, "Premium Monthly")
+        uint32 duration = 3; // Длительность расчетного периода (биллинг-цикла) в секундах
+        biconom.types.Price price = 4; // Стоимость подписки за один период
     }
 
     // Voucher представляет собой предоплаченный, но еще не активированный тарифный план.
@@ -41,10 +31,12 @@ message License {
         }
 
         uint32 id = 1; // Идентификатор ваучера
-        Plan plan = 2; // Тарифный план, который будет активирован при использовании ваучера
-        bool activated = 3; // Флаг активации
-        optional google.protobuf.Timestamp activated_at = 4; // Дата активации (заполняется при activated=true)
-        google.protobuf.Timestamp created_at = 5; // Дата создания ваучера
+        uint32 slot_id = 2; // Идентификатор слота, которому принадлежит ваучер
+        uint32 duration = 3; // Длительность периода действия ваучера (в секундах)
+        biconom.types.Price price = 4; // Стоимость, по которой был приобретён ваучер
+        bool activated = 5; // Флаг активации
+        optional google.protobuf.Timestamp activated_at = 6; // Дата активации (заполняется при activated=true)
+        google.protobuf.Timestamp created_at = 7; // Дата создания ваучера
     }
 
     // State содержит информацию о текущем динамическом состоянии лицензии.
@@ -54,7 +46,6 @@ message License {
             INACTIVE = 1; // Начальное состояние (лицензия никогда не активировалась)
             ACTIVE = 2;   // Активная
             EXPIRED = 3;  // Срок действия завершен
-            GRACE_PERIOD = 4; // Срок истек, но доступ временно сохранен (льготный период)
             SUSPENDED = 5;    // Заблокирована административно (остановлена)
         }
         Status status = 1;
@@ -63,10 +54,5 @@ message License {
         optional google.protobuf.Timestamp activated_at = 4;      // Момент самой первой активации
         optional google.protobuf.Timestamp started_at = 5;        // Начало текущего оплаченного периода
         optional google.protobuf.Timestamp expires_at = 6;        // Конец текущего оплаченного периода
-        optional google.protobuf.Timestamp grace_period_expires_at = 7; // Конец льготного периода
     }
-
-    uint32 id = 1;
-    string title = 2; // Название лицензии (например, "Slot License")
-    optional string metadata = 3; // Бизнес-атрибуты лицензии (JSON с параметрами логики)
 }

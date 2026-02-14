@@ -18,7 +18,7 @@
 ### `rpc GetPublic(google.protobuf.Empty) returns (PublicResponse)`
 - **Назначение**: Получить все ключевые публичные справочники системы.
 - **Использование**: Обычно вызывается один раз при инициализации клиентского приложения (возможно, до входа пользователя) для кэширования.
-- **Ответ**: Возвращает `PublicResponse`, который содержит списки всех основных справочных моделей (`Currency`, `Exchange`, `PaymentNetwork` и т.д.).
+- **Ответ**: Возвращает `PublicResponse`, который содержит списки всех основных справочных моделей (`Currency`, `Exchange`, `PaymentNetwork`, `Tree` и т.д.).
 - **Авторизация**: Не требуется.
 
 ### `rpc GetCurrentState(google.protobuf.Empty) returns (CurrentStateResponse)`
