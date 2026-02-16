@@ -60,3 +60,11 @@
 - `optional uint32 tree_id = 1` — фильтр по дереву.
 - `optional Slot.Id cursor = 2` — курсор для пагинации.
 - `optional Sort sort = 3` — параметры сортировки.
+
+---
+
+## biconom/client/dictionary/dictionary.proto
+
+### PublicResponse
+- **Добавлено** поле `repeated biconom.types.License.Plan license_plans = 14` — список тарифных планов лицензий в публичном справочнике.
+- **Добавлен** импорт `biconom/types/license.proto`.

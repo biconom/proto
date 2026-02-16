@@ -22,6 +22,7 @@ import "biconom/types/distributor.proto";
 import "biconom/types/wallet.proto";
 import "biconom/types/wallet_currency.proto";
 import "biconom/types/ticker.proto";
+import "biconom/types/license.proto";
 
 // Сервис для получения набора всех основных справочных данных системы.
 service DictionaryService {
@@ -50,6 +51,7 @@ message PublicResponse {
     repeated biconom.types.ExchangeCurrencyPair exchange_currency_pairs = 11;
     repeated biconom.types.Ticker tickers = 12;
     repeated biconom.types.Tree trees = 13;
+    repeated biconom.types.License.Plan license_plans = 14;
 }
 
 // Ответ, содержащий все данные текущего пользователя.
