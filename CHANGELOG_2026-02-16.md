@@ -64,6 +64,9 @@
 - `optional Slot.Id cursor = 2` — курсор для пагинации.
 - `optional Sort sort = 3` — параметры сортировки.
 
+### CalculateManualPlacementPriceResponse
+- **Добавлено** поле `repeated MarketingSlot.DistributorState distributor_states = 14` — агрегированная статистика дистрибьюторов по деревьям (связанные данные).
+
 ---
 
 ## biconom/client/dictionary/dictionary.proto

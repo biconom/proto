@@ -212,4 +212,5 @@ message CalculateManualPlacementPriceResponse {
     repeated biconom.types.Slot slots = 11;
     repeated biconom.types.Distributor distributors = 12;
     repeated biconom.types.Account accounts = 13;
+    repeated biconom.types.MarketingSlot.DistributorState distributor_states = 14;
 }

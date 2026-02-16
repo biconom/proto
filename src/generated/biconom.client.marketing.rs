@@ -207,6 +207,10 @@ pub struct CalculateManualPlacementPriceResponse {
     pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
     #[prost(message, repeated, tag = "13")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+    #[prost(message, repeated, tag = "14")]
+    pub distributor_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::DistributorState,
+    >,
 }
 /// Generated server implementations.
 pub mod marketing_service_server {
