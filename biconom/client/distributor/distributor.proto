@@ -35,6 +35,8 @@ message Response {
 	biconom.types.Distributor distributor = 2;
 	// Список состояний маркетинговых слотов данного дистрибьютора.
 	repeated biconom.types.MarketingSlot.State slot_states = 3;
+	// Состояния дистрибьютора
+    biconom.types.MarketingSlot.DistributorState distributor_state = 4;
 }
 
 // ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
@@ -55,6 +57,8 @@ message ListResponse {
 	repeated uint32 upline_ids = 6;
 	// Список состояний маркетинговых слотов для всех найденных дистрибьюторов.
 	repeated biconom.types.MarketingSlot.State slot_states = 7;
+    // Состояния дистрибьюторов
+    repeated biconom.types.MarketingSlot.DistributorState distributor_states = 8;
 }
 
 message SearchResponse {

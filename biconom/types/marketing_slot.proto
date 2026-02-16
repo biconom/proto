@@ -20,6 +20,7 @@ message MarketingSlot {
             uint32 tree_id = 1;
             uint32 slots_for_placement_count = 2; // Количество слотов, ожидающих ручной расстановки
             uint32 slots_for_compression_count = 3; // Количество слотов, которые могут подняться за счёт компрессии
+            optional uint32 primary_slot_id = 4; // Основной слот в дереве у дистрибьютора
         }
         uint32 distributor_id = 1;
         repeated TreeState tree_states = 2;

@@ -5938,6 +5938,9 @@ pub mod marketing_slot {
             /// Количество слотов, которые могут подняться за счёт компрессии
             #[prost(uint32, tag = "3")]
             pub slots_for_compression_count: u32,
+            /// Основной слот в дереве у дистрибьютора
+            #[prost(uint32, optional, tag = "4")]
+            pub primary_slot_id: ::core::option::Option<u32>,
         }
     }
     /// State содержит динамическую информацию о состоянии слота и лицензии.

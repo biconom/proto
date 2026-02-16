@@ -15,6 +15,11 @@ pub struct Response {
     pub slot_states: ::prost::alloc::vec::Vec<
         super::super::types::marketing_slot::State,
     >,
+    /// Состояния дистрибьютора
+    #[prost(message, optional, tag = "4")]
+    pub distributor_state: ::core::option::Option<
+        super::super::types::marketing_slot::DistributorState,
+    >,
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их
@@ -43,6 +48,11 @@ pub struct ListResponse {
     #[prost(message, repeated, tag = "7")]
     pub slot_states: ::prost::alloc::vec::Vec<
         super::super::types::marketing_slot::State,
+    >,
+    /// Состояния дистрибьюторов
+    #[prost(message, repeated, tag = "8")]
+    pub distributor_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::DistributorState,
     >,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -17,6 +17,7 @@
   - `tree_id` (`=1`) — идентификатор дерева.
   - `slots_for_placement_count` (`=2`) — количество слотов, ожидающих ручной расстановки.
   - `slots_for_compression_count` (`=3`) — количество слотов, которые могут подняться за счёт компрессии.
+  - `primary_slot_id` (`=4`, optional) — основной слот дистрибьютора в данном дереве.
 
 ### MarketingSlot.State
 - **Удалено** поле `pending_manual_placement_count` — логика вынесена в `DistributorState.TreeState`.
@@ -68,3 +69,13 @@
 ### PublicResponse
 - **Добавлено** поле `repeated biconom.types.License.Plan license_plans = 14` — список тарифных планов лицензий в публичном справочнике.
 - **Добавлен** импорт `biconom/types/license.proto`.
+
+---
+
+## biconom/client/distributor/distributor.proto
+
+### GetResponse
+- **Добавлено** поле `biconom.types.MarketingSlot.DistributorState distributor_state = 4` — состояние дистрибьютора (счётчики расстановки/компрессии по деревьям).
+
+### ListResponse
+- **Добавлено** поле `repeated MarketingSlot.DistributorState distributor_states = 8` — состояния дистрибьюторов для всех найденных элементов.
