@@ -112,6 +112,10 @@ pub struct ListUnplacedSlotsResponse {
     pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
     #[prost(message, repeated, tag = "6")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+    #[prost(message, repeated, tag = "7")]
+    pub distributor_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::DistributorState,
+    >,
 }
 /// Nested message and enum types in `ListUnplacedSlotsResponse`.
 pub mod list_unplaced_slots_response {

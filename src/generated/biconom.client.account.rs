@@ -31,6 +31,10 @@ pub mod account_view {
         pub slot_states: ::prost::alloc::vec::Vec<
             super::super::super::types::marketing_slot::State,
         >,
+        #[prost(message, optional, tag = "4")]
+        pub distributor_state: ::core::option::Option<
+            super::super::super::types::marketing_slot::DistributorState,
+        >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {

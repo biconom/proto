@@ -5969,6 +5969,9 @@ pub mod marketing_slot {
         /// Когда по факту произошла расстановка слота в иерархии
         #[prost(message, optional, tag = "8")]
         pub placement_executed_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Имеет ли текущий пользователь право на просмотр данного слота
+        #[prost(bool, tag = "9")]
+        pub viewable: bool,
     }
     /// Nested message and enum types in `State`.
     pub mod state {

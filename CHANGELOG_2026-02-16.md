@@ -22,6 +22,7 @@
 ### MarketingSlot.State
 - **Удалено** поле `pending_manual_placement_count` — логика вынесена в `DistributorState.TreeState`.
 - Перенумерованы: `tree_id` → `=5`, `placement_required` → `=6`, `placement_deadline_at` → `=7`, `placement_executed_at` → `=8`.
+- **Добавлено** поле `bool viewable = 9` — имеет ли текущий пользователь право на просмотр данного слота.
 
 ### MarketingSlot (корневой уровень)
 - **Добавлено** поле `repeated DistributorState distributor_states = 10` — состояния дистрибьюторов с разбивкой по деревьям.
@@ -55,7 +56,8 @@
   - `repeated UnplacedSlot items` (`=2`) — список нерасставленных слотов:
     - `slot_id` (`=1`) — ID слота.
     - `auto_placement_at` (`=2`, optional) — время автоматической расстановки (если применимо).
-  - Связанные данные: `slots`, `slot_states`, `distributors`, `accounts`.
+  - Связанные данные: `slots`, `slot_states`, `distributors`, `accounts`, `distributor_states`.
+- **Добавлено** поле `repeated MarketingSlot.DistributorState distributor_states = 7` — агрегированная статистика дистрибьюторов по деревьям.
 
 ### ListPotentialCompressionSlotsRequest (новое)
 - `optional uint32 tree_id = 1` — фильтр по дереву.
@@ -79,3 +81,10 @@
 
 ### ListResponse
 - **Добавлено** поле `repeated MarketingSlot.DistributorState distributor_states = 8` — состояния дистрибьюторов для всех найденных элементов.
+
+---
+
+## biconom/client/account/account.proto
+
+### AccountView.Distributor
+- **Добавлено** поле `biconom.types.MarketingSlot.DistributorState distributor_state = 4` — агрегированная статистика дистрибьютора по деревьям (расстановка, компрессия, основной слот).

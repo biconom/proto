@@ -27,6 +27,7 @@ message AccountView {
 		biconom.types.Distributor value = 1;
 		repeated biconom.types.Distributor upline_distributors = 2;
 		repeated biconom.types.MarketingSlot.State slot_states = 3;
+		biconom.types.MarketingSlot.DistributorState distributor_state = 4;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;

@@ -162,6 +162,7 @@ message ListUnplacedSlotsResponse {
     repeated biconom.types.MarketingSlot.State slot_states = 4;
     repeated biconom.types.Distributor distributors = 5;
     repeated biconom.types.Account accounts = 6;
+    repeated biconom.types.MarketingSlot.DistributorState distributor_states = 7;
 }
 
 // Запрос на получение списка потенциальных слотов компрессии.

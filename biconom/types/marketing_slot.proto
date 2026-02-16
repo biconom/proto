@@ -39,6 +39,7 @@ message MarketingSlot {
         bool placement_required = 6; // Нуждается ли слот в расстановке
         google.protobuf.Timestamp placement_deadline_at = 7; // Дедлайн ручной расстановки; после этого момента сработает автоматическая
         optional google.protobuf.Timestamp placement_executed_at = 8; // Когда по факту произошла расстановка слота в иерархии
+        bool viewable = 9; // Имеет ли текущий пользователь право на просмотр данного слота
     }
 
     // Chain представляет собой цепочку (ответвление) в структуре маркетинга.
