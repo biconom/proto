@@ -33,10 +33,14 @@ service MarketingService {
 
     // Приобрести тарифный план подписки.
     // При повторной покупке создаются дополнительные ваучеры, продлевающие период действия.
-    rpc PurchaseLicensePlan(biconom.types.License.Plan.Id) returns (biconom.types.MarketingSlot.State);
+    rpc PurchaseLicensePlan(PurchaseLicensePlanRequest) returns (biconom.types.MarketingSlot.State);
 
     // Получить список слотов, ожидающих ручной расстановки.
-    rpc ListPendingManualPlacementSlots(ListPendingManualPlacementSlotsRequest) returns (ListPendingManualPlacementSlotsResponse);
+    rpc ListPendingManualPlacementSlots(ListPendingManualPlacementSlotsRequest) returns (ListUnplacedSlotsResponse);
+
+    // Получить список потенциальных слотов, которые могут попасть к дистрибьютору благодаря компрессии
+    // неактивных уровней снизу по иерархии.
+    rpc ListPotentialCompressionSlots(ListPotentialCompressionSlotsRequest) returns (ListUnplacedSlotsResponse);
 
     // =========================================================================
     // Контекст авторизации: slot_id
@@ -112,6 +116,14 @@ message SearchSlotsResponse {
     repeated biconom.types.Account accounts = 4;
 }
 
+// Запрос на покупку тарифного плана лицензии.
+message PurchaseLicensePlanRequest {
+    // Идентификатор дерева, в котором приобретается план.
+    uint32 tree_id = 1;
+    // Количество ваучеров для покупки за один запрос.
+    uint32 quantity = 2;
+}
+
 // Запрос на изменение вместимости (ширины) первой линии слота.
 message CapacityUpgradeRequest {
     // Желаемое итоговое количество мест в первой линии (должно быть больше текущего).
@@ -120,37 +132,46 @@ message CapacityUpgradeRequest {
 
 // Запрос на получение списка слотов для ручной расстановки.
 message ListPendingManualPlacementSlotsRequest {
-    // Опционально: идентификатор дистрибьютора. Если не указан — используется авторизованный пользователь.
+    // Опционально: идентификатор дистрибьютора. Если не указан — используется авторизованный дистрибьютор.
     optional biconom.types.Distributor.Id distributor_id = 1;
+    // Опционально: фильтр по дерева. Если не указан — возвращаются слоты по всем деревьям.
+    optional uint32 tree_id = 2;
     // Опционально: курсор для пагинации (ID последнего полученного слота).
+    optional biconom.types.Slot.Id cursor = 3;
+    // Опционально: параметры сортировки.
+    optional biconom.types.Sort sort = 4;
+}
+
+// Ответ со списком нерасставленных слотов и связанными данными.
+// Используется как для ListPendingManualPlacementSlots, так и для ListPotentialCompressionSlots.
+message ListUnplacedSlotsResponse {
+    // Общее количество нерасставленных слотов (для пагинации).
+    uint32 total_count = 1;
+
+    // Нерасставленный слот с информацией о сроках.
+    message UnplacedSlot {
+        uint32 slot_id = 1; // ID слота, который нужно расставить.
+        optional google.protobuf.Timestamp auto_placement_at = 2; // Время автоматической расстановки (если применимо).
+    }
+
+    // Список нерасставленных слотов.
+    repeated UnplacedSlot items = 2;
+
+    // --- Связанные данные для обогащения интерфейса ---
+    repeated biconom.types.Slot slots = 3;
+    repeated biconom.types.MarketingSlot.State slot_states = 4;
+    repeated biconom.types.Distributor distributors = 5;
+    repeated biconom.types.Account accounts = 6;
+}
+
+// Запрос на получение списка потенциальных слотов компрессии.
+message ListPotentialCompressionSlotsRequest {
+    // Опционально: фильтр по дереву. Если не указан — возвращаются слоты по всем деревьям.
+    optional uint32 tree_id = 1;
+    // Опционально: курсор для пагинации.
     optional biconom.types.Slot.Id cursor = 2;
     // Опционально: параметры сортировки.
     optional biconom.types.Sort sort = 3;
-}
-
-// Ответ со списком слотов для ручной расстановки и связанными данными.
-message ListPendingManualPlacementSlotsResponse {
-    // Общее количество слотов, доступных для ручной расстановки (для пагинации).
-    uint32 total_count = 1;
-
-    // Сущность, описывающая слот, ожидающий расстановки.
-    message PendingSlot {
-        uint32 slot_id = 1; // ID слота, который нужно расставить.
-        optional google.protobuf.Timestamp auto_placement_at = 2; // Время, когда произойдет автоматическая расстановка (если не будет выполнена ручная).
-    }
-
-    // Список слотов, ожидающих расстановки.
-    repeated PendingSlot pending_slots = 2;
-
-    // --- Связанные данные для обогащения интерфейса ---
-    // Список объектов слотов.
-    repeated biconom.types.Slot slots = 3;
-    // Список состояний слотов.
-    repeated biconom.types.MarketingSlot.State slot_states = 4;
-    // Список дистрибьюторов-владельцев.
-    repeated biconom.types.Distributor distributors = 5;
-    // Список аккаунтов-владельцев дистрибьюторов.
-    repeated biconom.types.Account accounts = 6;
 }
 
 // Запрос на ручную расстановку (расчет или покупка).

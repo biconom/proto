@@ -5440,11 +5440,14 @@ pub mod license {
         /// Название плана (например, "Premium Monthly")
         #[prost(string, tag = "2")]
         pub title: ::prost::alloc::string::String,
+        /// Доступен ли план к покупке в данный момент
+        #[prost(bool, tag = "3")]
+        pub enabled: bool,
         /// Длительность расчетного периода (биллинг-цикла) в секундах
-        #[prost(uint32, tag = "3")]
+        #[prost(uint32, tag = "4")]
         pub duration: u32,
         /// Стоимость подписки за один период
-        #[prost(message, optional, tag = "4")]
+        #[prost(message, optional, tag = "5")]
         pub price: ::core::option::Option<super::Price>,
     }
     /// Nested message and enum types in `Plan`.
@@ -5905,6 +5908,9 @@ pub struct MarketingSlot {
     /// Аккаунты, владеющие дистрибьюторами
     #[prost(message, repeated, tag = "8")]
     pub accounts: ::prost::alloc::vec::Vec<Account>,
+    /// Состояния дистрибьюторов
+    #[prost(message, repeated, tag = "10")]
+    pub distributor_states: ::prost::alloc::vec::Vec<marketing_slot::DistributorState>,
 }
 /// Nested message and enum types in `MarketingSlot`.
 pub mod marketing_slot {
@@ -5912,6 +5918,27 @@ pub mod marketing_slot {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::MarketingSlot>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct DistributorState {
+        #[prost(uint32, tag = "1")]
+        pub distributor_id: u32,
+        #[prost(message, repeated, tag = "2")]
+        pub tree_states: ::prost::alloc::vec::Vec<distributor_state::TreeState>,
+    }
+    /// Nested message and enum types in `DistributorState`.
+    pub mod distributor_state {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct TreeState {
+            #[prost(uint32, tag = "1")]
+            pub tree_id: u32,
+            /// Количество слотов, ожидающих ручной расстановки
+            #[prost(uint32, tag = "2")]
+            pub slots_for_placement_count: u32,
+            /// Количество слотов, которые могут подняться за счёт компрессии
+            #[prost(uint32, tag = "3")]
+            pub slots_for_compression_count: u32,
+        }
     }
     /// State содержит динамическую информацию о состоянии слота и лицензии.
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5927,19 +5954,17 @@ pub mod marketing_slot {
         /// Состояние оплаты/биллинга
         #[prost(message, optional, tag = "4")]
         pub subscription_state: ::core::option::Option<super::subscription::State>,
-        #[prost(uint32, tag = "5")]
-        pub pending_manual_placement_count: u32,
         /// Идентификатор дерева, к которому относится слот
-        #[prost(uint32, tag = "6")]
+        #[prost(uint32, tag = "5")]
         pub tree_id: u32,
         /// Нуждается ли слот в расстановке
-        #[prost(bool, tag = "7")]
+        #[prost(bool, tag = "6")]
         pub placement_required: bool,
         /// Дедлайн ручной расстановки; после этого момента сработает автоматическая
-        #[prost(message, optional, tag = "8")]
+        #[prost(message, optional, tag = "7")]
         pub placement_deadline_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Когда по факту произошла расстановка слота в иерархии
-        #[prost(message, optional, tag = "9")]
+        #[prost(message, optional, tag = "8")]
         pub placement_executed_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `State`.

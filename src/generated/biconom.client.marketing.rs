@@ -58,6 +58,16 @@ pub struct SearchSlotsResponse {
     #[prost(message, repeated, tag = "4")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
 }
+/// Запрос на покупку тарифного плана лицензии.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PurchaseLicensePlanRequest {
+    /// Идентификатор дерева, в котором приобретается план.
+    #[prost(uint32, tag = "1")]
+    pub tree_id: u32,
+    /// Количество ваучеров для покупки за один запрос.
+    #[prost(uint32, tag = "2")]
+    pub quantity: u32,
+}
 /// Запрос на изменение вместимости (ширины) первой линии слота.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CapacityUpgradeRequest {
@@ -68,55 +78,66 @@ pub struct CapacityUpgradeRequest {
 /// Запрос на получение списка слотов для ручной расстановки.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListPendingManualPlacementSlotsRequest {
-    /// Опционально: идентификатор дистрибьютора. Если не указан — используется авторизованный пользователь.
+    /// Опционально: идентификатор дистрибьютора. Если не указан — используется авторизованный дистрибьютор.
     #[prost(message, optional, tag = "1")]
     pub distributor_id: ::core::option::Option<super::super::types::distributor::Id>,
+    /// Опционально: фильтр по дерева. Если не указан — возвращаются слоты по всем деревьям.
+    #[prost(uint32, optional, tag = "2")]
+    pub tree_id: ::core::option::Option<u32>,
     /// Опционально: курсор для пагинации (ID последнего полученного слота).
+    #[prost(message, optional, tag = "3")]
+    pub cursor: ::core::option::Option<super::super::types::slot::Id>,
+    /// Опционально: параметры сортировки.
+    #[prost(message, optional, tag = "4")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
+}
+/// Ответ со списком нерасставленных слотов и связанными данными.
+/// Используется как для ListPendingManualPlacementSlots, так и для ListPotentialCompressionSlots.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListUnplacedSlotsResponse {
+    /// Общее количество нерасставленных слотов (для пагинации).
+    #[prost(uint32, tag = "1")]
+    pub total_count: u32,
+    /// Список нерасставленных слотов.
+    #[prost(message, repeated, tag = "2")]
+    pub items: ::prost::alloc::vec::Vec<list_unplaced_slots_response::UnplacedSlot>,
+    /// --- Связанные данные для обогащения интерфейса ---
+    #[prost(message, repeated, tag = "3")]
+    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
+    #[prost(message, repeated, tag = "4")]
+    pub slot_states: ::prost::alloc::vec::Vec<
+        super::super::types::marketing_slot::State,
+    >,
+    #[prost(message, repeated, tag = "5")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    #[prost(message, repeated, tag = "6")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+}
+/// Nested message and enum types in `ListUnplacedSlotsResponse`.
+pub mod list_unplaced_slots_response {
+    /// Нерасставленный слот с информацией о сроках.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct UnplacedSlot {
+        /// ID слота, который нужно расставить.
+        #[prost(uint32, tag = "1")]
+        pub slot_id: u32,
+        /// Время автоматической расстановки (если применимо).
+        #[prost(message, optional, tag = "2")]
+        pub auto_placement_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+}
+/// Запрос на получение списка потенциальных слотов компрессии.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListPotentialCompressionSlotsRequest {
+    /// Опционально: фильтр по дереву. Если не указан — возвращаются слоты по всем деревьям.
+    #[prost(uint32, optional, tag = "1")]
+    pub tree_id: ::core::option::Option<u32>,
+    /// Опционально: курсор для пагинации.
     #[prost(message, optional, tag = "2")]
     pub cursor: ::core::option::Option<super::super::types::slot::Id>,
     /// Опционально: параметры сортировки.
     #[prost(message, optional, tag = "3")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
-}
-/// Ответ со списком слотов для ручной расстановки и связанными данными.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListPendingManualPlacementSlotsResponse {
-    /// Общее количество слотов, доступных для ручной расстановки (для пагинации).
-    #[prost(uint32, tag = "1")]
-    pub total_count: u32,
-    /// Список слотов, ожидающих расстановки.
-    #[prost(message, repeated, tag = "2")]
-    pub pending_slots: ::prost::alloc::vec::Vec<
-        list_pending_manual_placement_slots_response::PendingSlot,
-    >,
-    /// --- Связанные данные для обогащения интерфейса ---
-    /// Список объектов слотов.
-    #[prost(message, repeated, tag = "3")]
-    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
-    /// Список состояний слотов.
-    #[prost(message, repeated, tag = "4")]
-    pub slot_states: ::prost::alloc::vec::Vec<
-        super::super::types::marketing_slot::State,
-    >,
-    /// Список дистрибьюторов-владельцев.
-    #[prost(message, repeated, tag = "5")]
-    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
-    /// Список аккаунтов-владельцев дистрибьюторов.
-    #[prost(message, repeated, tag = "6")]
-    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
-}
-/// Nested message and enum types in `ListPendingManualPlacementSlotsResponse`.
-pub mod list_pending_manual_placement_slots_response {
-    /// Сущность, описывающая слот, ожидающий расстановки.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct PendingSlot {
-        /// ID слота, который нужно расставить.
-        #[prost(uint32, tag = "1")]
-        pub slot_id: u32,
-        /// Время, когда произойдет автоматическая расстановка (если не будет выполнена ручная).
-        #[prost(message, optional, tag = "2")]
-        pub auto_placement_at: ::core::option::Option<::prost_types::Timestamp>,
-    }
 }
 /// Запрос на ручную расстановку (расчет или покупка).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -224,7 +245,7 @@ pub mod marketing_service_server {
         /// При повторной покупке создаются дополнительные ваучеры, продлевающие период действия.
         async fn purchase_license_plan(
             &self,
-            request: tonic::Request<super::super::super::types::license::plan::Id>,
+            request: tonic::Request<super::PurchaseLicensePlanRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::marketing_slot::State>,
             tonic::Status,
@@ -234,7 +255,16 @@ pub mod marketing_service_server {
             &self,
             request: tonic::Request<super::ListPendingManualPlacementSlotsRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::ListPendingManualPlacementSlotsResponse>,
+            tonic::Response<super::ListUnplacedSlotsResponse>,
+            tonic::Status,
+        >;
+        /// Получить список потенциальных слотов, которые могут попасть к дистрибьютору благодаря компрессии
+        /// неактивных уровней снизу по иерархии.
+        async fn list_potential_compression_slots(
+            &self,
+            request: tonic::Request<super::ListPotentialCompressionSlotsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListUnplacedSlotsResponse>,
             tonic::Status,
         >;
         /// Получить детальную информацию о выбранном слоте.
@@ -521,9 +551,8 @@ pub mod marketing_service_server {
                     struct PurchaseLicensePlanSvc<T: MarketingService>(pub Arc<T>);
                     impl<
                         T: MarketingService,
-                    > tonic::server::UnaryService<
-                        super::super::super::types::license::plan::Id,
-                    > for PurchaseLicensePlanSvc<T> {
+                    > tonic::server::UnaryService<super::PurchaseLicensePlanRequest>
+                    for PurchaseLicensePlanSvc<T> {
                         type Response = super::super::super::types::marketing_slot::State;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -531,9 +560,7 @@ pub mod marketing_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::super::types::license::plan::Id,
-                            >,
+                            request: tonic::Request<super::PurchaseLicensePlanRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
@@ -578,7 +605,7 @@ pub mod marketing_service_server {
                     > tonic::server::UnaryService<
                         super::ListPendingManualPlacementSlotsRequest,
                     > for ListPendingManualPlacementSlotsSvc<T> {
-                        type Response = super::ListPendingManualPlacementSlotsResponse;
+                        type Response = super::ListUnplacedSlotsResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -607,6 +634,60 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListPendingManualPlacementSlotsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/ListPotentialCompressionSlots" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListPotentialCompressionSlotsSvc<T: MarketingService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<
+                        super::ListPotentialCompressionSlotsRequest,
+                    > for ListPotentialCompressionSlotsSvc<T> {
+                        type Response = super::ListUnplacedSlotsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::ListPotentialCompressionSlotsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::list_potential_compression_slots(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListPotentialCompressionSlotsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
