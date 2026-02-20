@@ -44,8 +44,13 @@ message MarketingSlot {
 
     // Chain представляет собой цепочку (ответвление) в структуре маркетинга.
     message Chain {
+        message SubChain {
+            uint32 parent_branch_number = 1;
+            repeated uint32 slot_ids = 2;
+        }
         uint32 parent_branch_number = 1;
         repeated uint32 slot_ids = 2; // Массив ID слотов, входящих в цепочку
+        repeated SubChain first_sub_chains = 4;
 
         message Income {
             uint32 bonus_id = 1;

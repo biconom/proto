@@ -5989,11 +5989,20 @@ pub mod marketing_slot {
         /// Массив ID слотов, входящих в цепочку
         #[prost(uint32, repeated, tag = "2")]
         pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+        #[prost(message, repeated, tag = "4")]
+        pub first_sub_chains: ::prost::alloc::vec::Vec<chain::SubChain>,
         #[prost(message, repeated, tag = "3")]
         pub incomes: ::prost::alloc::vec::Vec<chain::Income>,
     }
     /// Nested message and enum types in `Chain`.
     pub mod chain {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct SubChain {
+            #[prost(uint32, tag = "1")]
+            pub parent_branch_number: u32,
+            #[prost(uint32, repeated, tag = "2")]
+            pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+        }
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Income {
             #[prost(uint32, tag = "1")]
