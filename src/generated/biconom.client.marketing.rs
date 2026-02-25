@@ -59,7 +59,7 @@ pub struct SearchSlotsResponse {
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
 }
 /// Запрос на покупку тарифного плана лицензии.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PurchaseLicensePlanRequest {
     /// Идентификатор дерева, в котором приобретается план.
     #[prost(uint32, tag = "1")]
@@ -67,6 +67,13 @@ pub struct PurchaseLicensePlanRequest {
     /// Количество ваучеров для покупки за один запрос.
     #[prost(uint32, tag = "2")]
     pub quantity: u32,
+    /// Опциональный идентификатор дистрибьютора-получателя.
+    /// Если указан — покупка для другого (подарок), оплата с кошелька текущего пользователя.
+    /// Если не указан — покупка для себя.
+    #[prost(message, optional, tag = "3")]
+    pub recipient_distributor_id: ::core::option::Option<
+        super::super::types::distributor::Id,
+    >,
 }
 /// Запрос на изменение вместимости (ширины) первой линии слота.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -251,6 +258,10 @@ pub mod marketing_service_server {
         >;
         /// Приобрести тарифный план подписки.
         /// При повторной покупке создаются дополнительные ваучеры, продлевающие период действия.
+        /// Если указан recipient_distributor_id — покупка для другого дистрибьютора (подарок):
+        /// оплата с кошелька текущего пользователя, ваучер на слоте получателя,
+        /// маркетинговые выплаты от структуры получателя.
+        /// Если recipient_distributor_id не указан — покупка для себя.
         async fn purchase_license_plan(
             &self,
             request: tonic::Request<super::PurchaseLicensePlanRequest>,

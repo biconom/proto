@@ -23,6 +23,9 @@ service DistributorService {
 
 	// Получает агрегированную статистику по структуре дистрибьютора.
 	rpc GetStructureOverview(GetStructureOverviewRequest) returns (GetStructureOverviewResponse);
+
+	// Изменяет username дистрибьютора, под которым авторизован пользователь.
+	rpc ChangeUsername(ChangeUsernameRequest) returns (Response);
 }
 
 // Response - это ответ для одиночной сущности, который включает в себя связанные данные.
@@ -151,4 +154,10 @@ message SearchRequest {
 	// Фильтр по типу иерархической связи относительно текущего пользователя.
 	// Если поле не заполнено, поиск производится без учета иерархической связи.
 	repeated biconom.types.Relationship.State.Kind filter_relationship_state_kinds = 4;
+}
+
+// Запрос на изменение username.
+message ChangeUsernameRequest {
+	// Новый username.
+	string new_username = 1;
 }

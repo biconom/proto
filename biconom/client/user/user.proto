@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.client.user;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 // UserService предоставляет методы для работы с данными, специфичными для пользователя.
 service UserService {
@@ -14,6 +15,12 @@ service UserService {
 
     // Удаляет привязку телеграм от аккаунта.
     rpc DeleteTelegram(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    // Получает временную ссылку для загрузки новой аватарки (например, pre-signed S3 URL).
+    rpc GetAvatarUploadUrl(google.protobuf.Empty) returns (GetAvatarUploadUrlResponse);
+
+    // Сбрасывает (удаляет) текущую аватарку пользователя.
+    rpc ResetAvatar(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 // Ответ, содержащий битовые маски прав доступа.
@@ -29,4 +36,19 @@ message GetPermissionsResponse {
 message GetTelegramBotLinkResponse {
     // Ссылка для подключения к телеграм боту.
     string link = 1;
+}
+
+// Ответ, содержащий ссылку для загрузки аватара.
+message GetAvatarUploadUrlResponse {
+    // Временная ссылка (например S3 pre-signed URL) для PUT-запроса файла аватара.
+    string upload_url = 1;
+
+    // Временная метка того, когда ссылка для загрузки станет недействительной.
+    google.protobuf.Timestamp expires_at = 2;
+
+    // Список допустимых форматов файлов (например: "jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff").
+    repeated string allowed_formats = 3;
+
+    // Максимальный размер файла в байтах.
+    uint64 max_file_size = 4;
 }

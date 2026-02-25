@@ -16,6 +16,22 @@ pub struct GetTelegramBotLinkResponse {
     #[prost(string, tag = "1")]
     pub link: ::prost::alloc::string::String,
 }
+/// Ответ, содержащий ссылку для загрузки аватара.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAvatarUploadUrlResponse {
+    /// Временная ссылка (например S3 pre-signed URL) для PUT-запроса файла аватара.
+    #[prost(string, tag = "1")]
+    pub upload_url: ::prost::alloc::string::String,
+    /// Временная метка того, когда ссылка для загрузки станет недействительной.
+    #[prost(message, optional, tag = "2")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Список допустимых форматов файлов (например: "jpg", "jpeg", "png", "webp", "bmp", "gif", "tiff").
+    #[prost(string, repeated, tag = "3")]
+    pub allowed_formats: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Максимальный размер файла в байтах.
+    #[prost(uint64, tag = "4")]
+    pub max_file_size: u64,
+}
 /// Generated server implementations.
 pub mod user_service_server {
     #![allow(
@@ -47,6 +63,19 @@ pub mod user_service_server {
         >;
         /// Удаляет привязку телеграм от аккаунта.
         async fn delete_telegram(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        /// Получает временную ссылку для загрузки новой аватарки (например, pre-signed S3 URL).
+        async fn get_avatar_upload_url(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAvatarUploadUrlResponse>,
+            tonic::Status,
+        >;
+        /// Сбрасывает (удаляет) текущую аватарку пользователя.
+        async fn reset_avatar(
             &self,
             request: tonic::Request<()>,
         ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
@@ -234,6 +263,87 @@ pub mod user_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteTelegramSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.user.UserService/GetAvatarUploadUrl" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetAvatarUploadUrlSvc<T: UserService>(pub Arc<T>);
+                    impl<T: UserService> tonic::server::UnaryService<()>
+                    for GetAvatarUploadUrlSvc<T> {
+                        type Response = super::GetAvatarUploadUrlResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as UserService>::get_avatar_upload_url(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetAvatarUploadUrlSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.user.UserService/ResetAvatar" => {
+                    #[allow(non_camel_case_types)]
+                    struct ResetAvatarSvc<T: UserService>(pub Arc<T>);
+                    impl<T: UserService> tonic::server::UnaryService<()>
+                    for ResetAvatarSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as UserService>::reset_avatar(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ResetAvatarSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

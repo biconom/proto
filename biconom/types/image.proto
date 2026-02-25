@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Метаданные загруженного изображения и его обработанных вариантов.
+// Модель отражает информацию о файле, полученном из сервиса хранения изображений (image_storage_core).
+// Поле status (processing/ready) намеренно исключено из proto-модели,
+// так как клиент получает только готовые изображения.
+message Image {
+    // Идентификатор изображения.
+    message Id {
+        oneof identifier {
+            // UUID файла (основной идентификатор из image_storage_core).
+            string file_id = 1;
+        }
+    }
+
+    // Обработанный вариант изображения (конкретный размер/кроп).
+    message Variant {
+        // Ширина в пикселях.
+        uint32 width = 1;
+
+        // Высота в пикселях.
+        uint32 height = 2;
+
+        // Размер варианта в байтах.
+        uint64 size_bytes = 3;
+
+        // MIME-тип варианта (например, "image/webp").
+        string content_type = 4;
+
+        // Режим smart crop (например, "face", "face_hq"). Пустое значение — стандартный кроп.
+        string smart_crop = 5;
+
+        // Процент площади лица относительно площади итогового изображения (1–100).
+        // Значение 0 означает отсутствие информации о лице.
+        uint32 smart_crop_face_percent = 6;
+    }
+
+    // UUID файла (первичный идентификатор).
+    string file_id = 1;
+
+    // Имя контейнера (тип объекта, например "ava", "banner").
+    string container = 2;
+
+    // ID объекта во внешней системе (например, ID пользователя).
+    uint64 object_id = 3;
+
+    // MIME-тип оригинального файла (например, "image/webp").
+    string content_type = 4;
+
+    // Размер оригинального файла в байтах.
+    uint64 size_bytes = 5;
+
+    // Временная метка создания файла.
+    google.protobuf.Timestamp created_at = 6;
+
+    // Обработанные варианты изображения. Ключ — имя варианта (например, "micro", "small", "large").
+    map<string, Variant> variants = 7;
+}

@@ -24,6 +24,7 @@ message MarketingSlot {
         }
         uint32 distributor_id = 1;
         repeated TreeState tree_states = 2;
+        bool viewable = 3; // Имеет ли текущий авторизованный пользователь право на просмотр профиля данного дистрибьютора
     }
 
     // State содержит динамическую информацию о состоянии слота и лицензии.

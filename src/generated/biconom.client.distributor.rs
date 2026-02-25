@@ -177,6 +177,13 @@ pub struct SearchRequest {
     )]
     pub filter_relationship_state_kinds: ::prost::alloc::vec::Vec<i32>,
 }
+/// Запрос на изменение username.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChangeUsernameRequest {
+    /// Новый username.
+    #[prost(string, tag = "1")]
+    pub new_username: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod distributor_service_server {
     #![allow(
@@ -214,6 +221,11 @@ pub mod distributor_service_server {
             tonic::Response<super::GetStructureOverviewResponse>,
             tonic::Status,
         >;
+        /// Изменяет username дистрибьютора, под которым авторизован пользователь.
+        async fn change_username(
+            &self,
+            request: tonic::Request<super::ChangeUsernameRequest>,
+        ) -> std::result::Result<tonic::Response<super::Response>, tonic::Status>;
     }
     /// DistributorService предоставляет клиентский функционал для работы с дистрибьюторами.
     #[derive(Debug)]
@@ -465,6 +477,52 @@ pub mod distributor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetStructureOverviewSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.distributor.DistributorService/ChangeUsername" => {
+                    #[allow(non_camel_case_types)]
+                    struct ChangeUsernameSvc<T: DistributorService>(pub Arc<T>);
+                    impl<
+                        T: DistributorService,
+                    > tonic::server::UnaryService<super::ChangeUsernameRequest>
+                    for ChangeUsernameSvc<T> {
+                        type Response = super::Response;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ChangeUsernameRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DistributorService>::change_username(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ChangeUsernameSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
