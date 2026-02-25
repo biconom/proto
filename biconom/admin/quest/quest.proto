@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package biconom.admin.quest;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/quest.proto";
+
+// QuestAdminService предоставляет административный функционал для управления этапами квестов.
+service QuestAdminService {
+    // Создать новый этап квеста для указанной валютной пары.
+    rpc CreateStage(CreateStageRequest) returns (CreateStageResponse);
+
+    // Обновить существующий этап квеста (только Pending или Active).
+    rpc UpdateStage(UpdateStageRequest) returns (google.protobuf.Empty);
+
+    // Удалить этап квеста (только Pending).
+    rpc DeleteStage(DeleteStageRequest) returns (google.protobuf.Empty);
+
+    // Активировать этап (Pending → Active).
+    rpc ActivateStage(StageIdentifier) returns (google.protobuf.Empty);
+
+    // Приостановить этап (Active → Paused).
+    rpc PauseStage(StageIdentifier) returns (google.protobuf.Empty);
+
+    // Возобновить этап (Paused → Active).
+    rpc ResumeStage(StageIdentifier) returns (google.protobuf.Empty);
+
+    // Получить overflow-метрики этапа.
+    rpc GetOverflow(StageIdentifier) returns (OverflowResponse);
+
+    // Задать произвольные overflow-метрики этапа.
+    rpc SetOverflow(SetOverflowRequest) returns (google.protobuf.Empty);
+
+    // Перенести overflow-метрики из одного этапа в метрики другого (активного) этапа.
+    rpc TransferOverflow(TransferOverflowRequest) returns (google.protobuf.Empty);
+}
+
+// Идентификатор этапа квеста.
+message StageIdentifier {
+    uint32 currency_pair_id = 1; // ID валютной пары (= ID квеста).
+    uint32 stage_id = 2;        // ID этапа внутри квеста.
+}
+
+// Запрос на создание этапа.
+message CreateStageRequest {
+    uint32 currency_pair_id = 1; // ID валютной пары (= ID квеста).
+    uint32 sequence = 2;         // Порядковый номер для сортировки.
+    bool auto_activate = 3;      // Автоактивация после завершения предыдущего.
+
+    // Условие триггера закрытия.
+    biconom.types.Quest.TriggerCondition trigger = 4;
+
+    // Награда при закрытии.
+    biconom.types.Quest.Reward reward = 5;
+}
+
+// Ответ на создание этапа.
+message CreateStageResponse {
+    uint32 stage_id = 1; // ID созданного этапа.
+}
+
+// Запрос на обновление этапа.
+message UpdateStageRequest {
+    uint32 currency_pair_id = 1; // ID валютной пары (= ID квеста).
+    uint32 stage_id = 2;        // ID этапа.
+
+    optional uint32 sequence = 3;    // Новый порядковый номер.
+    optional bool auto_activate = 4; // Новый флаг автоактивации.
+
+    // Новое условие триггера (опционально).
+    optional biconom.types.Quest.TriggerCondition trigger = 5;
+
+    // Новая награда (опционально).
+    optional biconom.types.Quest.Reward reward = 6;
+}
+
+// Запрос на удаление этапа.
+message DeleteStageRequest {
+    uint32 currency_pair_id = 1; // ID валютной пары (= ID квеста).
+    uint32 stage_id = 2;        // ID этапа.
+}
+
+// Ответ с overflow-метриками.
+message OverflowResponse {
+    biconom.types.Quest.Metrics overflow_metrics = 1; // Текущие overflow-метрики.
+}
+
+// Запрос на установку overflow-метрик.
+message SetOverflowRequest {
+    uint32 currency_pair_id = 1;                      // ID валютной пары (= ID квеста).
+    uint32 stage_id = 2;                              // ID этапа.
+    biconom.types.Quest.Metrics overflow_metrics = 3;  // Новые overflow-метрики.
+}
+
+// Запрос на перенос overflow-метрик в метрики целевого (активного) этапа.
+message TransferOverflowRequest {
+    uint32 currency_pair_id = 1;    // ID валютной пары (= ID квеста).
+    uint32 source_stage_id = 2;     // ID этапа-источника overflow.
+    uint32 target_stage_id = 3;     // ID целевого этапа (должен быть Active).
+}

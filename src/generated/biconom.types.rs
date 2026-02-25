@@ -3641,21 +3641,57 @@ pub mod quest {
             }
         }
     }
-    /// Условия прохождения квеста.
+    /// Четыре аккумулятора торгового объёма.
+    /// Value Object — является частью Stage, не хранится отдельно.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Metrics {
+        /// Сколько базовой валюты получено (mantissa).
+        #[prost(string, tag = "1")]
+        pub base_received: ::prost::alloc::string::String,
+        /// Сколько базовой валюты отдано (mantissa).
+        #[prost(string, tag = "2")]
+        pub base_given: ::prost::alloc::string::String,
+        /// Сколько квотируемой валюты получено (mantissa).
+        #[prost(string, tag = "3")]
+        pub quote_received: ::prost::alloc::string::String,
+        /// Сколько квотируемой валюты отдано (mantissa).
+        #[prost(string, tag = "4")]
+        pub quote_given: ::prost::alloc::string::String,
+    }
+    /// Условие триггера — какая из 4 метрик является триггером для закрытия этапа.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct TriggerCondition {
+        /// Какая метрика отслеживается.
+        #[prost(enumeration = "MetricKind", tag = "1")]
+        pub metric_kind: i32,
+        /// Пороговое значение (mantissa).
+        #[prost(string, tag = "2")]
+        pub target_amount: ::prost::alloc::string::String,
+        /// ID валюты для отображения на фронте.
+        #[prost(uint32, tag = "3")]
+        pub currency_id: u32,
+    }
+    /// Награда за выполнение этапа — новые цены для обменника.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Reward {
+        /// Новая цена покупки (базовой валюты), например "1.050000".
+        #[prost(string, optional, tag = "1")]
+        pub buy_price: ::core::option::Option<::prost::alloc::string::String>,
+        /// Новая цена продажи (базовой валюты), например "1.020000".
+        #[prost(string, optional, tag = "2")]
+        pub sell_price: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    /// Устаревшее — условие по валютному объёму (оставлено для обратной совместимости).
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Condition {}
     /// Nested message and enum types in `Condition`.
     pub mod condition {
-        /// Условие достижения определенного объема торгов.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct CurrencyVolume {
-            /// ID валюты, в которой считается объем.
             #[prost(uint32, tag = "1")]
             pub currency_id: u32,
-            /// Целевой объем, который необходимо достичь (например, "200000").
             #[prost(string, tag = "2")]
             pub target_amount: ::prost::alloc::string::String,
-            /// Текущий накопленный объем пользователей.
             #[prost(string, tag = "3")]
             pub accumulated_amount: ::prost::alloc::string::String,
         }
@@ -3686,48 +3722,82 @@ pub mod quest {
             /// Временные метки жизненного цикла этапа.
             #[prost(message, optional, tag = "3")]
             pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-            /// Когда этап стал активным (начался подсчет).
+            /// Когда этап стал активным.
             #[prost(message, optional, tag = "4")]
             pub activated_at: ::core::option::Option<::prost_types::Timestamp>,
             /// Когда условия были выполнены.
             #[prost(message, optional, tag = "5")]
             pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
-            /// Условия этапа. Может быть задано условие по базовой валюте, котируемой или обоим сразу.
-            #[prost(message, optional, tag = "6")]
-            pub condition_base_currency: ::core::option::Option<
-                super::condition::CurrencyVolume,
-            >,
-            #[prost(message, optional, tag = "7")]
-            pub condition_quote_currency: ::core::option::Option<
-                super::condition::CurrencyVolume,
-            >,
-            /// Награда, выдаваемая/активируемая по завершению этапа.
-            #[prost(oneof = "stage::RewardKind", tags = "8")]
-            pub reward_kind: ::core::option::Option<stage::RewardKind>,
+            /// Порядковый номер для сортировки этапов.
+            #[prost(uint32, tag = "9")]
+            pub sequence: u32,
+            /// Автоактивация: если true, этап автоматически активируется после завершения предыдущего.
+            #[prost(bool, tag = "10")]
+            pub auto_activate: bool,
+            /// Условие триггера закрытия этапа.
+            #[prost(message, optional, tag = "11")]
+            pub trigger: ::core::option::Option<super::TriggerCondition>,
+            /// Аккумулированные метрики за время активности (Active).
+            #[prost(message, optional, tag = "12")]
+            pub metrics: ::core::option::Option<super::Metrics>,
+            /// Нереализованные метрики (пришли когда этап НЕ Active).
+            #[prost(message, optional, tag = "13")]
+            pub overflow_metrics: ::core::option::Option<super::Metrics>,
+            /// Награда при закрытии этапа.
+            #[prost(message, optional, tag = "14")]
+            pub reward: ::core::option::Option<super::Reward>,
+            /// ID последнего учтённого TradeEvent.
+            #[prost(uint64, tag = "15")]
+            pub last_trade_event_id: u64,
         }
-        /// Nested message and enum types in `Stage`.
-        pub mod stage {
-            /// Возможные награды за выполнение этапа.
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Reward {}
-            /// Nested message and enum types in `Reward`.
-            pub mod reward {
-                /// Награда в виде изменения курса обмена валюты.
-                #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-                pub struct PriceChange {
-                    /// Новая цена покупки (базовой валюты).
-                    #[prost(string, tag = "1")]
-                    pub buy_price: ::prost::alloc::string::String,
-                    /// Новая цена продажи (базовой валюты).
-                    #[prost(string, tag = "2")]
-                    pub sell_price: ::prost::alloc::string::String,
-                }
+    }
+    /// Вид метрики для отслеживания торгового объёма.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum MetricKind {
+        Unspecified = 0,
+        /// Получено базовой валюты (при Buy).
+        BaseReceived = 1,
+        /// Отдано базовой валюты (при Sell).
+        BaseGiven = 2,
+        /// Получено квотируемой валюты (при Sell).
+        QuoteReceived = 3,
+        /// Отдано квотируемой валюты (при Buy).
+        QuoteGiven = 4,
+    }
+    impl MetricKind {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "METRIC_KIND_UNSPECIFIED",
+                Self::BaseReceived => "BASE_RECEIVED",
+                Self::BaseGiven => "BASE_GIVEN",
+                Self::QuoteReceived => "QUOTE_RECEIVED",
+                Self::QuoteGiven => "QUOTE_GIVEN",
             }
-            /// Награда, выдаваемая/активируемая по завершению этапа.
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-            pub enum RewardKind {
-                #[prost(message, tag = "8")]
-                PriceChange(reward::PriceChange),
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "METRIC_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+                "BASE_RECEIVED" => Some(Self::BaseReceived),
+                "BASE_GIVEN" => Some(Self::BaseGiven),
+                "QUOTE_RECEIVED" => Some(Self::QuoteReceived),
+                "QUOTE_GIVEN" => Some(Self::QuoteGiven),
+                _ => None,
             }
         }
     }

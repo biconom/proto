@@ -26,13 +26,43 @@ message Quest {
         }
     }
 
-    // Условия прохождения квеста.
+    // Вид метрики для отслеживания торгового объёма.
+    enum MetricKind {
+        METRIC_KIND_UNSPECIFIED = 0;
+        BASE_RECEIVED = 1;  // Получено базовой валюты (при Buy).
+        BASE_GIVEN = 2;     // Отдано базовой валюты (при Sell).
+        QUOTE_RECEIVED = 3; // Получено квотируемой валюты (при Sell).
+        QUOTE_GIVEN = 4;    // Отдано квотируемой валюты (при Buy).
+    }
+
+    // Четыре аккумулятора торгового объёма.
+    // Value Object — является частью Stage, не хранится отдельно.
+    message Metrics {
+        string base_received = 1;  // Сколько базовой валюты получено (mantissa).
+        string base_given = 2;     // Сколько базовой валюты отдано (mantissa).
+        string quote_received = 3; // Сколько квотируемой валюты получено (mantissa).
+        string quote_given = 4;    // Сколько квотируемой валюты отдано (mantissa).
+    }
+
+    // Условие триггера — какая из 4 метрик является триггером для закрытия этапа.
+    message TriggerCondition {
+        MetricKind metric_kind = 1; // Какая метрика отслеживается.
+        string target_amount = 2;   // Пороговое значение (mantissa).
+        uint32 currency_id = 3;     // ID валюты для отображения на фронте.
+    }
+
+    // Награда за выполнение этапа — новые цены для обменника.
+    message Reward {
+        optional string buy_price = 1;  // Новая цена покупки (базовой валюты), например "1.050000".
+        optional string sell_price = 2; // Новая цена продажи (базовой валюты), например "1.020000".
+    }
+
+    // Устаревшее — условие по валютному объёму (оставлено для обратной совместимости).
     message Condition {
-        // Условие достижения определенного объема торгов.
         message CurrencyVolume {
-            uint32 currency_id = 1;        // ID валюты, в которой считается объем.
-            string target_amount = 2;      // Целевой объем, который необходимо достичь (например, "200000").
-            string accumulated_amount = 3; // Текущий накопленный объем пользователей.
+            uint32 currency_id = 1;
+            string target_amount = 2;
+            string accumulated_amount = 3;
         }
     }
 
@@ -40,42 +70,48 @@ message Quest {
     message ExchangeTradeQuest {
         // Этап квеста. Квест может состоять из последовательности этапов.
         message Stage {
-            // Возможные награды за выполнение этапа.
-            message Reward {
-                // Награда в виде изменения курса обмена валюты.
-                message PriceChange {
-                    string buy_price = 1;  // Новая цена покупки (базовой валюты).
-                    string sell_price = 2; // Новая цена продажи (базовой валюты).
-                }
-            }
-
             uint32 id = 1;
             Status.Id status = 2; // Текущий статус этапа.
-            
+
             // Временные метки жизненного цикла этапа.
             google.protobuf.Timestamp created_at = 3;
-            google.protobuf.Timestamp activated_at = 4;  // Когда этап стал активным (начался подсчет).
+            google.protobuf.Timestamp activated_at = 4;  // Когда этап стал активным.
             google.protobuf.Timestamp completed_at = 5;  // Когда условия были выполнены.
 
-            // Условия этапа. Может быть задано условие по базовой валюте, котируемой или обоим сразу.
-            optional Condition.CurrencyVolume condition_base_currency = 6;
-            optional Condition.CurrencyVolume condition_quote_currency = 7;
+            // Поля 6, 7, 8 зарезервированы (бывшие condition_base_currency, condition_quote_currency, price_change).
+            reserved 6, 7, 8;
 
-            // Награда, выдаваемая/активируемая по завершению этапа.
-            oneof reward_kind {
-                Reward.PriceChange price_change = 8;
-            }
+            // Порядковый номер для сортировки этапов.
+            uint32 sequence = 9;
+
+            // Автоактивация: если true, этап автоматически активируется после завершения предыдущего.
+            bool auto_activate = 10;
+
+            // Условие триггера закрытия этапа.
+            TriggerCondition trigger = 11;
+
+            // Аккумулированные метрики за время активности (Active).
+            Metrics metrics = 12;
+
+            // Нереализованные метрики (пришли когда этап НЕ Active).
+            Metrics overflow_metrics = 13;
+
+            // Награда при закрытии этапа.
+            Reward reward = 14;
+
+            // ID последнего учтённого TradeEvent.
+            uint64 last_trade_event_id = 15;
         }
 
         uint32 exchange_id = 1;      // ID биржи, где проводится квест.
         uint32 currency_pair_id = 2; // ID валютной пары.
-        
+
         // Список этапов квеста. Этапы обычно проходятся последовательно.
         repeated Stage stages = 3;
     }
 
     // Тип квеста. Позволяет расширять модель новыми механиками в будущем.
     oneof kind {
-        ExchangeTradeQuest exchange_trade = 1; 
+        ExchangeTradeQuest exchange_trade = 1;
     }
 }
