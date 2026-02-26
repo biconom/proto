@@ -3566,8 +3566,8 @@ pub mod exchange_policy {
         }
     }
 }
-/// Quest - это высокоуровневая модель, описывающая квест или кампанию.
-/// Квесты используются для геймификации и мотивации пользователей, объединяя их общими целями.
+/// Quest — высокоуровневая модель, описывающая квест или кампанию.
+/// Расширяется через oneof kind для поддержки различных механик.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Quest {
     /// Тип квеста. Позволяет расширять модель новыми механиками в будущем.
@@ -3576,16 +3576,6 @@ pub struct Quest {
 }
 /// Nested message and enum types in `Quest`.
 pub mod quest {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Quest>,
-    }
     /// Состояние квеста или его отдельного этапа.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Status {}
@@ -3605,7 +3595,7 @@ pub mod quest {
         #[repr(i32)]
         pub enum Id {
             Unspecified = 0,
-            /// Запланирован, но еще не активен (условия не отслеживаются).
+            /// Запланирован, условия не отслеживаются.
             Pending = 1,
             /// Активен, прогресс накапливается.
             Active = 2,
@@ -3641,77 +3631,59 @@ pub mod quest {
             }
         }
     }
-    /// Четыре аккумулятора торгового объёма.
-    /// Value Object — является частью Stage, не хранится отдельно.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Metrics {
-        /// Сколько базовой валюты получено (mantissa).
-        #[prost(string, tag = "1")]
-        pub base_received: ::prost::alloc::string::String,
-        /// Сколько базовой валюты отдано (mantissa).
-        #[prost(string, tag = "2")]
-        pub base_given: ::prost::alloc::string::String,
-        /// Сколько квотируемой валюты получено (mantissa).
-        #[prost(string, tag = "3")]
-        pub quote_received: ::prost::alloc::string::String,
-        /// Сколько квотируемой валюты отдано (mantissa).
-        #[prost(string, tag = "4")]
-        pub quote_given: ::prost::alloc::string::String,
-    }
-    /// Условие триггера — какая из 4 метрик является триггером для закрытия этапа.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct TriggerCondition {
-        /// Какая метрика отслеживается.
-        #[prost(enumeration = "MetricKind", tag = "1")]
-        pub metric_kind: i32,
-        /// Пороговое значение (mantissa).
-        #[prost(string, tag = "2")]
-        pub target_amount: ::prost::alloc::string::String,
-        /// ID валюты для отображения на фронте.
-        #[prost(uint32, tag = "3")]
-        pub currency_id: u32,
-    }
-    /// Награда за выполнение этапа — новые цены для обменника.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Reward {
-        /// Новая цена покупки (базовой валюты), например "1.050000".
-        #[prost(string, optional, tag = "1")]
-        pub buy_price: ::core::option::Option<::prost::alloc::string::String>,
-        /// Новая цена продажи (базовой валюты), например "1.020000".
-        #[prost(string, optional, tag = "2")]
-        pub sell_price: ::core::option::Option<::prost::alloc::string::String>,
-    }
-    /// Устаревшее — условие по валютному объёму (оставлено для обратной совместимости).
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Condition {}
-    /// Nested message and enum types in `Condition`.
-    pub mod condition {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CurrencyVolume {
-            #[prost(uint32, tag = "1")]
-            pub currency_id: u32,
-            #[prost(string, tag = "2")]
-            pub target_amount: ::prost::alloc::string::String,
-            #[prost(string, tag = "3")]
-            pub accumulated_amount: ::prost::alloc::string::String,
-        }
-    }
     /// Торговый квест, привязанный к конкретной бирже и валютной паре.
+    /// Этапы выполняются последовательно: завершение текущего → автоактивация следующего.
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ExchangeTradeQuest {
-        /// ID биржи, где проводится квест.
+        /// ID биржи.
         #[prost(uint32, tag = "1")]
         pub exchange_id: u32,
         /// ID валютной пары.
         #[prost(uint32, tag = "2")]
         pub currency_pair_id: u32,
-        /// Список этапов квеста. Этапы обычно проходятся последовательно.
+        /// Список этапов квеста (по возрастанию sequence).
         #[prost(message, repeated, tag = "3")]
         pub stages: ::prost::alloc::vec::Vec<exchange_trade_quest::Stage>,
     }
     /// Nested message and enum types in `ExchangeTradeQuest`.
     pub mod exchange_trade_quest {
-        /// Этап квеста. Квест может состоять из последовательности этапов.
+        /// Четыре аккумулятора торгового объёма.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Metrics {
+            /// Получено базовой валюты (десятичная строка).
+            #[prost(string, tag = "1")]
+            pub base_received: ::prost::alloc::string::String,
+            /// Отдано базовой валюты (десятичная строка).
+            #[prost(string, tag = "2")]
+            pub base_given: ::prost::alloc::string::String,
+            /// Получено квотируемой валюты (десятичная строка).
+            #[prost(string, tag = "3")]
+            pub quote_received: ::prost::alloc::string::String,
+            /// Отдано квотируемой валюты (десятичная строка).
+            #[prost(string, tag = "4")]
+            pub quote_given: ::prost::alloc::string::String,
+        }
+        /// Условие триггера — какая из 4 метрик является триггером для закрытия этапа.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct TriggerCondition {
+            /// Какая метрика отслеживается.
+            #[prost(enumeration = "MetricKind", tag = "1")]
+            pub metric_kind: i32,
+            /// Пороговое значение (десятичная строка, precision = валюта из пары).
+            #[prost(string, tag = "2")]
+            pub target_amount: ::prost::alloc::string::String,
+        }
+        /// Награда за выполнение этапа — точный курс для валютной пары.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Reward {
+            /// Цена покупки (десятичная строка, precision = quote валюта).
+            #[prost(string, tag = "1")]
+            pub buy_price: ::prost::alloc::string::String,
+            /// Цена продажи (десятичная строка, precision = quote валюта).
+            #[prost(string, tag = "2")]
+            pub sell_price: ::prost::alloc::string::String,
+        }
+        /// Этап квеста. Квест состоит из последовательности этапов.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Stage {
             #[prost(uint32, tag = "1")]
@@ -3728,76 +3700,73 @@ pub mod quest {
             /// Когда условия были выполнены.
             #[prost(message, optional, tag = "5")]
             pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
-            /// Порядковый номер для сортировки этапов.
-            #[prost(uint32, tag = "9")]
+            /// Порядковый номер (auto-increment, read-only).
+            #[prost(uint32, tag = "6")]
             pub sequence: u32,
             /// Автоактивация: если true, этап автоматически активируется после завершения предыдущего.
-            #[prost(bool, tag = "10")]
+            #[prost(bool, tag = "7")]
             pub auto_activate: bool,
             /// Условие триггера закрытия этапа.
-            #[prost(message, optional, tag = "11")]
-            pub trigger: ::core::option::Option<super::TriggerCondition>,
+            #[prost(message, optional, tag = "8")]
+            pub trigger: ::core::option::Option<TriggerCondition>,
             /// Аккумулированные метрики за время активности (Active).
-            #[prost(message, optional, tag = "12")]
-            pub metrics: ::core::option::Option<super::Metrics>,
-            /// Нереализованные метрики (пришли когда этап НЕ Active).
-            #[prost(message, optional, tag = "13")]
-            pub overflow_metrics: ::core::option::Option<super::Metrics>,
+            #[prost(message, optional, tag = "9")]
+            pub metrics: ::core::option::Option<Metrics>,
             /// Награда при закрытии этапа.
-            #[prost(message, optional, tag = "14")]
-            pub reward: ::core::option::Option<super::Reward>,
+            #[prost(message, optional, tag = "10")]
+            pub reward: ::core::option::Option<Reward>,
             /// ID последнего учтённого TradeEvent.
-            #[prost(uint64, tag = "15")]
+            #[prost(uint64, tag = "11")]
             pub last_trade_event_id: u64,
         }
-    }
-    /// Вид метрики для отслеживания торгового объёма.
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    pub enum MetricKind {
-        Unspecified = 0,
-        /// Получено базовой валюты (при Buy).
-        BaseReceived = 1,
-        /// Отдано базовой валюты (при Sell).
-        BaseGiven = 2,
-        /// Получено квотируемой валюты (при Sell).
-        QuoteReceived = 3,
-        /// Отдано квотируемой валюты (при Buy).
-        QuoteGiven = 4,
-    }
-    impl MetricKind {
-        /// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        pub fn as_str_name(&self) -> &'static str {
-            match self {
-                Self::Unspecified => "METRIC_KIND_UNSPECIFIED",
-                Self::BaseReceived => "BASE_RECEIVED",
-                Self::BaseGiven => "BASE_GIVEN",
-                Self::QuoteReceived => "QUOTE_RECEIVED",
-                Self::QuoteGiven => "QUOTE_GIVEN",
-            }
+        /// Вид метрики для отслеживания торгового объёма.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum MetricKind {
+            Unspecified = 0,
+            /// Получено базовой валюты (при Buy).
+            BaseReceived = 1,
+            /// Отдано базовой валюты (при Sell).
+            BaseGiven = 2,
+            /// Получено квотируемой валюты (при Sell).
+            QuoteReceived = 3,
+            /// Отдано квотируемой валюты (при Buy).
+            QuoteGiven = 4,
         }
-        /// Creates an enum from field names used in the ProtoBuf definition.
-        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-            match value {
-                "METRIC_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-                "BASE_RECEIVED" => Some(Self::BaseReceived),
-                "BASE_GIVEN" => Some(Self::BaseGiven),
-                "QUOTE_RECEIVED" => Some(Self::QuoteReceived),
-                "QUOTE_GIVEN" => Some(Self::QuoteGiven),
-                _ => None,
+        impl MetricKind {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "METRIC_KIND_UNSPECIFIED",
+                    Self::BaseReceived => "BASE_RECEIVED",
+                    Self::BaseGiven => "BASE_GIVEN",
+                    Self::QuoteReceived => "QUOTE_RECEIVED",
+                    Self::QuoteGiven => "QUOTE_GIVEN",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "METRIC_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+                    "BASE_RECEIVED" => Some(Self::BaseReceived),
+                    "BASE_GIVEN" => Some(Self::BaseGiven),
+                    "QUOTE_RECEIVED" => Some(Self::QuoteReceived),
+                    "QUOTE_GIVEN" => Some(Self::QuoteGiven),
+                    _ => None,
+                }
             }
         }
     }
