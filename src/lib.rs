@@ -10,6 +10,9 @@ pub mod biconom {
         pub mod quest {
             include!("generated/biconom.admin.quest.rs");
         }
+        pub mod dividend_pool {
+            include!("generated/biconom.admin.dividend_pool.rs");
+        }
         pub mod tasks {
             include!("generated/biconom.admin.tasks.rs");
         }
@@ -83,6 +86,9 @@ pub mod biconom {
         }
         pub mod trade {
             include!("generated/biconom.client.trade.rs");
+        }
+        pub mod dividend_pool {
+            include!("generated/biconom.client.dividend_pool.rs");
         }
         pub mod user {
             include!("generated/biconom.client.user.rs");

@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package biconom.client.dividend_pool;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/dividend_pool.proto";
+
+// DividendPoolService — клиентский сервис дивидендного пула.
+//
+// Механика пассивного дохода: пользователь получает ежедневные дивиденды
+// пропорционально сумме USDT, потраченной на покупку WIN токенов.
+//
+// Жизненный цикл:
+//   Активация → Генерация бонуса → Блокировка 24ч → Клейм → [Новая генерация]
+//
+// Пропущенные дни сгорают (мотивация ежедневных визитов).
+service DividendPoolService {
+    // Получить текущее состояние дивидендного пула для авторизованного пользователя.
+    // Возвращает агрегированные метрики и pending-бонус (если активирован).
+    // Не мутирует данные.
+    rpc GetDividendPool(google.protobuf.Empty) returns (GetDividendPoolResponse);
+
+    // Забрать (claim) начисленный бонус.
+    //
+    // Логика:
+    // - Если бонус ещё не активирован — активирует и генерирует первый бонус (без зачисления).
+    // - Если бонус разлокирован (unlock_at < now) — зачисляет USDT на spot-кошелёк.
+    // - Если сервис Active — генерирует новый бонус с блокировкой 24ч.
+    // - Если сервис Paused — зачисляет, но новый бонус не генерируется.
+    // - Если сервис Stopped — ошибка DIVIDEND_POOL_SERVICE_STOPPED.
+    //
+    // Ошибки:
+    // - FAILED_PRECONDITION: сервис остановлен, бонус заблокирован, нет дневного процента.
+    rpc ClaimDividendPool(google.protobuf.Empty) returns (ClaimDividendPoolResponse);
+
+    // Получить полную историю выплат дивидендов.
+    // Возвращает все записи (без пагинации, ~365 записей/год).
+    rpc GetDividendPoolHistory(google.protobuf.Empty) returns (GetDividendPoolHistoryResponse);
+}
+
+// Ответ с текущим состоянием дивидендного пула.
+message GetDividendPoolResponse {
+    // Суммарный объём WIN, купленного через трейдинг (формат mantissa).
+    string purchased_win = 1;
+
+    // Суммарный объём WIN, заработанного через бонусы (формат mantissa).
+    // Зарезервировано — в текущей версии бонусы начисляются в USDT.
+    string earned_win = 2;
+
+    // Суммарный объём USDT, потраченного на покупку WIN (формат mantissa).
+    // Это «тело» для расчёта дивидендов.
+    string invested_usdt = 3;
+
+    // Суммарный объём USDT, полученного из дивидендного пула (формат mantissa).
+    string received_usdt = 4;
+
+    // Текущий pending-бонус. Отсутствует если дивиденды не активированы.
+    optional biconom.types.DividendPool.PendingBonus bonus = 5;
+}
+
+// Ответ после клейма бонуса.
+message ClaimDividendPoolResponse {
+    // Новый pending-бонус (если сервис Active и генерация прошла успешно).
+    // Отсутствует если сервис Paused — бонус забран, но новый не создан.
+    optional biconom.types.DividendPool.PendingBonus bonus = 1;
+
+    // Сумма USDT зачисленная на spot-кошелёк (формат mantissa).
+    // "0" при первой активации.
+    string claimed_amount = 2;
+}
+
+// История всех выплат дивидендов.
+message GetDividendPoolHistoryResponse {
+    // Список записей о выплатах (хронологический порядок).
+    repeated biconom.types.DividendPool.Record items = 1;
+}

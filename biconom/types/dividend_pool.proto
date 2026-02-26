@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// DividendPool — модель данных дивидендного пула.
+// Содержит типы для отображения состояния, pending-бонуса и истории выплат.
+message DividendPool {
+
+    // Глобальный статус сервиса дивидендного пула.
+    // Управляется через Admin API (SetStatus).
+    message ServiceStatus {
+        enum Id {
+            UNSPECIFIED = 0;
+
+            // Полноценная работа: генерация бонусов + клейм.
+            ACTIVE = 1;
+
+            // Пользователи забирают pending-бонусы, но новые не генерируются.
+            PAUSED = 2;
+
+            // Всё заморожено: ни генерация, ни клейм.
+            STOPPED = 3;
+        }
+    }
+
+    // Ожидающий (pending) бонус пользователя.
+    // Создаётся при активации или после клейма (если сервис Active).
+    // Заблокирован на 24 часа после генерации.
+    message PendingBonus {
+        // Сумма начисленного бонуса в валюте currency_id (формат mantissa).
+        // Формула: invested_usdt × daily_rate / 100.
+        string amount = 1;
+
+        // Базовая сумма USDT, от которой рассчитан бонус (формат mantissa).
+        string base_amount = 2;
+
+        // Дневной процент, применённый при генерации (например "0.2667").
+        string daily_rate = 3;
+
+        // Когда бонус был сгенерирован.
+        google.protobuf.Timestamp generated_at = 4;
+
+        // Когда бонус станет доступен для клейма (generated_at + 24ч).
+        google.protobuf.Timestamp unlock_at = 5;
+
+        // ID валюты начисления (сейчас USDT).
+        uint32 currency_id = 6;
+    }
+
+    // Запись в истории выплат дивидендов.
+    // Создаётся при каждом успешном клейме. Append-only.
+    message Record {
+        // Сумма полученного бонуса (формат mantissa).
+        string amount = 1;
+
+        // Базовая сумма, от которой считалось (формат mantissa).
+        string base_amount = 2;
+
+        // Дневной процент на момент генерации (например "0.2667").
+        string daily_rate = 3;
+
+        // ID валюты выплаты.
+        uint32 currency_id = 4;
+
+        // Когда бонус был сгенерирован.
+        google.protobuf.Timestamp generated_at = 5;
+
+        // Когда пользователь забрал бонус.
+        google.protobuf.Timestamp claimed_at = 6;
+    }
+}

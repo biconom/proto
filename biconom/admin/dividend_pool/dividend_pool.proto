@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package biconom.admin.dividend_pool;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/dividend_pool.proto";
+
+// DividendPoolAdminService — административный сервис управления дивидендным пулом.
+//
+// Позволяет администратору контролировать глобальное состояние модуля:
+// включать, приостанавливать или полностью останавливать механику дивидендов.
+// Требует permission ADMIN_FINANCE.
+service DividendPoolAdminService {
+    // Получить текущий статус и статистику дивидендного пула.
+    rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse);
+
+    // Изменить глобальный статус сервиса (Active / Paused / Stopped).
+    // Изменение вступает в силу немедленно и персистится в RocksDB.
+    rpc SetStatus(SetStatusRequest) returns (google.protobuf.Empty);
+}
+
+// Ответ с текущим статусом и агрегированной статистикой.
+message GetStatusResponse {
+    // Текущий глобальный статус: ACTIVE, PAUSED или STOPPED.
+    biconom.types.DividendPool.ServiceStatus.Id status = 1;
+
+    // Количество пользователей с активным pending-бонусом.
+    uint32 total_active_users = 2;
+
+    // Последний сгенерированный дневной процент (например "0.2667").
+    // Пустая строка если ни одного процента ещё не было.
+    string latest_daily_rate = 3;
+
+    // Дата последнего процента в формате YYYYMMDD (например 20260226).
+    // 0 если ни одного процента ещё не было.
+    uint32 latest_daily_rate_date = 4;
+
+    // Суммарный объём USDT, вложенный всеми пользователями (формат mantissa).
+    string total_invested = 5;
+}
+
+// Запрос на изменение глобального статуса.
+message SetStatusRequest {
+    // Новый статус. UNSPECIFIED вернёт ошибку DIVIDEND_POOL_INVALID_STATUS.
+    biconom.types.DividendPool.ServiceStatus.Id status = 1;
+}

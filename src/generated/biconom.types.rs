@@ -4720,6 +4720,113 @@ pub mod price {
         pub items: ::prost::alloc::vec::Vec<super::Price>,
     }
 }
+/// DividendPool — модель данных дивидендного пула.
+/// Содержит типы для отображения состояния, pending-бонуса и истории выплат.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DividendPool {}
+/// Nested message and enum types in `DividendPool`.
+pub mod dividend_pool {
+    /// Глобальный статус сервиса дивидендного пула.
+    /// Управляется через Admin API (SetStatus).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ServiceStatus {}
+    /// Nested message and enum types in `ServiceStatus`.
+    pub mod service_status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Полноценная работа: генерация бонусов + клейм.
+            Active = 1,
+            /// Пользователи забирают pending-бонусы, но новые не генерируются.
+            Paused = 2,
+            /// Всё заморожено: ни генерация, ни клейм.
+            Stopped = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Paused => "PAUSED",
+                    Self::Stopped => "STOPPED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "PAUSED" => Some(Self::Paused),
+                    "STOPPED" => Some(Self::Stopped),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Ожидающий (pending) бонус пользователя.
+    /// Создаётся при активации или после клейма (если сервис Active).
+    /// Заблокирован на 24 часа после генерации.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct PendingBonus {
+        /// Сумма начисленного бонуса в валюте currency_id (формат mantissa).
+        /// Формула: invested_usdt × daily_rate / 100.
+        #[prost(string, tag = "1")]
+        pub amount: ::prost::alloc::string::String,
+        /// Базовая сумма USDT, от которой рассчитан бонус (формат mantissa).
+        #[prost(string, tag = "2")]
+        pub base_amount: ::prost::alloc::string::String,
+        /// Дневной процент, применённый при генерации (например "0.2667").
+        #[prost(string, tag = "3")]
+        pub daily_rate: ::prost::alloc::string::String,
+        /// Когда бонус был сгенерирован.
+        #[prost(message, optional, tag = "4")]
+        pub generated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Когда бонус станет доступен для клейма (generated_at + 24ч).
+        #[prost(message, optional, tag = "5")]
+        pub unlock_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// ID валюты начисления (сейчас USDT).
+        #[prost(uint32, tag = "6")]
+        pub currency_id: u32,
+    }
+    /// Запись в истории выплат дивидендов.
+    /// Создаётся при каждом успешном клейме. Append-only.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Record {
+        /// Сумма полученного бонуса (формат mantissa).
+        #[prost(string, tag = "1")]
+        pub amount: ::prost::alloc::string::String,
+        /// Базовая сумма, от которой считалось (формат mantissa).
+        #[prost(string, tag = "2")]
+        pub base_amount: ::prost::alloc::string::String,
+        /// Дневной процент на момент генерации (например "0.2667").
+        #[prost(string, tag = "3")]
+        pub daily_rate: ::prost::alloc::string::String,
+        /// ID валюты выплаты.
+        #[prost(uint32, tag = "4")]
+        pub currency_id: u32,
+        /// Когда бонус был сгенерирован.
+        #[prost(message, optional, tag = "5")]
+        pub generated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Когда пользователь забрал бонус.
+        #[prost(message, optional, tag = "6")]
+        pub claimed_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+}
 /// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InviteLink {
