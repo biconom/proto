@@ -193,6 +193,9 @@ pub struct CalculateManualPlacementPriceResponse {
     /// Стоимость расстановки в target_parent_id (0 при совпадении с predicted).
     #[prost(message, optional, tag = "7")]
     pub price: ::core::option::Option<super::super::types::Price>,
+    /// Базовая цена за ручную расстановку для данного дерева.
+    #[prost(message, optional, tag = "15")]
+    pub default_price: ::core::option::Option<super::super::types::Price>,
     /// Хлебные крошки до target_parent_id.
     #[prost(message, repeated, tag = "8")]
     pub breadcrumbs: ::prost::alloc::vec::Vec<

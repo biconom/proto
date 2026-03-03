@@ -5670,6 +5670,9 @@ pub mod license {
         /// Стоимость подписки за один период
         #[prost(message, optional, tag = "5")]
         pub price: ::core::option::Option<super::Price>,
+        /// Базовая цена за ручную расстановку в этом дереве
+        #[prost(message, optional, tag = "6")]
+        pub manual_placement_price: ::core::option::Option<super::Price>,
     }
     /// Nested message and enum types in `Plan`.
     pub mod plan {

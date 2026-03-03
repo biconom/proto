@@ -209,6 +209,7 @@ message CalculateManualPlacementPriceResponse {
 
     // --- Данные стоимости ---
     biconom.types.Price price = 7; // Стоимость расстановки в target_parent_id (0 при совпадении с predicted).
+    biconom.types.Price default_price = 15; // Базовая цена за ручную расстановку для данного дерева.
     
     // Хлебные крошки до target_parent_id.
     repeated biconom.types.MarketingSlot.Breadcrumb breadcrumbs = 8;
