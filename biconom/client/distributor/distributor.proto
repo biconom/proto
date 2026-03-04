@@ -6,6 +6,7 @@ import "biconom/types/account.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/relationship.proto";
 import "biconom/types/marketing_slot.proto";
+import "biconom/types/dividend_pool.proto";
 import "biconom/types/sort.proto";
 
 
@@ -40,6 +41,8 @@ message Response {
 	repeated biconom.types.MarketingSlot.State slot_states = 3;
 	// Состояния дистрибьютора
     biconom.types.MarketingSlot.DistributorState distributor_state = 4;
+	// Ожидающий бонус дивидендного пула. Заполняется только при просмотре собственного профиля.
+	optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5;
 }
 
 // ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.

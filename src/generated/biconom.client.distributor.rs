@@ -20,6 +20,11 @@ pub struct Response {
     pub distributor_state: ::core::option::Option<
         super::super::types::marketing_slot::DistributorState,
     >,
+    /// Ожидающий бонус дивидендного пула. Заполняется только при просмотре собственного профиля.
+    #[prost(message, optional, tag = "5")]
+    pub dividend_pool_bonus: ::core::option::Option<
+        super::super::types::dividend_pool::PendingBonus,
+    >,
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их
