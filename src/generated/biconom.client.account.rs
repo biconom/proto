@@ -14,6 +14,12 @@ pub struct AccountView {
     /// Список дистрибьюторов, принадлежащих авторизованному аккаунту.
     #[prost(message, repeated, tag = "3")]
     pub distributors: ::prost::alloc::vec::Vec<account_view::Distributor>,
+    /// Глобальный статус дивидендного пула.
+    #[prost(
+        enumeration = "super::super::types::dividend_pool::service_status::Id",
+        tag = "6"
+    )]
+    pub dividend_pool_status: i32,
     #[prost(oneof = "account_view::Profile", tags = "4, 5")]
     pub profile: ::core::option::Option<account_view::Profile>,
 }
@@ -34,6 +40,10 @@ pub mod account_view {
         #[prost(message, optional, tag = "4")]
         pub distributor_state: ::core::option::Option<
             super::super::super::types::marketing_slot::DistributorState,
+        >,
+        #[prost(message, optional, tag = "5")]
+        pub dividend_pool_bonus: ::core::option::Option<
+            super::super::super::types::dividend_pool::PendingBonus,
         >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]

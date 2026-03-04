@@ -10,6 +10,7 @@ import "biconom/types/mnemonic.proto";
 import "biconom/types/marketing_slot.proto";
 import "biconom/types/payment_destination.proto";
 import "biconom/types/google_authenticator.proto";
+import "biconom/types/dividend_pool.proto";
 
 // AccountService предоставляет информацию о текущем аутентифицированном аккаунте.
 service AccountService {
@@ -28,6 +29,7 @@ message AccountView {
 		repeated biconom.types.Distributor upline_distributors = 2;
 		repeated biconom.types.MarketingSlot.State slot_states = 3;
 		biconom.types.MarketingSlot.DistributorState distributor_state = 4;
+		optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;
@@ -40,6 +42,8 @@ message AccountView {
 		// Информация о community, связанном с этим аккаунтом.
 		google.protobuf.Empty community_profile = 5;
 	}
+	// Глобальный статус дивидендного пула.
+	biconom.types.DividendPool.ServiceStatus.Id dividend_pool_status = 6;
 }
 
 message UserProfile {
