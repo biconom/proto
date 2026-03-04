@@ -25,6 +25,12 @@ pub struct Response {
     pub dividend_pool_bonus: ::core::option::Option<
         super::super::types::dividend_pool::PendingBonus,
     >,
+    /// Глобальный статус дивидендного пула.
+    #[prost(
+        enumeration = "super::super::types::dividend_pool::service_status::Id",
+        tag = "6"
+    )]
+    pub dividend_pool_status: i32,
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их

@@ -19,6 +19,15 @@ pub struct GetDividendPoolResponse {
     /// Текущий pending-бонус. Отсутствует если дивиденды не активированы.
     #[prost(message, optional, tag = "5")]
     pub bonus: ::core::option::Option<super::super::types::dividend_pool::PendingBonus>,
+    /// Глобальный статус сервиса дивидендного пула.
+    #[prost(
+        enumeration = "super::super::types::dividend_pool::service_status::Id",
+        tag = "6"
+    )]
+    pub status: i32,
+    /// Текущий дневной процент (например "0.2667"). Пустая строка если ещё не генерировался.
+    #[prost(string, tag = "7")]
+    pub current_daily_rate: ::prost::alloc::string::String,
 }
 /// Ответ после клейма бонуса.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

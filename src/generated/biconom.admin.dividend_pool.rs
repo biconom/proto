@@ -33,6 +33,13 @@ pub struct SetStatusRequest {
     )]
     pub status: i32,
 }
+/// Ответ на массовую активацию.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ActivateAllResponse {
+    /// Количество дистрибьюторов, для которых был сгенерирован первый бонус.
+    #[prost(uint32, tag = "1")]
+    pub activated_count: u32,
+}
 /// Generated server implementations.
 pub mod dividend_pool_admin_service_server {
     #![allow(
@@ -60,6 +67,17 @@ pub mod dividend_pool_admin_service_server {
             &self,
             request: tonic::Request<super::SetStatusRequest>,
         ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        /// Массовая активация: сгенерировать первый pending-бонус для всех дистрибьюторов
+        /// у которых invested > 0, но ещё нет user_state.
+        /// Эквивалент первого нажатия ClaimDividendPool каждым пользователем.
+        /// Требует статус Active. Возвращает количество активированных.
+        async fn activate_all(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::ActivateAllResponse>,
+            tonic::Status,
+        >;
     }
     /// DividendPoolAdminService — административный сервис управления дивидендным пулом.
     ///
@@ -215,6 +233,50 @@ pub mod dividend_pool_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SetStatusSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.dividend_pool.DividendPoolAdminService/ActivateAll" => {
+                    #[allow(non_camel_case_types)]
+                    struct ActivateAllSvc<T: DividendPoolAdminService>(pub Arc<T>);
+                    impl<T: DividendPoolAdminService> tonic::server::UnaryService<()>
+                    for ActivateAllSvc<T> {
+                        type Response = super::ActivateAllResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolAdminService>::activate_all(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ActivateAllSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

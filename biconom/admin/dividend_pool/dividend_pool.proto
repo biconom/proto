@@ -17,6 +17,12 @@ service DividendPoolAdminService {
     // Изменить глобальный статус сервиса (Active / Paused / Stopped).
     // Изменение вступает в силу немедленно и персистится в RocksDB.
     rpc SetStatus(SetStatusRequest) returns (google.protobuf.Empty);
+
+    // Массовая активация: сгенерировать первый pending-бонус для всех дистрибьюторов
+    // у которых invested > 0, но ещё нет user_state.
+    // Эквивалент первого нажатия ClaimDividendPool каждым пользователем.
+    // Требует статус Active. Возвращает количество активированных.
+    rpc ActivateAll(google.protobuf.Empty) returns (ActivateAllResponse);
 }
 
 // Ответ с текущим статусом и агрегированной статистикой.
@@ -43,4 +49,10 @@ message GetStatusResponse {
 message SetStatusRequest {
     // Новый статус. UNSPECIFIED вернёт ошибку DIVIDEND_POOL_INVALID_STATUS.
     biconom.types.DividendPool.ServiceStatus.Id status = 1;
+}
+
+// Ответ на массовую активацию.
+message ActivateAllResponse {
+    // Количество дистрибьюторов, для которых был сгенерирован первый бонус.
+    uint32 activated_count = 1;
 }

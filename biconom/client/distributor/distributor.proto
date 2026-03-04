@@ -43,6 +43,8 @@ message Response {
     biconom.types.MarketingSlot.DistributorState distributor_state = 4;
 	// Ожидающий бонус дивидендного пула. Заполняется только при просмотре собственного профиля.
 	optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5;
+	// Глобальный статус дивидендного пула.
+	biconom.types.DividendPool.ServiceStatus.Id dividend_pool_status = 6;
 }
 
 // ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.

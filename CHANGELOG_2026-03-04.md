@@ -23,4 +23,30 @@
 ### Response
 - **Добавлено** поле `optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5` — ожидающий бонус дивидендного пула.
 
-> **Для верстальщика**: Поле заполняется **только** когда авторизованный пользователь просматривает свой собственный профиль (executor == view). При просмотре чужого профиля поле отсутствует. Содержит `amount`, `base_amount`, `daily_rate`, `unlock_at` — всё что нужно для отображения «Ваш бонус: X USDT, доступен через Y».
+> **Для верстальщика**: Поле заполняется **только** когда авторизованный пользователь просматривает свой собственный профиль (executor == view) **и** статус пула не STOPPED. При просмотре чужого профиля поле отсутствует. Содержит `amount`, `base_amount`, `daily_rate`, `unlock_at` — всё что нужно для отображения «Ваш бонус: X USDT, доступен через Y».
+
+- **Добавлено** поле `biconom.types.DividendPool.ServiceStatus.Id dividend_pool_status = 6` — глобальный статус дивидендного пула.
+
+> **Для верстальщика**: Возвращается всегда. Значения: ACTIVE (1), PAUSED (2), STOPPED (3). При STOPPED бонус скрыт.
+
+---
+
+## biconom/client/dividend_pool/dividend_pool.proto
+
+### GetDividendPoolResponse
+- **Добавлено** поле `biconom.types.DividendPool.ServiceStatus.Id status = 6` — глобальный статус дивидендного пула.
+- **Добавлено** поле `string current_daily_rate = 7` — текущий дневной процент.
+
+> **Для верстальщика**: `status` показывает текущее состояние пула (ACTIVE/PAUSED/STOPPED). `current_daily_rate` — дневной процент (например `"0.2667"`), пустая строка если ещё не генерировался.
+
+---
+
+## biconom/admin/dividend_pool/dividend_pool.proto
+
+### DividendPoolAdminService
+- **Добавлен** метод `rpc ActivateAll(Empty) returns (ActivateAllResponse)` — массовая первая активация всех дистрибьюторов с invested > 0 без user_state.
+
+### ActivateAllResponse
+- **Добавлено** сообщение с полем `uint32 activated_count = 1`.
+
+> **Для бэкенда**: Вызывать после смены статуса на ACTIVE для немедленной активации всех. Требует `ADMIN_FINANCE`.

@@ -1,5 +1,13 @@
 {
     "workbench.editorAssociations": {
         "*.md": "vscode.markdown.preview.editor"
+    },
+    "protoc": {
+        "options": [
+            "--proto_path=${workspaceRoot}"
+        ]
+    },
+    "files.associations": {
+        "*.proto": "proto3"
     }
 }

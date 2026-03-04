@@ -56,6 +56,12 @@ message GetDividendPoolResponse {
 
     // Текущий pending-бонус. Отсутствует если дивиденды не активированы.
     optional biconom.types.DividendPool.PendingBonus bonus = 5;
+
+    // Глобальный статус сервиса дивидендного пула.
+    biconom.types.DividendPool.ServiceStatus.Id status = 6;
+
+    // Текущий дневной процент (например "0.2667"). Пустая строка если ещё не генерировался.
+    string current_daily_rate = 7;
 }
 
 // Ответ после клейма бонуса.
