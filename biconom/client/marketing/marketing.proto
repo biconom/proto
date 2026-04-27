@@ -4,6 +4,7 @@ package biconom.client.marketing;
 
 import "biconom/types/slot.proto";
 import "biconom/types/marketing_slot.proto";
+import "biconom/types/marketing_slot_placement.proto";
 import "biconom/types/license.proto";
 import "google/protobuf/empty.proto";
 import "biconom/types/account.proto";
@@ -12,6 +13,7 @@ import "biconom/types/price.proto";
 import "biconom/types/relationship.proto";
 import "biconom/types/sort.proto";
 import "google/protobuf/timestamp.proto";
+import "biconom/types/tree.proto";
 
 // MarketingService предоставляет функционал для управления аффилейт маркетингом,
 // включая работу со слотами, подписками и расширением структуры.
@@ -74,6 +76,29 @@ service MarketingService {
     // Оплатить возможность досрочного расставления (ручная расстановка).
     // Если целевая позиция совпадает с автоматической, оплата может быть нулевой, но операция фиксируется.
     rpc PurchaseManualPlacement(ManualPlacementRequest) returns (biconom.types.MarketingSlot);
+
+    // =========================================================================
+    // История расстановок и квота
+    // Контекст авторизации: slot_id
+    // =========================================================================
+
+    // Получить баланс квоты расстановок и последние записи журнала.
+    // Если slot_id не указан в запросе — используется авторизованный slot_id.
+    // recent_limit — количество последних записей истории (0 = только баланс, max 20).
+    rpc GetPlacementBalance(GetPlacementBalanceRequest) returns (biconom.types.MarketingSlotPlacement.BalanceWithHistory);
+
+    // Получить пагинированную историю расстановок слота.
+    // Позволяет видеть кого, куда и за что расставил данный слот.
+    rpc ListPlacementLog(biconom.types.MarketingSlotPlacement.ListLogRequest) returns (biconom.types.MarketingSlotPlacement.ListLogResponse);
+
+    // Получить текущий баланс накопительного пула дерева.
+    // Пул пополняется при активации платного ваучера с policy_id=1.
+    // Возвращает текущий баланс в валюте плана дерева (обычно USDT).
+    rpc GetTreePoolBalance(biconom.types.Tree.Id) returns (biconom.types.Price);
+
+    // Получить балансы накопительных пулов для всех деревьев сразу.
+    // Позволяет одним запросом получить баланс по всем деревьям вместо повторных вызовов GetTreePoolBalance.
+    rpc ListTreePoolBalances(google.protobuf.Empty) returns (ListTreePoolBalancesResponse);
 }
 
 // Запрос на поиск слотов по префиксу имени пользователя дистрибьютора.
@@ -208,7 +233,22 @@ message CalculateManualPlacementPriceResponse {
     uint32 predicted_parent_branch_number = 6; // Ветка, куда бы встал слот автоматически.
 
     // --- Данные стоимости ---
-    biconom.types.Price price = 7; // Стоимость расстановки в target_parent_id (0 при совпадении с predicted).
+    // Тип оплаты расстановки. Варианты:
+    //   free_placement   — бесплатно: система расставила автоматически или пользователь выбрал то же место.
+    //   quota_placement  — списана 1 единица квоты (бесплатные расстановки, выданные при регистрации слота).
+    //   money_placement  — списаны деньги (квота исчерпана, ручная расстановка в другое место).
+    // Поле 7 зарезервировано за money_placement.Price для обратной совместимости.
+    oneof payment_kind {
+        // Расстановка бесплатная (авто-алгоритм или совпадение позиций).
+        bool free_placement = 16;
+        // Расстановка за счёт квоты.
+        bool quota_placement = 17;
+        // Расстановка за деньги — содержит стоимость.
+        biconom.types.Price money_placement = 7;
+    }
+    // Текущий остаток квоты бесплатных расстановок на executor_slot_id после расчёта.
+    uint32 quota_available = 18;
+
     biconom.types.Price default_price = 15; // Базовая цена за ручную расстановку для данного дерева.
     
     // Хлебные крошки до target_parent_id.
@@ -222,4 +262,23 @@ message CalculateManualPlacementPriceResponse {
     repeated biconom.types.Distributor distributors = 12;
     repeated biconom.types.Account accounts = 13;
     repeated biconom.types.MarketingSlot.DistributorState distributor_states = 14;
+}
+
+// Запрос на получение баланса квоты расстановок и последних записей истории.
+message GetPlacementBalanceRequest {
+    // Опционально: ID слота. Если не указан — используется авторизованный slot_id.
+    optional uint32 slot_id = 1;
+    // Количество последних записей истории в ответе (0 = только баланс, максимум 20).
+    uint32 recent_limit = 2;
+}
+
+// Ответ со списком балансов накопительных пулов всех деревьев.
+message ListTreePoolBalancesResponse {
+    // Баланс накопительного пула одного дерева.
+    message Balance {
+        uint32 tree_id = 1;              // Идентификатор дерева
+        biconom.types.Price balance = 2; // Баланс пула в валюте плана дерева
+    }
+
+    repeated Balance items = 1;
 }

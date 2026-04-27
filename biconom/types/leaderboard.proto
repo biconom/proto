@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Leaderboard предоставляет типы для работы с лидерскими досками (Leaderboard Engine).
+message Leaderboard {
+    // Идентификатор доски.
+    message Id {
+        uint32 id = 1;
+    }
+
+    // Состояние лидерской доски.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            ACTIVE = 1;
+            FROZEN = 2;
+            ARCHIVED = 3;
+        }
+    }
+
+    // Информация о доске.
+    message Board {
+        uint32 id = 1;
+        Status.Id status = 2;
+        // Общее количество участников в доске.
+        uint32 total_participants = 3;
+        google.protobuf.Timestamp created_at = 4;
+        optional google.protobuf.Timestamp archived_at = 5;
+    }
+
+    // Запись участника в лидерборде.
+    message Entry {
+        // ID дистрибьютора.
+        uint32 distributor_id = 1;
+        // Баллы (значение).
+        string value = 2;
+        // Текущий ранг (1 = лучший).
+        uint32 rank = 3;
+        // Дата последнего обновления значения.
+        google.protobuf.Timestamp updated_at = 4;
+        // Дата первого попадания в лидерборд.
+        google.protobuf.Timestamp created_at = 5;
+    }
+
+
+}

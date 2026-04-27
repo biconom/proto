@@ -5673,6 +5673,11 @@ pub mod license {
         /// Базовая цена за ручную расстановку в этом дереве
         #[prost(message, optional, tag = "6")]
         pub manual_placement_price: ::core::option::Option<super::Price>,
+        /// Начальная квота бесплатных ручных расстановок, начисляемая каждому новому слоту.
+        /// 0 = бесплатная квота не предоставляется.
+        /// Пример: 5 = при регистрации слот получает 5 бесплатных расстановок.
+        #[prost(uint32, tag = "7")]
+        pub free_placements_initial: u32,
     }
     /// Nested message and enum types in `Plan`.
     pub mod plan {
@@ -6199,6 +6204,11 @@ pub mod marketing_slot {
         /// Имеет ли текущий пользователь право на просмотр данного слота
         #[prost(bool, tag = "9")]
         pub viewable: bool,
+        /// Доступный остаток квоты бесплатных ручных расстановок.
+        /// При выборе позиции совпадающей с авто-алгоритмом — квота не тратится.
+        /// При выборе иной позиции — списывается 1 единица. При 0 — расстановка платная.
+        #[prost(uint32, tag = "10")]
+        pub placement_quota_available: u32,
     }
     /// Nested message and enum types in `State`.
     pub mod state {
@@ -7323,5 +7333,408 @@ pub mod wallet_currency {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::WalletCurrency>,
+    }
+}
+/// Leaderboard предоставляет типы для работы с лидерскими досками (Leaderboard Engine).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Leaderboard {}
+/// Nested message and enum types in `Leaderboard`.
+pub mod leaderboard {
+    /// Идентификатор доски.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+    }
+    /// Состояние лидерской доски.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Status {}
+    /// Nested message and enum types in `Status`.
+    pub mod status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            Active = 1,
+            Frozen = 2,
+            Archived = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Frozen => "FROZEN",
+                    Self::Archived => "ARCHIVED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "FROZEN" => Some(Self::Frozen),
+                    "ARCHIVED" => Some(Self::Archived),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Информация о доске.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Board {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        #[prost(enumeration = "status::Id", tag = "2")]
+        pub status: i32,
+        /// Общее количество участников в доске.
+        #[prost(uint32, tag = "3")]
+        pub total_participants: u32,
+        #[prost(message, optional, tag = "4")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "5")]
+        pub archived_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Запись участника в лидерборде.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Entry {
+        /// ID дистрибьютора.
+        #[prost(uint32, tag = "1")]
+        pub distributor_id: u32,
+        /// Баллы (значение).
+        #[prost(string, tag = "2")]
+        pub value: ::prost::alloc::string::String,
+        /// Текущий ранг (1 = лучший).
+        #[prost(uint32, tag = "3")]
+        pub rank: u32,
+        /// Дата последнего обновления значения.
+        #[prost(message, optional, tag = "4")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Дата первого попадания в лидерборд.
+        #[prost(message, optional, tag = "5")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+}
+/// Arena — арена соревнований (лидерборд-турнир).
+///
+/// Арена содержит циклы (раунды), каждый привязан к одному лидерборду.
+/// Дистрибьюторы зарабатывают баллы и соревнуются за ранг в рамках текущего цикла.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Arena {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// Строковый идентификатор арены.
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    /// Длительность одного цикла (в секундах).
+    #[prost(uint32, tag = "3")]
+    pub duration: u32,
+    /// Флаг автопродления: автоматически создавать новый цикл после завершения.
+    #[prost(bool, tag = "4")]
+    pub auto_renew: bool,
+    /// Текущий номер активного цикла (0 = нет активного).
+    #[prost(uint32, tag = "5")]
+    pub current_cycle_seq: u32,
+    /// Общее количество циклов (включая завершённые).
+    #[prost(uint32, tag = "6")]
+    pub total_cycles: u32,
+}
+/// Nested message and enum types in `Arena`.
+pub mod arena {
+    /// Идентификатор арены.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        #[prost(oneof = "id::Identifier", tags = "1, 2")]
+        pub identifier: ::core::option::Option<id::Identifier>,
+    }
+    /// Nested message and enum types in `Id`.
+    pub mod id {
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Identifier {
+            /// Числовой ID арены (1..4).
+            #[prost(uint32, tag = "1")]
+            Id(u32),
+            /// Строковый идентификатор арены (например "wincoins_exchange").
+            #[prost(string, tag = "2")]
+            Name(::prost::alloc::string::String),
+        }
+    }
+    /// Список арен.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::Arena>,
+    }
+    /// Один раунд арены, привязан к конкретному лидерборду.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Cycle {
+        #[prost(uint32, tag = "1")]
+        pub arena_id: u32,
+        /// Порядковый номер цикла (1-based).
+        #[prost(uint32, tag = "2")]
+        pub seq: u32,
+        /// ID борда в лидерборде.
+        #[prost(uint32, tag = "3")]
+        pub board_id: u32,
+        /// Дата начала цикла.
+        #[prost(message, optional, tag = "4")]
+        pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Дата планируемого завершения.
+        #[prost(message, optional, tag = "5")]
+        pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Фактическая дата завершения (null = не завершён).
+        #[prost(message, optional, tag = "6")]
+        pub finished_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Статус цикла.
+        #[prost(enumeration = "cycle::status::Id", tag = "7")]
+        pub status: i32,
+        /// Общий призовой фонд цикла (в mantissa).
+        #[prost(string, tag = "8")]
+        pub prize_fund: ::prost::alloc::string::String,
+        /// Количество призовых мест (кто выиграет в цикле).
+        #[prost(uint32, tag = "9")]
+        pub winners_count: u32,
+        /// Список ID победителей (заполняется после завершения цикла).
+        #[prost(uint32, repeated, tag = "10")]
+        pub winner_distributor_ids: ::prost::alloc::vec::Vec<u32>,
+    }
+    /// Nested message and enum types in `Cycle`.
+    pub mod cycle {
+        /// Идентификатор цикла внутри арены.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            /// ID арены.
+            #[prost(uint32, tag = "1")]
+            pub arena_id: u32,
+            /// Порядковый номер цикла (1-based).
+            #[prost(uint32, tag = "2")]
+            pub seq: u32,
+        }
+        /// Список циклов.
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Cycle>,
+        }
+        /// Статус цикла.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Status {}
+        /// Nested message and enum types in `Status`.
+        pub mod status {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                Active = 1,
+                Finished = 2,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Active => "ACTIVE",
+                        Self::Finished => "FINISHED",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "ACTIVE" => Some(Self::Active),
+                        "FINISHED" => Some(Self::Finished),
+                        _ => None,
+                    }
+                }
+            }
+        }
+    }
+}
+/// MarketingSlotPlacement описывает систему квот и историю расстановок слота.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MarketingSlotPlacement {}
+/// Nested message and enum types in `MarketingSlotPlacement`.
+pub mod marketing_slot_placement {
+    /// Balance — текущий баланс квоты расстановок слота.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Balance {
+        #[prost(uint32, tag = "1")]
+        pub slot_id: u32,
+        /// Суммарно начислено квоты (QuotaGrant).
+        #[prost(uint32, tag = "2")]
+        pub quota_granted: u32,
+        /// Суммарно потрачено квоты (QuotaConsume + QuotaPenalty).
+        #[prost(uint32, tag = "3")]
+        pub quota_used: u32,
+        /// Текущий доступный остаток (granted − used). Вычисляется на сервере.
+        #[prost(uint32, tag = "4")]
+        pub quota_available: u32,
+        /// Общее количество расстановок (авто + ручные, не считая QuotaGrant/Penalty).
+        #[prost(uint32, tag = "5")]
+        pub total_placements: u32,
+        #[prost(message, optional, tag = "6")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "7")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// LogEntry — одна запись в журнале расстановок слота.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct LogEntry {
+        /// Уникальный ID записи (монотонно возрастающий)
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+        /// Слот-исполнитель (тот, кому принадлежит квота)
+        #[prost(uint32, tag = "2")]
+        pub slot_id: u32,
+        /// Тип операции
+        #[prost(enumeration = "Kind", tag = "3")]
+        pub kind: i32,
+        /// Количество квоты (для QuotaGrant/Consume/Penalty).
+        /// 0 для AutoPlacement, MoneyPlacement, FreeManualPlacement.
+        #[prost(uint32, tag = "4")]
+        pub amount: u32,
+        /// ID расставляемого слота (для \*Placement-операций).
+        #[prost(uint32, tag = "5")]
+        pub ref_slot_id: u32,
+        /// ID родительского слота, куда был помещён ref_slot_id.
+        #[prost(uint32, tag = "6")]
+        pub ref_parent_id: u32,
+        /// Номер ветки родителя.
+        #[prost(uint32, tag = "7")]
+        pub ref_parent_branch: u32,
+        /// ID финансовой транзакции (только для MONEY_PLACEMENT).
+        #[prost(uint64, tag = "8")]
+        pub ref_transaction_id: u64,
+        /// Время создания записи.
+        #[prost(message, optional, tag = "9")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// BalanceWithHistory — баланс + последние N записей истории.
+    /// Возвращается методом GetPlacementBalance.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct BalanceWithHistory {
+        #[prost(message, optional, tag = "1")]
+        pub balance: ::core::option::Option<Balance>,
+        #[prost(message, repeated, tag = "2")]
+        pub recent_log: ::prost::alloc::vec::Vec<LogEntry>,
+    }
+    /// ListLogRequest — запрос пагинированной истории расстановок слота.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ListLogRequest {
+        /// Опционально: ID слота. Если не указан — используется авторизованный слот.
+        #[prost(uint32, optional, tag = "1")]
+        pub slot_id: ::core::option::Option<u32>,
+        /// Опционально: курсор пагинации (log entry ID).
+        /// Для первой страницы не указывается.
+        #[prost(uint64, optional, tag = "2")]
+        pub cursor: ::core::option::Option<u64>,
+        /// Опционально: параметры сортировки и лимита (по умолчанию: BACKWARD, 20 записей).
+        #[prost(message, optional, tag = "3")]
+        pub sort: ::core::option::Option<super::Sort>,
+        /// Опционально: фильтр по типу операции.
+        #[prost(enumeration = "Kind", repeated, tag = "4")]
+        pub filter_kinds: ::prost::alloc::vec::Vec<i32>,
+    }
+    /// ListLogResponse — страница истории расстановок.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct ListLogResponse {
+        /// Баланс квоты.
+        #[prost(message, optional, tag = "1")]
+        pub balance: ::core::option::Option<Balance>,
+        /// Записи истории на текущей странице.
+        #[prost(message, repeated, tag = "2")]
+        pub items: ::prost::alloc::vec::Vec<LogEntry>,
+        /// Курсор для следующей страницы (log_id последней записи в items).
+        /// Пустой — если это последняя страница.
+        #[prost(uint64, optional, tag = "3")]
+        pub next_cursor: ::core::option::Option<u64>,
+        /// Есть ли ещё записи в указанном направлении.
+        #[prost(bool, tag = "4")]
+        pub has_more: bool,
+    }
+    /// Kind — вид записи в журнале расстановок.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Kind {
+        Unspecified = 0,
+        /// Начисление квоты (при создании слота или административно).
+        QuotaGrant = 1,
+        /// Трата 1 единицы квоты при ручной расстановке в отличную от авто позицию.
+        QuotaConsume = 2,
+        /// Штрафное административное списание квоты.
+        QuotaPenalty = 3,
+        /// Платная расстановка деньгами (квота исчерпана, ручная позиция ≠ авто).
+        MoneyPlacement = 4,
+        /// Ручная расстановка пользователем, бесплатная (выбрал ту же позицию что и алгоритм).
+        FreeManualPlacement = 5,
+        /// Автоматическая расстановка системой по истечении дедлайна (инициатор — алгоритм).
+        AutoPlacement = 6,
+    }
+    impl Kind {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "UNSPECIFIED",
+                Self::QuotaGrant => "QUOTA_GRANT",
+                Self::QuotaConsume => "QUOTA_CONSUME",
+                Self::QuotaPenalty => "QUOTA_PENALTY",
+                Self::MoneyPlacement => "MONEY_PLACEMENT",
+                Self::FreeManualPlacement => "FREE_MANUAL_PLACEMENT",
+                Self::AutoPlacement => "AUTO_PLACEMENT",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "QUOTA_GRANT" => Some(Self::QuotaGrant),
+                "QUOTA_CONSUME" => Some(Self::QuotaConsume),
+                "QUOTA_PENALTY" => Some(Self::QuotaPenalty),
+                "MONEY_PLACEMENT" => Some(Self::MoneyPlacement),
+                "FREE_MANUAL_PLACEMENT" => Some(Self::FreeManualPlacement),
+                "AUTO_PLACEMENT" => Some(Self::AutoPlacement),
+                _ => None,
+            }
+        }
     }
 }

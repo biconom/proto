@@ -188,11 +188,9 @@ pub struct CalculateManualPlacementPriceResponse {
     /// Ветка, куда бы встал слот автоматически.
     #[prost(uint32, tag = "6")]
     pub predicted_parent_branch_number: u32,
-    /// --- Данные стоимости ---
-    ///
-    /// Стоимость расстановки в target_parent_id (0 при совпадении с predicted).
-    #[prost(message, optional, tag = "7")]
-    pub price: ::core::option::Option<super::super::types::Price>,
+    /// Текущий остаток квоты бесплатных расстановок на executor_slot_id после расчёта.
+    #[prost(uint32, tag = "18")]
+    pub quota_available: u32,
     /// Базовая цена за ручную расстановку для данного дерева.
     #[prost(message, optional, tag = "15")]
     pub default_price: ::core::option::Option<super::super::types::Price>,
@@ -221,6 +219,69 @@ pub struct CalculateManualPlacementPriceResponse {
     pub distributor_states: ::prost::alloc::vec::Vec<
         super::super::types::marketing_slot::DistributorState,
     >,
+    /// --- Данные стоимости ---
+    /// Тип оплаты расстановки. Варианты:
+    /// free_placement   — бесплатно: система расставила автоматически или пользователь выбрал то же место.
+    /// quota_placement  — списана 1 единица квоты (бесплатные расстановки, выданные при регистрации слота).
+    /// money_placement  — списаны деньги (квота исчерпана, ручная расстановка в другое место).
+    /// Поле 7 зарезервировано за money_placement.Price для обратной совместимости.
+    #[prost(
+        oneof = "calculate_manual_placement_price_response::PaymentKind",
+        tags = "16, 17, 7"
+    )]
+    pub payment_kind: ::core::option::Option<
+        calculate_manual_placement_price_response::PaymentKind,
+    >,
+}
+/// Nested message and enum types in `CalculateManualPlacementPriceResponse`.
+pub mod calculate_manual_placement_price_response {
+    /// --- Данные стоимости ---
+    /// Тип оплаты расстановки. Варианты:
+    /// free_placement   — бесплатно: система расставила автоматически или пользователь выбрал то же место.
+    /// quota_placement  — списана 1 единица квоты (бесплатные расстановки, выданные при регистрации слота).
+    /// money_placement  — списаны деньги (квота исчерпана, ручная расстановка в другое место).
+    /// Поле 7 зарезервировано за money_placement.Price для обратной совместимости.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum PaymentKind {
+        /// Расстановка бесплатная (авто-алгоритм или совпадение позиций).
+        #[prost(bool, tag = "16")]
+        FreePlacement(bool),
+        /// Расстановка за счёт квоты.
+        #[prost(bool, tag = "17")]
+        QuotaPlacement(bool),
+        /// Расстановка за деньги — содержит стоимость.
+        #[prost(message, tag = "7")]
+        MoneyPlacement(super::super::super::types::Price),
+    }
+}
+/// Запрос на получение баланса квоты расстановок и последних записей истории.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetPlacementBalanceRequest {
+    /// Опционально: ID слота. Если не указан — используется авторизованный slot_id.
+    #[prost(uint32, optional, tag = "1")]
+    pub slot_id: ::core::option::Option<u32>,
+    /// Количество последних записей истории в ответе (0 = только баланс, максимум 20).
+    #[prost(uint32, tag = "2")]
+    pub recent_limit: u32,
+}
+/// Ответ со списком балансов накопительных пулов всех деревьев.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListTreePoolBalancesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<list_tree_pool_balances_response::Balance>,
+}
+/// Nested message and enum types in `ListTreePoolBalancesResponse`.
+pub mod list_tree_pool_balances_response {
+    /// Баланс накопительного пула одного дерева.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Balance {
+        /// Идентификатор дерева
+        #[prost(uint32, tag = "1")]
+        pub tree_id: u32,
+        /// Баланс пула в валюте плана дерева
+        #[prost(message, optional, tag = "2")]
+        pub balance: ::core::option::Option<super::super::super::types::Price>,
+    }
 }
 /// Generated server implementations.
 pub mod marketing_service_server {
@@ -353,6 +414,50 @@ pub mod marketing_service_server {
             request: tonic::Request<super::ManualPlacementRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::MarketingSlot>,
+            tonic::Status,
+        >;
+        /// Получить баланс квоты расстановок и последние записи журнала.
+        /// Если slot_id не указан в запросе — используется авторизованный slot_id.
+        /// recent_limit — количество последних записей истории (0 = только баланс, max 20).
+        async fn get_placement_balance(
+            &self,
+            request: tonic::Request<super::GetPlacementBalanceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<
+                super::super::super::types::marketing_slot_placement::BalanceWithHistory,
+            >,
+            tonic::Status,
+        >;
+        /// Получить пагинированную историю расстановок слота.
+        /// Позволяет видеть кого, куда и за что расставил данный слот.
+        async fn list_placement_log(
+            &self,
+            request: tonic::Request<
+                super::super::super::types::marketing_slot_placement::ListLogRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<
+                super::super::super::types::marketing_slot_placement::ListLogResponse,
+            >,
+            tonic::Status,
+        >;
+        /// Получить текущий баланс накопительного пула дерева.
+        /// Пул пополняется при активации платного ваучера с policy_id=1.
+        /// Возвращает текущий баланс в валюте плана дерева (обычно USDT).
+        async fn get_tree_pool_balance(
+            &self,
+            request: tonic::Request<super::super::super::types::tree::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::Price>,
+            tonic::Status,
+        >;
+        /// Получить балансы накопительных пулов для всех деревьев сразу.
+        /// Позволяет одним запросом получить баланс по всем деревьям вместо повторных вызовов GetTreePoolBalance.
+        async fn list_tree_pool_balances(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListTreePoolBalancesResponse>,
             tonic::Status,
         >;
     }
@@ -1088,6 +1193,197 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = PurchaseManualPlacementSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/GetPlacementBalance" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetPlacementBalanceSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::GetPlacementBalanceRequest>
+                    for GetPlacementBalanceSvc<T> {
+                        type Response = super::super::super::types::marketing_slot_placement::BalanceWithHistory;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetPlacementBalanceRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_placement_balance(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetPlacementBalanceSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/ListPlacementLog" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListPlacementLogSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::marketing_slot_placement::ListLogRequest,
+                    > for ListPlacementLogSvc<T> {
+                        type Response = super::super::super::types::marketing_slot_placement::ListLogResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::marketing_slot_placement::ListLogRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::list_placement_log(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListPlacementLogSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/GetTreePoolBalance" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetTreePoolBalanceSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::super::super::types::tree::Id>
+                    for GetTreePoolBalanceSvc<T> {
+                        type Response = super::super::super::types::Price;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::super::super::types::tree::Id>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_tree_pool_balance(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetTreePoolBalanceSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/ListTreePoolBalances" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListTreePoolBalancesSvc<T: MarketingService>(pub Arc<T>);
+                    impl<T: MarketingService> tonic::server::UnaryService<()>
+                    for ListTreePoolBalancesSvc<T> {
+                        type Response = super::ListTreePoolBalancesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::list_tree_pool_balances(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListTreePoolBalancesSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

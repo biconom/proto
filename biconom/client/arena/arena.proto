@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package biconom.client.arena;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/arena.proto";
+import "biconom/types/leaderboard.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/image.proto";
+
+// ArenaService — клиентский сервис арен (лидерборд-турниров).
+//
+// Предоставляет доступ к списку арен, текущим и историческим циклам,
+// а также к рейтинговым таблицам участников.
+//
+// Контекст авторизации: distributor_id (авторизованный дистрибьютор).
+service ArenaService {
+
+    // ─── Арены ───────────────────────────────────────────────
+
+    // Получить список всех арен с текущим состоянием.
+    // Возвращает метаданные + информацию о текущем цикле для каждой арены.
+    rpc ListArenas(google.protobuf.Empty) returns (ListArenasResponse);
+
+    // Получить детальные данные по конкретной арене.
+    // Включает текущий цикл, топ-участников и позицию текущего дистрибьютора.
+    rpc GetArena(biconom.types.Arena.Id) returns (GetArenaResponse);
+
+    // ─── Циклы ───────────────────────────────────────────────
+
+    // Получить список всех циклов выбранной арены.
+    // Возвращает краткую информацию по каждому циклу (без рейтинговых таблиц).
+    rpc ListCycles(ListCyclesRequest) returns (biconom.types.Arena.Cycle.List);
+
+    // Получить метаданные конкретного цикла по номеру.
+    rpc GetCycle(biconom.types.Arena.Cycle.Id) returns (biconom.types.Arena.Cycle);
+
+    // ─── Лидерборд ───────────────────────────────────────────
+
+    // Получить рейтинговую таблицу арены (краткая выжимка для топа).
+    //
+    // По умолчанию возвращает данные текущего (или последнего известного) цикла.
+    // Если указан cycle_seq — данные конкретного исторического цикла.
+    //
+    // Включает:
+    // - Топ-N участников (по умолчанию 10)
+    // - Позицию текущего дистрибьютора (если он участвует)
+    // - Метаданные цикла (даты, статус, призовой фонд, победители)
+    // - Связанные данные (аккаунты, аватары) для отображения UI
+    rpc GetLeaderboard(GetLeaderboardRequest) returns (GetLeaderboardResponse);
+
+    // Получить полный список участников лидерборда с пагинацией.
+    // Позволяет прокручивать всю таблицу участников или запрашивать конкретные страницы.
+    rpc ListLeaderboardEntries(ListLeaderboardEntriesRequest) returns (ListLeaderboardEntriesResponse);
+}
+
+// ─── Responses ──────────────────────────────────────────────
+
+// Ответ со списком всех арен.
+message ListArenasResponse {
+    // Список арен.
+    repeated biconom.types.Arena items = 1;
+    // Текущие циклы для каждой арены (если есть).
+    repeated biconom.types.Arena.Cycle cycles = 2;
+}
+
+// Ответ с данными конкретной арены.
+message GetArenaResponse {
+    // Метаданные арены.
+    biconom.types.Arena arena = 1;
+    // Текущий или последний цикл.
+    optional biconom.types.Arena.Cycle cycle = 2;
+    // Топ-10 участников текущего цикла.
+    repeated biconom.types.Leaderboard.Entry top_entries = 3;
+    // Позиция текущего дистрибьютора (если участвует).
+    optional biconom.types.Leaderboard.Entry my_entry = 4;
+    // Общее количество участников в текущем цикле.
+    uint32 total_participants = 5;
+
+    // ── Связанные данные для UI ──
+    repeated biconom.types.Distributor distributors = 6;
+    repeated biconom.types.Account accounts = 7;
+    repeated biconom.types.Image images = 8;
+}
+
+// ─── Requests ───────────────────────────────────────────────
+
+// Запрос на список циклов арены.
+message ListCyclesRequest {
+    // Идентификатор арены (id или name).
+    biconom.types.Arena.Id arena_id = 1;
+}
+
+// Запрос на рейтинговую таблицу (выжимка).
+message GetLeaderboardRequest {
+    // Идентификатор арены (id или name).
+    biconom.types.Arena.Id arena_id = 1;
+    // Опционально: номер цикла. Если не указан — текущий или последний известный.
+    optional uint32 cycle_seq = 2;
+    // Опционально: количество записей в топе (по умолчанию 10).
+    optional uint32 top_limit = 3;
+}
+
+// Ответ с рейтинговой таблицей.
+message GetLeaderboardResponse {
+    // Метаданные арены.
+    biconom.types.Arena arena = 1;
+    // Цикл, для которого запрошены данные (содержит prize_fund, winners_count).
+    biconom.types.Arena.Cycle cycle = 2;
+    // Метаданные доски.
+    biconom.types.Leaderboard.Board board = 3;
+    // Топ записей рейтинга.
+    repeated biconom.types.Leaderboard.Entry top_entries = 4;
+    // Позиция текущего дистрибьютора (если участвует).
+    optional biconom.types.Leaderboard.Entry my_entry = 5;
+
+    // ── Связанные данные для UI ──
+    repeated biconom.types.Distributor distributors = 7;
+    repeated biconom.types.Account accounts = 8;
+    repeated biconom.types.Image images = 9;
+}
+
+// Запрос на получение списка участников лидерборда.
+message ListLeaderboardEntriesRequest {
+    // Идентификатор арены (id или name).
+    biconom.types.Arena.Id arena_id = 1;
+    // Опционально: номер цикла. Если не указан — текущий или последний известный.
+    optional uint32 cycle_seq = 2;
+    // Ограничение выборки.
+    optional uint32 limit = 3;
+    // Смещение выборки (offset).
+    optional uint32 offset = 4;
+}
+
+// Ответ со списком участников лидерборда.
+message ListLeaderboardEntriesResponse {
+    // Список записей участников.
+    repeated biconom.types.Leaderboard.Entry items = 1;
+    // Общее количество участников в данном лидерборде.
+    uint32 total_count = 2;
+    // Позиция текущего авторизованного пользователя в лидерборде.
+    optional biconom.types.Leaderboard.Entry my_entry = 3;
+
+    // ── Связанные данные для UI ──
+    repeated biconom.types.Distributor distributors = 4;
+    repeated biconom.types.Account accounts = 5;
+    repeated biconom.types.Image images = 6;
+}

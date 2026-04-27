@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "biconom/types/price.proto";
+import "biconom/types/sort.proto";
+
+// MarketingSlotPlacement описывает систему квот и историю расстановок слота.
+message MarketingSlotPlacement {
+
+    // Kind — вид записи в журнале расстановок.
+    enum Kind {
+        UNSPECIFIED = 0;
+        // Начисление квоты (при создании слота или административно).
+        QUOTA_GRANT = 1;
+        // Трата 1 единицы квоты при ручной расстановке в отличную от авто позицию.
+        QUOTA_CONSUME = 2;
+        // Штрафное административное списание квоты.
+        QUOTA_PENALTY = 3;
+        // Платная расстановка деньгами (квота исчерпана, ручная позиция ≠ авто).
+        MONEY_PLACEMENT = 4;
+        // Ручная расстановка пользователем, бесплатная (выбрал ту же позицию что и алгоритм).
+        FREE_MANUAL_PLACEMENT = 5;
+        // Автоматическая расстановка системой по истечении дедлайна (инициатор — алгоритм).
+        AUTO_PLACEMENT = 6;
+    }
+
+    // Balance — текущий баланс квоты расстановок слота.
+    message Balance {
+        uint32 slot_id = 1;
+        // Суммарно начислено квоты (QuotaGrant).
+        uint32 quota_granted = 2;
+        // Суммарно потрачено квоты (QuotaConsume + QuotaPenalty).
+        uint32 quota_used = 3;
+        // Текущий доступный остаток (granted − used). Вычисляется на сервере.
+        uint32 quota_available = 4;
+        // Общее количество расстановок (авто + ручные, не считая QuotaGrant/Penalty).
+        uint32 total_placements = 5;
+        optional google.protobuf.Timestamp created_at = 6;
+        optional google.protobuf.Timestamp updated_at = 7;
+    }
+
+    // LogEntry — одна запись в журнале расстановок слота.
+    message LogEntry {
+        uint64 id = 1; // Уникальный ID записи (монотонно возрастающий)
+        uint32 slot_id = 2; // Слот-исполнитель (тот, кому принадлежит квота)
+        Kind kind = 3; // Тип операции
+        // Количество квоты (для QuotaGrant/Consume/Penalty).
+        // 0 для AutoPlacement, MoneyPlacement, FreeManualPlacement.
+        uint32 amount = 4;
+        // ID расставляемого слота (для *Placement-операций).
+        uint32 ref_slot_id = 5;
+        // ID родительского слота, куда был помещён ref_slot_id.
+        uint32 ref_parent_id = 6;
+        // Номер ветки родителя.
+        uint32 ref_parent_branch = 7;
+        // ID финансовой транзакции (только для MONEY_PLACEMENT).
+        uint64 ref_transaction_id = 8;
+        // Время создания записи.
+        google.protobuf.Timestamp created_at = 9;
+    }
+
+    // BalanceWithHistory — баланс + последние N записей истории.
+    // Возвращается методом GetPlacementBalance.
+    message BalanceWithHistory {
+        Balance balance = 1;
+        repeated LogEntry recent_log = 2;
+    }
+
+    // ListLogRequest — запрос пагинированной истории расстановок слота.
+    message ListLogRequest {
+        // Опционально: ID слота. Если не указан — используется авторизованный слот.
+        optional uint32 slot_id = 1;
+        // Опционально: курсор пагинации (log entry ID).
+        // Для первой страницы не указывается.
+        optional uint64 cursor = 2;
+        // Опционально: параметры сортировки и лимита (по умолчанию: BACKWARD, 20 записей).
+        optional biconom.types.Sort sort = 3;
+        // Опционально: фильтр по типу операции.
+        repeated Kind filter_kinds = 4;
+    }
+
+    // ListLogResponse — страница истории расстановок.
+    message ListLogResponse {
+        // Баланс квоты.
+        Balance balance = 1;
+        // Записи истории на текущей странице.
+        repeated LogEntry items = 2;
+        // Курсор для следующей страницы (log_id последней записи в items).
+        // Пустой — если это последняя страница.
+        optional uint64 next_cursor = 3;
+        // Есть ли ещё записи в указанном направлении.
+        bool has_more = 4;
+    }
+}

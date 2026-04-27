@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+import "biconom/types/leaderboard.proto";
+
+// Arena — арена соревнований (лидерборд-турнир).
+//
+// Арена содержит циклы (раунды), каждый привязан к одному лидерборду.
+// Дистрибьюторы зарабатывают баллы и соревнуются за ранг в рамках текущего цикла.
+message Arena {
+    // Идентификатор арены.
+    message Id {
+        oneof identifier {
+            // Числовой ID арены (1..4).
+            uint32 id = 1;
+            // Строковый идентификатор арены (например "wincoins_exchange").
+            string name = 2;
+        }
+    }
+
+    // Список арен.
+    message List {
+        repeated Arena items = 1;
+    }
+
+    uint32 id = 1;
+    // Строковый идентификатор арены.
+    string name = 2;
+    // Длительность одного цикла (в секундах).
+    uint32 duration = 3;
+    // Флаг автопродления: автоматически создавать новый цикл после завершения.
+    bool auto_renew = 4;
+    // Текущий номер активного цикла (0 = нет активного).
+    uint32 current_cycle_seq = 5;
+    // Общее количество циклов (включая завершённые).
+    uint32 total_cycles = 6;
+
+    // ─── Цикл (раунд) арены ─────────────────────────────────
+
+    // Один раунд арены, привязан к конкретному лидерборду.
+    message Cycle {
+        // Идентификатор цикла внутри арены.
+        message Id {
+            // ID арены.
+            uint32 arena_id = 1;
+            // Порядковый номер цикла (1-based).
+            uint32 seq = 2;
+        }
+
+        // Список циклов.
+        message List {
+            repeated Cycle items = 1;
+        }
+
+        // Статус цикла.
+        message Status {
+            enum Id {
+                UNSPECIFIED = 0;
+                ACTIVE = 1;
+                FINISHED = 2;
+            }
+        }
+
+        uint32 arena_id = 1;
+        // Порядковый номер цикла (1-based).
+        uint32 seq = 2;
+        // ID борда в лидерборде.
+        uint32 board_id = 3;
+        // Дата начала цикла.
+        google.protobuf.Timestamp started_at = 4;
+        // Дата планируемого завершения.
+        google.protobuf.Timestamp ends_at = 5;
+        // Фактическая дата завершения (null = не завершён).
+        optional google.protobuf.Timestamp finished_at = 6;
+        // Статус цикла.
+        Status.Id status = 7;
+        
+        // Общий призовой фонд цикла (в mantissa).
+        string prize_fund = 8;
+        // Количество призовых мест (кто выиграет в цикле).
+        uint32 winners_count = 9;
+        // Список ID победителей (заполняется после завершения цикла).
+        repeated uint32 winner_distributor_ids = 10;
+    }
+}

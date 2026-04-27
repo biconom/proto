@@ -4,28 +4,59 @@ package biconom.admin.marketing;
 
 import "biconom/types/license.proto";
 import "biconom/types/marketing_slot.proto";
+import "biconom/types/marketing_slot_placement.proto";
 
-// MarketingService - админский сервис для управления маркетинговыми сущностями.
+// MarketingService — админский сервис для управления маркетинговыми сущностями.
 service MarketingService {
-    // Выдает (дарит) лицензионный ваучер для слота или дистрибьютора.
-    // Если указан дистрибьютор, ваучер будет применен к его основному (дефолтному) слоту
-    // или создан новый слот, если это предусмотрено логикой тарифного плана.
-    rpc GrantSubscription(GrantSubscriptionRequest) returns (biconom.types.MarketingSlot);
+    // Выдаёт лицензионный ваучер для слота или дистрибьютора.
+    // Режим выдачи определяется полем `mode` в запросе.
+    rpc GrantSubscription(GrantSubscriptionRequest) returns (biconom.types.MarketingSlot.State);
+
+    // Начисляет квоту бесплатных ручных расстановок на слот.
+    // Квота суммируется с существующим балансом.
+    rpc GrantPlacementQuota(PlacementQuotaRequest) returns (biconom.types.MarketingSlotPlacement.Balance);
+
+    // Штрафует квоту слота (уменьшает баланс).
+    // Гарантия: баланс никогда не уйдёт ниже нуля.
+    // Если amount > quota_available — возвращает FAILED_PRECONDITION.
+    rpc PenalizePlacementQuota(PlacementQuotaRequest) returns (biconom.types.MarketingSlotPlacement.Balance);
 }
 
-// Запрос на выдачу подписки (лицензии) администратором.
+// Запрос на выдачу лицензии администратором.
 message GrantSubscriptionRequest {
-    // Идентификатор тарифного плана, который необходимо выдать.
+    // Режим административной выдачи лицензии.
+    enum Mode {
+        // Бесплатный грант: ваучер создаётся без оплаты.
+        // Маркетинговые выплаты партнёрам НЕ начисляются.
+        // Пул ORG_POOL_LICENSE_MARKETING не затрагивается.
+        FREE = 0;
+
+        // Финансирование от компании: деньги переводятся из ORG_POOL_GIFT
+        // в ORG_POOL_LICENSE_FEE + ORG_POOL_LICENSE_MARKETING, затем
+        // активация происходит с полными маркетинговыми выплатами партнёрам —
+        // как будто пользователь сам купил лицензию.
+        COMPANY_FUNDED = 1;
+    }
+
+    // Идентификатор тарифного плана (содержит tree_id).
     biconom.types.License.Plan.Id plan_id = 1;
 
     // Цель назначения подписки.
     oneof target {
         // ID конкретного слота, которому присваивается лицензия.
         uint32 slot_id = 2;
-        // ID дистрибьютора. В этом случае система выберет подходящий слот или создаст его.
+        // ID дистрибьютора. Система выберет его первичный слот в указанном дереве.
         uint32 distributor_id = 3;
     }
 
-    // Опционально: комментарий администратора к операции (для аудита).
-    string admin_comment = 4;
+    // Режим выдачи лицензии.
+    Mode mode = 4;
+}
+
+// Запрос на изменение квоты расстановок слота администратором.
+message PlacementQuotaRequest {
+    // ID целевого слота.
+    uint32 slot_id = 1;
+    // Количество единиц квоты (> 0).
+    uint32 amount = 2;
 }
