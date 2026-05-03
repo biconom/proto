@@ -1,6 +1,9 @@
 pub mod biconom {
     pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("generated/biconom_file_descriptor.bin");
     pub mod admin {
+        pub mod arena {
+            include!("generated/biconom.admin.arena.rs");
+        }
         pub mod ledger {
             include!("generated/biconom.admin.ledger.rs");
         }
@@ -26,6 +29,9 @@ pub mod biconom {
         }
         pub mod analytics {
             include!("generated/biconom.client.analytics.rs");
+        }
+        pub mod arena {
+            include!("generated/biconom.client.arena.rs");
         }
         pub mod auth {
             include!("generated/biconom.client.auth.rs");

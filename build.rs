@@ -99,6 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/admin/dividend_pool/dividend_pool.proto",
                 "biconom/admin/tasks/tasks.proto",
                 "biconom/admin/transaction/transaction.proto",
+                "biconom/admin/arena/arena.proto",
                 "biconom/client/account/account.proto",
                 "biconom/client/analytics/analytics.proto",
                 "biconom/client/auth/auth.proto",

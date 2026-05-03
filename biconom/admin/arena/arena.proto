@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package biconom.admin.arena;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/arena.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/leaderboard.proto";
+
+// ArenaAdminService — административный сервис арен.
+//
+// Управление жизненным циклом: старт/стоп/продление/завершение циклов,
+// настройка шаблонов, редактирование конфигурации текущего цикла, просмотр данных.
+//
+// Авторизация: требуются права администратора (Permission::ROOT).
+service ArenaAdminService {
+
+    // ─── Арена ──────────────────────────────────────────────
+
+    // Получить детальные данные по арене (шаблон + активный цикл).
+    rpc GetArena(biconom.types.Arena.Id) returns (ArenaAdminCard);
+
+    // Получить все арены с шаблонами и активными циклами.
+    rpc ListArenas(google.protobuf.Empty) returns (ArenaAdminCard.List);
+
+    // Полная замена шаблона арены.
+    // Применяется к следующим циклам. Текущий цикл не затрагивается.
+    rpc UpdateTemplate(UpdateTemplateRequest) returns (biconom.types.Arena.Template);
+
+    // ─── Циклы ──────────────────────────────────────────────
+
+    // Запустить новый цикл арены.
+    // config = null → ends_at и конфиг копируются из шаблона (авто).
+    // config передан → используется целиком (ручной режим).
+    // Ошибка если уже есть активный или остановленный цикл.
+    rpc StartCycle(StartCycleRequest) returns (biconom.types.Arena.Card);
+
+    // Приостановить текущий активный цикл.
+    // Баллы перестают начисляться. Авто-продление заблокируется при завершении.
+    rpc StopCycle(biconom.types.Arena.Id) returns (biconom.types.Arena.Card);
+
+    // Возобновить приостановленный цикл.
+    rpc ResumeCycle(biconom.types.Arena.Id) returns (biconom.types.Arena.Card);
+
+    // Завершить текущий цикл вручную.
+    // Архивирует Board, выплачивает призы. Работает для Active и Stopped.
+    rpc FinishCycle(biconom.types.Arena.Id) returns (biconom.types.Arena.Card);
+
+    // Получить метаданные конкретного цикла.
+    rpc GetCycle(biconom.types.Arena.Cycle.Id) returns (biconom.types.Arena.Cycle);
+
+    // Получить список циклов арены (курсорная пагинация).
+    rpc ListCycles(ListCyclesAdminRequest) returns (biconom.types.Arena.Cycle.List);
+
+    // Получить конфигурацию цикла (только для Admin).
+    rpc GetCycleConfig(biconom.types.Arena.Cycle.Id) returns (biconom.types.Arena.Cycle.Config);
+
+    // Обновить конфигурацию текущего цикла (отображение + призы).
+    rpc UpdateCycleConfig(UpdateCycleConfigRequest) returns (biconom.types.Arena.Cycle.Config);
+
+    // ─── Лидерборд ──────────────────────────────────────────
+
+    // Получить топ рейтинговой таблицы цикла (без ограничений display_count).
+    rpc GetLeaderboard(biconom.types.Arena.Cycle.Id) returns (biconom.types.Leaderboard);
+
+    // Полный список участников с курсорной пагинацией.
+    rpc ListLeaderboardEntries(LeaderboardAdminRequest) returns (biconom.types.Leaderboard);
+}
+
+// ─── Requests ────────────────────────────────────────────────
+
+// Запрос старта нового цикла.
+message StartCycleRequest {
+    biconom.types.Arena.Id arena_id = 1;
+    // Дата начала. null = сейчас (now).
+    optional google.protobuf.Timestamp started_at = 2;
+    // Дата завершения. null = started_at + template.duration (авто).
+    optional google.protobuf.Timestamp ends_at = 3;
+    // null = копировать из шаблона. Передан → использовать целиком.
+    optional biconom.types.Arena.Cycle.Config config = 4;
+}
+
+// Обновить шаблон арены (arena_id + полные поля шаблона).
+message UpdateTemplateRequest {
+    biconom.types.Arena.Id arena_id = 1;
+    biconom.types.Arena.Template template = 2;
+}
+
+// Обновить конфигурацию текущего цикла (отображение + призы, полная замена).
+message UpdateCycleConfigRequest {
+    // Таргет — текущий активный/остановленный цикл арены.
+    biconom.types.Arena.Id arena_id = 1;
+    biconom.types.Arena.Cycle.Config config = 2;
+}
+
+
+// Запрос списка циклов.
+message ListCyclesAdminRequest {
+    biconom.types.Arena.Id arena_id = 1;
+    // Курсор пагинации (seq цикла, exclusive). null = с самого нового.
+    optional uint32 cursor = 2;
+    // По умолчанию: BACKWARD, 20 записей.
+    optional biconom.types.Sort sort = 3;
+}
+
+// Запрос данных лидерборда (используется для GetLeaderboard и ListLeaderboardEntries).
+message LeaderboardAdminRequest {
+    biconom.types.Arena.Cycle.Id cycle_id = 1;
+    // Курсор: rank последнего элемента из leaderboard.items (exclusive). null = с начала.
+    optional uint32 cursor = 2;
+    // По умолчанию: FORWARD, 100 записей.
+    optional biconom.types.Sort sort = 3;
+}
+
+// ─── Responses ───────────────────────────────────────────────
+
+// Карточка арены для Admin — содержит Template (недоступен клиенту).
+// cycle = текущий активный или остановленный цикл. null = нет.
+// Последний завершённый цикл: GetCycle(arena_id, seq = arena.total_cycles).
+message ArenaAdminCard {
+    // Список карточек арен для Admin.
+    message List {
+        repeated ArenaAdminCard items = 1;
+    }
+    
+    biconom.types.Arena arena = 1;
+    biconom.types.Arena.Template template = 2;
+    optional biconom.types.Arena.Cycle cycle = 3;
+}

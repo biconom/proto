@@ -7335,93 +7335,53 @@ pub mod wallet_currency {
         pub items: ::prost::alloc::vec::Vec<super::WalletCurrency>,
     }
 }
-/// Leaderboard предоставляет типы для работы с лидерскими досками (Leaderboard Engine).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct Leaderboard {}
+/// Leaderboard — типы для работы с лидерскими досками (Leaderboard Engine).
+///
+/// Борды создаются автоматически при старте Arena.Cycle.
+/// Идентификатор борда хранится в Arena.Cycle.board_id.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Leaderboard {
+    /// Записи участников.
+    ///
+    /// В режиме топа (GetArena / GetLeaderboard):
+    /// top-N записей + запись текущего дистрибьютора если он не в топе.
+    ///
+    /// В режиме пагинации (ListLeaderboardEntries):
+    /// записи текущей страницы + запись текущего дистрибьютора если не на странице.
+    ///
+    /// Текущий дистрибьютор всегда присутствует в items — идентифицируй по my_rank.
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<leaderboard::Entry>,
+    /// Ранг текущего дистрибьютора в лидерборде.
+    /// null = дистрибьютор не участвует (нет записи в борде).
+    /// Соответствует Entry.rank элемента в items.
+    #[prost(uint32, optional, tag = "2")]
+    pub my_rank: ::core::option::Option<u32>,
+    /// Профили всех дистрибьюторов из items.
+    /// Ключ: Entry.distributor_id == Distributor.id.
+    #[prost(message, repeated, tag = "3")]
+    pub distributors: ::prost::alloc::vec::Vec<Distributor>,
+    /// Аккаунты, владеющие дистрибьюторами из списка.
+    /// Аватары доступны через Account.avatar.
+    #[prost(message, repeated, tag = "4")]
+    pub accounts: ::prost::alloc::vec::Vec<Account>,
+}
 /// Nested message and enum types in `Leaderboard`.
 pub mod leaderboard {
-    /// Идентификатор доски.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-    }
-    /// Состояние лидерской доски.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Status {}
-    /// Nested message and enum types in `Status`.
-    pub mod status {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            Active = 1,
-            Frozen = 2,
-            Archived = 3,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Active => "ACTIVE",
-                    Self::Frozen => "FROZEN",
-                    Self::Archived => "ARCHIVED",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "ACTIVE" => Some(Self::Active),
-                    "FROZEN" => Some(Self::Frozen),
-                    "ARCHIVED" => Some(Self::Archived),
-                    _ => None,
-                }
-            }
-        }
-    }
-    /// Информация о доске.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Board {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-        #[prost(enumeration = "status::Id", tag = "2")]
-        pub status: i32,
-        /// Общее количество участников в доске.
-        #[prost(uint32, tag = "3")]
-        pub total_participants: u32,
-        #[prost(message, optional, tag = "4")]
-        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(message, optional, tag = "5")]
-        pub archived_at: ::core::option::Option<::prost_types::Timestamp>,
-    }
     /// Запись участника в лидерборде.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Entry {
-        /// ID дистрибьютора.
+        /// ID дистрибьютора-участника.
         #[prost(uint32, tag = "1")]
         pub distributor_id: u32,
-        /// Баллы (значение).
+        /// Значение рейтинга участника — доменная метрика ранжирования (например, количество активаций).
+        /// Форматирована сервером в виде строки; семантика определяется конкретной ареной.
         #[prost(string, tag = "2")]
-        pub value: ::prost::alloc::string::String,
-        /// Текущий ранг (1 = лучший).
+        pub score: ::prost::alloc::string::String,
+        /// Ранг участника (1 = лучший результат).
         #[prost(uint32, tag = "3")]
         pub rank: u32,
-        /// Дата последнего обновления значения.
+        /// Дата последнего обновления баллов.
         #[prost(message, optional, tag = "4")]
         pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Дата первого попадания в лидерборд.
@@ -7431,31 +7391,27 @@ pub mod leaderboard {
 }
 /// Arena — арена соревнований (лидерборд-турнир).
 ///
-/// Арена содержит циклы (раунды), каждый привязан к одному лидерборду.
-/// Дистрибьюторы зарабатывают баллы и соревнуются за ранг в рамках текущего цикла.
+/// Арена содержит последовательные циклы (раунды), каждый привязан
+/// к одному лидерборду. Дистрибьюторы зарабатывают баллы и
+/// соревнуются за ранг в рамках текущего цикла.
+///
+/// Имена арен: wincoin | win_life | win_pro | win_ultra.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Arena {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    /// Строковый идентификатор арены.
+    /// Строковый идентификатор (wincoin | win_life | win_pro | win_ultra).
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
-    /// Длительность одного цикла (в секундах).
+    /// Общее количество завершённых и активных циклов.
+    /// Последний цикл всегда имеет seq == total_cycles.
+    /// Если total_cycles > 0 — запросить последний цикл для определения его статуса.
     #[prost(uint32, tag = "3")]
-    pub duration: u32,
-    /// Флаг автопродления: автоматически создавать новый цикл после завершения.
-    #[prost(bool, tag = "4")]
-    pub auto_renew: bool,
-    /// Текущий номер активного цикла (0 = нет активного).
-    #[prost(uint32, tag = "5")]
-    pub current_cycle_seq: u32,
-    /// Общее количество циклов (включая завершённые).
-    #[prost(uint32, tag = "6")]
     pub total_cycles: u32,
 }
 /// Nested message and enum types in `Arena`.
 pub mod arena {
-    /// Идентификатор арены.
+    /// Идентификатор арены: числовой id или строковое name.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Id {
         #[prost(oneof = "id::Identifier", tags = "1, 2")]
@@ -7468,7 +7424,7 @@ pub mod arena {
             /// Числовой ID арены (1..4).
             #[prost(uint32, tag = "1")]
             Id(u32),
-            /// Строковый идентификатор арены (например "wincoins_exchange").
+            /// Строковый идентификатор (например "wincoin").
             #[prost(string, tag = "2")]
             Name(::prost::alloc::string::String),
         }
@@ -7479,52 +7435,135 @@ pub mod arena {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Arena>,
     }
-    /// Один раунд арены, привязан к конкретному лидерборду.
+    /// Карточка арены — арена + контекстный цикл.
+    /// Единый объект для ответов API, где важен контекст арены вместе с циклом.
+    ///
+    /// Клиентский API:
+    /// ListArenas       → cycle = последний цикл (leaderboard = null).
+    /// GetArena         → cycle = текущий активный цикл (leaderboard заполнен).
+    /// Admin API:
+    /// Start/Stop/Resume/FinishCycle → cycle = обновлённый цикл (leaderboard = null).
+    ///
+    /// GetLeaderboard и ListLeaderboardEntries возвращают Leaderboard напрямую.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Card {
+        #[prost(message, optional, tag = "1")]
+        pub arena: ::core::option::Option<super::Arena>,
+        /// Цикл в контексте данного ответа. null = циклов ещё не было.
+        #[prost(message, optional, tag = "2")]
+        pub cycle: ::core::option::Option<Cycle>,
+    }
+    /// Nested message and enum types in `Card`.
+    pub mod card {
+        /// Список карточек арен.
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Card>,
+        }
+    }
+    /// Настройки отображения данных лидерборда.
+    /// Используется как шаблон арены, так и как конфигурация конкретного цикла.
+    /// Клиент не видит этот объект напрямую — управляется только Admin.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct DisplayConfig {
+        /// Количество топ-позиций, возвращаемых в лидерборде.
+        #[prost(uint32, tag = "1")]
+        pub display_count: u32,
+        /// Показывать ли общее количество участников (total_participants).
+        #[prost(bool, tag = "2")]
+        pub show_total_participants: bool,
+        /// Показывать ли информацию о призах в API-ответе (prizes_usdt).
+        /// Управляет только отображением, не выплатой.
+        #[prost(bool, tag = "3")]
+        pub show_prizes: bool,
+    }
+    /// Шаблон конфигурации арены — только для Admin.
+    /// Применяется при старте нового цикла.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Template {
+        /// Длительность одного цикла по умолчанию (в секундах).
+        #[prost(uint32, tag = "1")]
+        pub duration: u32,
+        /// Поведение арены после завершения цикла.
+        /// true — автоматически запускать новый цикл (только если статус был Active, не Stopped).
+        /// false — Admin запускает следующий цикл вручную.
+        /// Это свойство арены, а не конкретного цикла; хранится в Template как Admin-only настройка.
+        #[prost(bool, tag = "2")]
+        pub auto_renew: bool,
+        /// Настройки отображения (копируются в Cycle.Config при старте цикла).
+        #[prost(message, optional, tag = "3")]
+        pub display: ::core::option::Option<DisplayConfig>,
+        /// Включены ли выплаты призов (только в шаблоне).
+        /// false — prizes_usdt не копируются при старте цикла (Cycle.Config.prizes_usdt = \[\]).
+        #[prost(bool, tag = "4")]
+        pub prizes_enabled: bool,
+        /// Призы по местам — шаблон для новых циклов.
+        /// Копируется в Cycle.Config только если prizes_enabled=true.
+        /// Индекс 0 = 1-е место, индекс 1 = 2-е место и т.д.
+        /// Значение — сумма в USDT (строка, precision=8).
+        #[prost(string, repeated, tag = "5")]
+        pub prizes_usdt: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    }
+    /// Один раунд арены, привязан к конкретному лидерборду.
+    /// Board создаётся автоматически при старте цикла.
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Cycle {
         #[prost(uint32, tag = "1")]
         pub arena_id: u32,
         /// Порядковый номер цикла (1-based).
         #[prost(uint32, tag = "2")]
         pub seq: u32,
-        /// ID борда в лидерборде.
-        #[prost(uint32, tag = "3")]
-        pub board_id: u32,
         /// Дата начала цикла.
         #[prost(message, optional, tag = "4")]
         pub started_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Дата планируемого завершения.
+        /// Запланированная дата завершения.
         #[prost(message, optional, tag = "5")]
         pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Фактическая дата завершения (null = не завершён).
+        /// Фактическая дата завершения. null = не завершён.
         #[prost(message, optional, tag = "6")]
         pub finished_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Статус цикла.
         #[prost(enumeration = "cycle::status::Id", tag = "7")]
         pub status: i32,
-        /// Общий призовой фонд цикла (в mantissa).
-        #[prost(string, tag = "8")]
-        pub prize_fund: ::prost::alloc::string::String,
-        /// Количество призовых мест (кто выиграет в цикле).
-        #[prost(uint32, tag = "9")]
-        pub winners_count: u32,
-        /// Список ID победителей (заполняется после завершения цикла).
-        #[prost(uint32, repeated, tag = "10")]
+        /// Дата приостановки. null = не приостанавливался.
+        #[prost(message, optional, tag = "8")]
+        pub stopped_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Distributor ID победителей, упорядоченные по убыванию ранга.
+        /// Заполняется при завершении цикла (status = FINISHED).
+        #[prost(uint32, repeated, tag = "9")]
         pub winner_distributor_ids: ::prost::alloc::vec::Vec<u32>,
+        /// Призы по местам этого цикла.
+        /// Заполняется бэкендом только если Config.display.show_prizes=true.
+        /// Индекс 0 = 1-е место. Пустой список — призы не отображаются или не заданы.
+        #[prost(string, repeated, tag = "10")]
+        pub prizes_usdt: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        /// Количество уникальных участников в лидерборде цикла.
+        /// Заполняется бэкендом только если Config.display.show_total_participants=true.
+        /// null — не отображается по настройкам цикла.
+        #[prost(uint32, optional, tag = "11")]
+        pub total_participants: ::core::option::Option<u32>,
+        /// Данные лидерборда цикла.
+        /// Заполняется бэкендом при запросах GetArena и GetLeaderboard.
+        /// Не заполняется в ListCycles (только метаданные цикла).
+        /// null если не запрошены.
+        #[prost(message, optional, tag = "13")]
+        pub leaderboard: ::core::option::Option<super::Leaderboard>,
     }
     /// Nested message and enum types in `Cycle`.
     pub mod cycle {
         /// Идентификатор цикла внутри арены.
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Id {
-            /// ID арены.
             #[prost(uint32, tag = "1")]
             pub arena_id: u32,
-            /// Порядковый номер цикла (1-based).
+            /// Порядковый номер цикла (1-based). seq последнего цикла == arena.total_cycles.
             #[prost(uint32, tag = "2")]
             pub seq: u32,
         }
         /// Список циклов.
+        /// Для пагинации: передавай seq последнего элемента как cursor в следующем запросе.
+        /// Конец списка определяется по seq первого элемента (seq == 1 → это последняя страница).
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct List {
             #[prost(message, repeated, tag = "1")]
@@ -7549,8 +7588,13 @@ pub mod arena {
             #[repr(i32)]
             pub enum Id {
                 Unspecified = 0,
+                /// Цикл активен, баллы начисляются.
                 Active = 1,
-                Finished = 2,
+                /// Цикл приостановлен Admin. Баллы не начисляются.
+                /// Авто-продление при завершении заблокировано.
+                Stopped = 2,
+                /// Цикл завершён. Board заархивирован, призы выплачены.
+                Finished = 3,
             }
             impl Id {
                 /// String value of the enum field names used in the ProtoBuf definition.
@@ -7561,6 +7605,7 @@ pub mod arena {
                     match self {
                         Self::Unspecified => "UNSPECIFIED",
                         Self::Active => "ACTIVE",
+                        Self::Stopped => "STOPPED",
                         Self::Finished => "FINISHED",
                     }
                 }
@@ -7569,11 +7614,28 @@ pub mod arena {
                     match value {
                         "UNSPECIFIED" => Some(Self::Unspecified),
                         "ACTIVE" => Some(Self::Active),
+                        "STOPPED" => Some(Self::Stopped),
                         "FINISHED" => Some(Self::Finished),
                         _ => None,
                     }
                 }
             }
+        }
+        /// Конфигурация цикла — только для Admin.
+        /// Снимок на момент старта: DisplayConfig + призы.
+        /// Изолирована от шаблона арены: изменение Template не затрагивает запущенный цикл.
+        /// Управляется через: GetCycleConfig (чтение) и UpdateCycleConfig (обновление).
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Config {
+            /// Настройки отображения этого цикла.
+            #[prost(message, optional, tag = "1")]
+            pub display: ::core::option::Option<super::DisplayConfig>,
+            /// Призы за места в этом цикле.
+            /// Индекс 0 = 1-е место, индекс 1 = 2-е место и т.д.
+            /// Значение — сумма в USDT (строка, precision=8).
+            /// Пустой список если шаблон создан с prizes_enabled=false.
+            #[prost(string, repeated, tag = "2")]
+            pub prizes_usdt: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
         }
     }
 }

@@ -3,47 +3,51 @@ syntax = "proto3";
 package biconom.types;
 
 import "google/protobuf/timestamp.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/account.proto";
 
-// Leaderboard предоставляет типы для работы с лидерскими досками (Leaderboard Engine).
+// Leaderboard — типы для работы с лидерскими досками (Leaderboard Engine).
+//
+// Борды создаются автоматически при старте Arena.Cycle и привязаны к нему.
 message Leaderboard {
-    // Идентификатор доски.
-    message Id {
-        uint32 id = 1;
-    }
-
-    // Состояние лидерской доски.
-    message Status {
-        enum Id {
-            UNSPECIFIED = 0;
-            ACTIVE = 1;
-            FROZEN = 2;
-            ARCHIVED = 3;
-        }
-    }
-
-    // Информация о доске.
-    message Board {
-        uint32 id = 1;
-        Status.Id status = 2;
-        // Общее количество участников в доске.
-        uint32 total_participants = 3;
-        google.protobuf.Timestamp created_at = 4;
-        optional google.protobuf.Timestamp archived_at = 5;
-    }
 
     // Запись участника в лидерборде.
     message Entry {
-        // ID дистрибьютора.
+        // ID дистрибьютора-участника.
         uint32 distributor_id = 1;
-        // Баллы (значение).
-        string value = 2;
-        // Текущий ранг (1 = лучший).
+        // Значение рейтинга участника — доменная метрика ранжирования (например, количество активаций).
+        // Форматирована сервером в виде строки; семантика определяется конкретной ареной.
+        string score = 2;
+        // Ранг участника (1 = лучший результат).
         uint32 rank = 3;
-        // Дата последнего обновления значения.
+        // Дата последнего обновления баллов.
         google.protobuf.Timestamp updated_at = 4;
         // Дата первого попадания в лидерборд.
         google.protobuf.Timestamp created_at = 5;
     }
 
+    // Записи участников.
+    //
+    // В режиме топа (GetArena / GetLeaderboard):
+    //   top-N записей + запись текущего дистрибьютора если он не в топе.
+    //
+    // В режиме пагинации (ListLeaderboardEntries):
+    //   записи текущей страницы + запись текущего дистрибьютора если не на странице.
+    //
+    // Текущий дистрибьютор всегда присутствует в items — идентифицируй по my_rank.
+    repeated Entry items = 1;
 
+    // Ранг текущего дистрибьютора в лидерборде.
+    // null = дистрибьютор не участвует (нет записи в борде).
+    // Соответствует Entry.rank элемента в items.
+    optional uint32 my_rank = 2;
+
+
+    // Профили всех дистрибьюторов из items.
+    // Ключ: Entry.distributor_id == Distributor.id.
+    repeated biconom.types.Distributor distributors = 3;
+
+    // Аккаунты, владеющие дистрибьюторами из списка.
+    // Аватары доступны через Account.avatar.
+    repeated biconom.types.Account accounts = 4;
 }
