@@ -13,7 +13,7 @@ pub struct ListCyclesRequest {
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
 /// Запрос полного списка участников лидерборда.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLeaderboardEntriesRequest {
     /// Идентификатор цикла: arena_id + seq.
     #[prost(message, optional, tag = "1")]

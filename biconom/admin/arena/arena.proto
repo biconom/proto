@@ -87,10 +87,11 @@ message UpdateTemplateRequest {
     biconom.types.Arena.Template template = 2;
 }
 
-// Обновить конфигурацию текущего цикла (отображение + призы, полная замена).
+// Обновить конфигурацию конкретного цикла (отображение + призы, полная замена).
+// Работает только для активных или остановленных циклов.
 message UpdateCycleConfigRequest {
-    // Таргет — текущий активный/остановленный цикл арены.
-    biconom.types.Arena.Id arena_id = 1;
+    // Таргет — конкретный цикл по его идентификатору.
+    biconom.types.Arena.Cycle.Id cycle_id = 1;
     biconom.types.Arena.Cycle.Config config = 2;
 }
 

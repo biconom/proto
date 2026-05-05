@@ -22,12 +22,13 @@ pub struct UpdateTemplateRequest {
     #[prost(message, optional, tag = "2")]
     pub template: ::core::option::Option<super::super::types::arena::Template>,
 }
-/// Обновить конфигурацию текущего цикла (отображение + призы, полная замена).
+/// Обновить конфигурацию конкретного цикла (отображение + призы, полная замена).
+/// Работает только для активных или остановленных циклов.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateCycleConfigRequest {
-    /// Таргет — текущий активный/остановленный цикл арены.
+    /// Таргет — конкретный цикл по его идентификатору.
     #[prost(message, optional, tag = "1")]
-    pub arena_id: ::core::option::Option<super::super::types::arena::Id>,
+    pub cycle_id: ::core::option::Option<super::super::types::arena::cycle::Id>,
     #[prost(message, optional, tag = "2")]
     pub config: ::core::option::Option<super::super::types::arena::cycle::Config>,
 }
@@ -44,7 +45,7 @@ pub struct ListCyclesAdminRequest {
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
 /// Запрос данных лидерборда (используется для GetLeaderboard и ListLeaderboardEntries).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LeaderboardAdminRequest {
     #[prost(message, optional, tag = "1")]
     pub cycle_id: ::core::option::Option<super::super::types::arena::cycle::Id>,

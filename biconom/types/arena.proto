@@ -11,7 +11,7 @@ import "biconom/types/leaderboard.proto";
 // к одному лидерборду. Дистрибьюторы зарабатывают баллы и
 // соревнуются за ранг в рамках текущего цикла.
 //
-// Имена арен: wincoin | win_life | win_pro | win_ultra.
+// Имена арен: wincoin | win_lite | win_pro | win_ultra.
 message Arena {
 
     // Идентификатор арены: числовой id или строковое name.
@@ -88,7 +88,7 @@ message Arena {
     // ── Публичные поля (видит клиент) ────────────────────────
 
     uint32 id = 1;
-    // Строковый идентификатор (wincoin | win_life | win_pro | win_ultra).
+    // Строковый идентификатор (wincoin | win_lite | win_pro | win_ultra).
     string name = 2;
     // Общее количество завершённых и активных циклов.
     // Последний цикл всегда имеет seq == total_cycles.
@@ -103,7 +103,8 @@ message Arena {
 
         // Идентификатор цикла внутри арены.
         message Id {
-            uint32 arena_id = 1;
+            // Идентификатор арены (числовой id или строковое name).
+            Arena.Id arena_id = 1;
             // Порядковый номер цикла (1-based). seq последнего цикла == arena.total_cycles.
             uint32 seq = 2;
         }
@@ -158,9 +159,22 @@ message Arena {
         Status.Id status = 7;
         // Дата приостановки. null = не приостанавливался.
         optional google.protobuf.Timestamp stopped_at = 8;
-        // Distributor ID победителей, упорядоченные по убыванию ранга.
+        // Победитель цикла — дистрибьютор занявший призовое место.
         // Заполняется при завершении цикла (status = FINISHED).
-        repeated uint32 winner_distributor_ids = 9;
+        // Содержит только места с призом > 0.
+        message Winner {
+            // 1-based номер места в рейтинге.
+            uint32 place = 1;
+            // Distributor ID победителя.
+            uint32 distributor_id = 2;
+            // Сумма приза (строка, precision=8 USDT).
+            string amount_usdt = 3;
+        }
+
+        // Победители цикла, упорядоченные по месту (place ASC).
+        // Заполняется при завершении цикла (status = FINISHED).
+        // Только места с призом > 0.
+        repeated Winner winners = 9;
 
         // Призы по местам этого цикла.
         // Заполняется бэкендом только если Config.display.show_prizes=true.

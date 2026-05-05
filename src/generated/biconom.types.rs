@@ -7337,8 +7337,7 @@ pub mod wallet_currency {
 }
 /// Leaderboard — типы для работы с лидерскими досками (Leaderboard Engine).
 ///
-/// Борды создаются автоматически при старте Arena.Cycle.
-/// Идентификатор борда хранится в Arena.Cycle.board_id.
+/// Борды создаются автоматически при старте Arena.Cycle и привязаны к нему.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Leaderboard {
     /// Записи участников.
@@ -7395,12 +7394,12 @@ pub mod leaderboard {
 /// к одному лидерборду. Дистрибьюторы зарабатывают баллы и
 /// соревнуются за ранг в рамках текущего цикла.
 ///
-/// Имена арен: wincoin | win_life | win_pro | win_ultra.
+/// Имена арен: wincoin | win_lite | win_pro | win_ultra.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Arena {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    /// Строковый идентификатор (wincoin | win_life | win_pro | win_ultra).
+    /// Строковый идентификатор (wincoin | win_lite | win_pro | win_ultra).
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
     /// Общее количество завершённых и активных циклов.
@@ -7529,10 +7528,11 @@ pub mod arena {
         /// Дата приостановки. null = не приостанавливался.
         #[prost(message, optional, tag = "8")]
         pub stopped_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Distributor ID победителей, упорядоченные по убыванию ранга.
+        /// Победители цикла, упорядоченные по месту (place ASC).
         /// Заполняется при завершении цикла (status = FINISHED).
-        #[prost(uint32, repeated, tag = "9")]
-        pub winner_distributor_ids: ::prost::alloc::vec::Vec<u32>,
+        /// Только места с призом > 0.
+        #[prost(message, repeated, tag = "9")]
+        pub winners: ::prost::alloc::vec::Vec<cycle::Winner>,
         /// Призы по местам этого цикла.
         /// Заполняется бэкендом только если Config.display.show_prizes=true.
         /// Индекс 0 = 1-е место. Пустой список — призы не отображаются или не заданы.
@@ -7553,10 +7553,11 @@ pub mod arena {
     /// Nested message and enum types in `Cycle`.
     pub mod cycle {
         /// Идентификатор цикла внутри арены.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Id {
-            #[prost(uint32, tag = "1")]
-            pub arena_id: u32,
+            /// Идентификатор арены (числовой id или строковое name).
+            #[prost(message, optional, tag = "1")]
+            pub arena_id: ::core::option::Option<super::Id>,
             /// Порядковый номер цикла (1-based). seq последнего цикла == arena.total_cycles.
             #[prost(uint32, tag = "2")]
             pub seq: u32,
@@ -7636,6 +7637,21 @@ pub mod arena {
             /// Пустой список если шаблон создан с prizes_enabled=false.
             #[prost(string, repeated, tag = "2")]
             pub prizes_usdt: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        }
+        /// Победитель цикла — дистрибьютор занявший призовое место.
+        /// Заполняется при завершении цикла (status = FINISHED).
+        /// Содержит только места с призом > 0.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Winner {
+            /// 1-based номер места в рейтинге.
+            #[prost(uint32, tag = "1")]
+            pub place: u32,
+            /// Distributor ID победителя.
+            #[prost(uint32, tag = "2")]
+            pub distributor_id: u32,
+            /// Сумма приза (строка, precision=8 USDT).
+            #[prost(string, tag = "3")]
+            pub amount_usdt: ::prost::alloc::string::String,
         }
     }
 }
