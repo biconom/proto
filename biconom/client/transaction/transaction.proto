@@ -3,6 +3,9 @@ syntax = "proto3";
 package biconom.client.transaction;
 
 import "biconom/types/asset.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/slot.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/transaction.proto";
 import "biconom/types/transaction_entry_reason.proto";
@@ -19,28 +22,18 @@ service TransactionService {
 
 // Запрос на получение истории.
 message HistoryRequest {
-    // Составной курсор для пагинации.
-    message Cursor {
-        // Время создания записи.
-        uint32 created_at = 1;
-        // ID конкретной проводки (используется для разрешения коллизий по времени).
-        uint64 entry_id = 2; 
-    }
+    // Идентификатор последней полученной группы (TransactionGroup). Используется для пагинации.
+    // Если не передан — возвращается первая страница.
+    optional uint64 cursor = 1;
     
-    // Курсор для продолжения выборки. Если не передан — возвращается первая страница.
-    optional Cursor cursor = 1;
-    
-    // Количество визуальных групп (HistoryGroup) на страницу. Максимум 100.
-    uint32 limit = 2; 
-    
-    // Направление сортировки. По умолчанию — от новых к старым (DESC / BACKWARD).
-    biconom.types.Sort.Direction direction = 3;
-    
+    // Параметры сортировки и лимита. По умолчанию — направление BACKWARD (от новых к старым) и лимит 100.
+    optional biconom.types.Sort sort = 2;
+
     // Опциональный фильтр по категориям операций.
-    repeated HistoryGroup.Kind.Id filter_kinds = 4;
+    repeated HistoryGroup.Kind.Id filter_kinds = 3;
     
     // Опциональный фильтр по активам (валютам).
-    repeated biconom.types.Asset filter_assets = 5;
+    repeated biconom.types.Asset filter_assets = 4;
 }
 
 // Ответ с историей транзакций.
@@ -48,8 +41,14 @@ message HistoryResponse {
     // Список агрегированных визуальных блоков.
     repeated HistoryGroup items = 1;
     
-    // Курсор для загрузки следующей страницы. Отсутствует, если достигнут конец списка.
-    optional HistoryRequest.Cursor next_cursor = 2;
+    // Дедуплицированный список аккаунтов, упомянутых в транзакциях.
+    repeated biconom.types.Account accounts = 2;
+
+    // Дедуплицированный список дистрибьюторов, упомянутых в транзакциях.
+    repeated biconom.types.Distributor distributors = 3;
+
+    // Дедуплицированный список маркетинговых слотов, упомянутых в транзакциях.
+    repeated biconom.types.Slot slots = 4;
 }
 
 // Агрегированный визуальный блок истории, соответствующий одной бизнес-операции 

@@ -2,34 +2,19 @@
 /// Запрос на получение истории.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HistoryRequest {
-    /// Курсор для продолжения выборки. Если не передан — возвращается первая страница.
-    #[prost(message, optional, tag = "1")]
-    pub cursor: ::core::option::Option<history_request::Cursor>,
-    /// Количество визуальных групп (HistoryGroup) на страницу. Максимум 100.
-    #[prost(uint32, tag = "2")]
-    pub limit: u32,
-    /// Направление сортировки. По умолчанию — от новых к старым (DESC / BACKWARD).
-    #[prost(enumeration = "super::super::types::sort::Direction", tag = "3")]
-    pub direction: i32,
+    /// Идентификатор последней полученной группы (TransactionGroup). Используется для пагинации.
+    /// Если не передан — возвращается первая страница.
+    #[prost(uint64, optional, tag = "1")]
+    pub cursor: ::core::option::Option<u64>,
+    /// Параметры сортировки и лимита. По умолчанию — направление BACKWARD (от новых к старым) и лимит 100.
+    #[prost(message, optional, tag = "2")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
     /// Опциональный фильтр по категориям операций.
-    #[prost(enumeration = "history_group::kind::Id", repeated, tag = "4")]
+    #[prost(enumeration = "history_group::kind::Id", repeated, tag = "3")]
     pub filter_kinds: ::prost::alloc::vec::Vec<i32>,
     /// Опциональный фильтр по активам (валютам).
-    #[prost(message, repeated, tag = "5")]
+    #[prost(message, repeated, tag = "4")]
     pub filter_assets: ::prost::alloc::vec::Vec<super::super::types::Asset>,
-}
-/// Nested message and enum types in `HistoryRequest`.
-pub mod history_request {
-    /// Составной курсор для пагинации.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Cursor {
-        /// Время создания записи.
-        #[prost(uint32, tag = "1")]
-        pub created_at: u32,
-        /// ID конкретной проводки (используется для разрешения коллизий по времени).
-        #[prost(uint64, tag = "2")]
-        pub entry_id: u64,
-    }
 }
 /// Ответ с историей транзакций.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -37,9 +22,15 @@ pub struct HistoryResponse {
     /// Список агрегированных визуальных блоков.
     #[prost(message, repeated, tag = "1")]
     pub items: ::prost::alloc::vec::Vec<HistoryGroup>,
-    /// Курсор для загрузки следующей страницы. Отсутствует, если достигнут конец списка.
-    #[prost(message, optional, tag = "2")]
-    pub next_cursor: ::core::option::Option<history_request::Cursor>,
+    /// Дедуплицированный список аккаунтов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "2")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+    /// Дедуплицированный список дистрибьюторов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "3")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    /// Дедуплицированный список маркетинговых слотов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "4")]
+    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
 }
 /// Агрегированный визуальный блок истории, соответствующий одной бизнес-операции
 /// (например, "Покупка Лицензии" или "Внутренний Перевод").
