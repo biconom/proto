@@ -52,10 +52,17 @@ message Confirmation {
 			// Типы контактного канала, на который отправляется код.
 			enum Kind {
 				UNSPECIFIED = 0;
+				// Код отправляется на email-адрес пользователя.
 				EMAIL = 1;
+				// Код отправляется через Telegram-бота.
+				// chanel_contact содержит username бота (например, "@MyProjectBot").
+				// Фактический Telegram-аккаунт получателя на клиент НЕ передаётся.
+				TELEGRAM = 2;
 			}
-			Kind chanel_kind = 1;	                            // Тип канала связи (email, sms и т.д.).
-			string chanel_contact = 2;	                        // Значение канала связи (например, email адрес).
+			Kind chanel_kind = 1;	                            // Тип канала связи.
+			string chanel_contact = 2;	                        // Безопасный идентификатор канала для отображения:
+			                                                    //   EMAIL   → замаскированный email (например, "u***@gmail.com")
+			                                                    //   TELEGRAM → username бота (например, "@MyProjectBot")
 			uint32 generation_duration = 3;	                    // Интервал между попытками генерации нового кода (в секундах).
 			google.protobuf.Timestamp last_generated_at = 4;	// Время генерации последнего кода.
 			uint32 generation_attempt_limit = 5;				// Лимит доступных попыток генерации нового кода.

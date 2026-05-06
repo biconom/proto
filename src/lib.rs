@@ -111,6 +111,9 @@ pub mod biconom {
         pub mod wallet_currency {
             include!("generated/biconom.client.wallet_currency.rs");
         }
+        pub mod transaction {
+            include!("generated/biconom.client.transaction.rs");
+        }
     }
     pub mod types {
         include!("generated/biconom.types.rs");

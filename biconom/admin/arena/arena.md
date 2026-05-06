@@ -147,8 +147,8 @@ Arena.Template    template = 2;
 | `duration` | `uint32` (секунды) | Длительность цикла. **Обязательно > 0** |
 | `auto_renew` | `bool` | Автозапуск нового цикла после завершения. `true` — только если цикл завершился в статусе `ACTIVE` (не `STOPPED`) |
 | `display` | `DisplayConfig` | Настройки отображения лидерборда |
-| `prizes_enabled` | `bool` | Включить выплату призов. `false` — `prizes_usdt` в цикл не копируются |
-| `prizes_usdt` | `repeated string` | Призы по местам в USDT. Индекс 0 = 1-е место. Формат: `"1000.00"` (precision USDT из БД) |
+| `prizes_enabled` | `bool` | Управляет копированием призов в новый цикл. `false` — при `StartCycle` цикл создаётся без призов, но сам шаблон сохраняет `prizes_usdt` |
+| `prizes_usdt` | `repeated string` | Призы по местам в USDT. Индекс 0 = 1-е место. Формат: `"1000.00"` (precision USDT из БД). Сохраняется в шаблоне **всегда**, независимо от `prizes_enabled` |
 
 **`DisplayConfig`:**
 
@@ -169,6 +169,10 @@ Arena.Template    template = 2;
 
 > ⚠️ Изменение `auto_renew` в шаблоне влияет только на **следующий** TTL-воркер цикл.  
 > ⚠️ Изменение `prizes_usdt` в шаблоне не меняет призы текущего цикла — используй `UpdateCycleConfig`.
+> 
+> **Семантика `prizes_enabled`:** это не флаг «очистить призы», а флаг «копировать призы при старте».  
+> Можно выставить `prizes_enabled=false` + сохранить `prizes_usdt` — шаблон запомнит конфигурацию призов,  
+> но новые циклы будут запускаться без выплат. При возврате `prizes_enabled=true` — призы восстановятся автоматически.
 
 **Ошибки:**
 
@@ -315,7 +319,7 @@ rpc FinishCycle(Arena.Id) returns (Arena.Card)
 **Важно о призах:**
 - Приз выплачивается только если `prizes_usdt[place-1] > 0`.
 - Если участников меньше призовых мест — невостребованные призы не выплачиваются.
-- Если `prizes_enabled=false` → `prizes_usdt` пуст → никаких выплат.
+- Если `prizes_enabled=false` в шаблоне → цикл был создан без призов (`prizes_usdt` пуст в `CycleConfig`) → никаких выплат.
 - Новый цикл **не создаётся** автоматически при ручном завершении. Авто-продление (`auto_renew`) работает только через TTL-воркер.
 
 **Поведение по статусу:**
@@ -594,4 +598,16 @@ started_at { seconds: 1746000000 }
 2. ListLeaderboardEntries({ cycle_id: {arena_id, seq}, sort: {limit: 100} })
 3. ListLeaderboardEntries({ cycle_id, cursor: last_rank, sort: {limit: 100} })
    // Повторять пока items.length < limit
+```
+
+### Сценарий 6: Временное отключение призов без потери конфигурации
+
+```
+// Сохраняем prizes_usdt в шаблоне, но отключаем выплату для новых циклов:
+1. UpdateTemplate(arena_id, { prizes_enabled: false, prizes_usdt: ["1000", "500"], duration: 604800 })
+   // Шаблон сохранит ["1000", "500"], новые циклы запустятся без выплат.
+
+// Восстановить выплаты позже:
+2. UpdateTemplate(arena_id, { prizes_enabled: true, prizes_usdt: ["1000", "500"], duration: 604800 })
+   // prizes_usdt уже был в шаблоне, можно передать те же значения.
 ```

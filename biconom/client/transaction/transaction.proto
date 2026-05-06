@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package biconom.client.transaction;
+
+import "biconom/types/asset.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/transaction.proto";
+import "biconom/types/transaction_entry_reason.proto";
+import "google/protobuf/timestamp.proto";
+
+// Сервис предоставления истории транзакций пользователя.
+// Выступает в роли Backend-for-Frontend (BFF), агрегируя низкоуровневые 
+// бухгалтерские проводки из ядра в готовые визуальные блоки для UI.
+service TransactionService {
+    // Получение истории транзакций (балансовых операций) пользователя.
+    // Поддерживает курсорную пагинацию и фильтрацию по типам операций и активам.
+    rpc History(HistoryRequest) returns (HistoryResponse);
+}
+
+// Запрос на получение истории.
+message HistoryRequest {
+    // Составной курсор для пагинации.
+    message Cursor {
+        // Время создания записи.
+        uint32 created_at = 1;
+        // ID конкретной проводки (используется для разрешения коллизий по времени).
+        uint64 entry_id = 2; 
+    }
+    
+    // Курсор для продолжения выборки. Если не передан — возвращается первая страница.
+    optional Cursor cursor = 1;
+    
+    // Количество визуальных групп (HistoryGroup) на страницу. Максимум 100.
+    uint32 limit = 2; 
+    
+    // Направление сортировки. По умолчанию — от новых к старым (DESC / BACKWARD).
+    biconom.types.Sort.Direction direction = 3;
+    
+    // Опциональный фильтр по категориям операций.
+    repeated HistoryGroup.Kind.Id filter_kinds = 4;
+    
+    // Опциональный фильтр по активам (валютам).
+    repeated biconom.types.Asset filter_assets = 5;
+}
+
+// Ответ с историей транзакций.
+message HistoryResponse {
+    // Список агрегированных визуальных блоков.
+    repeated HistoryGroup items = 1;
+    
+    // Курсор для загрузки следующей страницы. Отсутствует, если достигнут конец списка.
+    optional HistoryRequest.Cursor next_cursor = 2;
+}
+
+// Агрегированный визуальный блок истории, соответствующий одной бизнес-операции 
+// (например, "Покупка Лицензии" или "Внутренний Перевод").
+message HistoryGroup {
+    // Агрегированный статус группы на основе вложенных транзакций.
+    message Status {
+        enum Id {
+            UNSPECIFIED = 0;
+            // Операция успешно завершена (POSTED).
+            SUCCESS = 1;     
+            // Операция в процессе выполнения (PENDING / AUTHORIZED).
+            IN_PROGRESS = 2; 
+            // Операция отклонена или завершилась с ошибкой (REJECTED / VOIDED).
+            ERROR = 3;       
+            // Операция была отменена обратной записью (REVERSED).
+            REVERSED = 4;
+        }
+    }
+
+    // Категория верхнего уровня для выбора иконки и заголовка блока в UI.
+    message Kind {
+        enum Id {
+            UNSPECIFIED = 0;
+            // Внешнее пополнение баланса.
+            RECEIVE = 1;
+            // Внешний вывод средств.
+            WITHDRAWAL = 2;
+            // Внутренний перевод (как входящий, так и исходящий).
+            TRANSFER = 3;
+            // Покупка (лицензий, токенов, слотов).
+            PURCHASE = 4;
+            // Бонусное начисление по маркетингу.
+            BONUS = 5;
+            // Выплата (часто комбинируется с бонусами, например Payout 2 Line).
+            PAYOUT = 6;
+            // Востребование (клейм) пула дивидендов и т.д.
+            CLAIM = 7;
+            // Системная ручная или автоматическая корректировка.
+            ADJUSTMENT = 8;
+            // Сторнирование (отмена) другой операции.
+            REVERSAL = 9;
+        }
+    }
+
+    // Уникальный идентификатор бизнес-операции (TransactionGroup ID из ядра).
+    uint64 group_id = 1;
+    
+    // Точное время инициации операции.
+    google.protobuf.Timestamp created_at = 2;
+    
+    Status.Id status = 3;
+    Kind.Id kind = 4;
+
+    // Изменения баланса текущего пользователя в рамках данной бизнес-операции.
+    repeated HistoryEntry entries = 5;
+
+    // Специфичные метаданные, зависящие от Kind.
+    GroupMetadata metadata = 6;
+}
+
+// Конкретная проводка, влияющая на баланс пользователя (списание или начисление).
+message HistoryEntry {
+    biconom.types.Asset asset = 1;
+    
+    // Направление по отношению к кошельку пользователя (DEBIT - списание, CREDIT - зачисление).
+    biconom.types.TransactionEntry.Direction.Id direction = 2;
+    
+    // Строка для точной передачи мантиссы суммы.
+    string amount = 3; 
+    
+    // Подробная причина данной проводки (полиморфная модель всех возможных типов, включая корпоративные и пользовательские).
+    biconom.types.TransactionEntryReason reason = 4;
+    
+    // Название или описание конкретной сущности (например, "Win Pro 4x30 Days").
+    optional string description = 5; 
+}
+
+// Полиморфный объект с контекстными метаданными бизнес-операции.
+message GroupMetadata {
+    oneof data {
+        // Заполняется для RECEIVE и WITHDRAWAL.
+        PaymentMetadata payment = 1;     
+        // Заполняется для TRANSFER.
+        TransferMetadata transfer = 2;   
+        // Заполняется для BONUS и PAYOUT.
+        BonusMetadata bonus = 3;         
+        // Заполняется для REVERSAL.
+        ReversalMetadata reversal = 4;   
+    }
+}
+
+// Метаданные внешних платежей (ввод/вывод).
+message PaymentMetadata {
+    // Адрес кошелька или реквизиты платежа.
+    string address = 1;
+    // Хэш транзакции в блокчейне (если применимо).
+    optional string transaction_hash = 2;
+}
+
+// Метаданные внутренних переводов.
+message TransferMetadata {
+    // Флаг направления перевода для текущего пользователя.
+    bool is_incoming = 1;
+    // ID второго участника перевода.
+    uint32 counterparty_account_id = 2; 
+    // Логин (username) второго участника перевода.
+    string counterparty_login = 3;      
+}
+
+// Метаданные бонусных и партнерских начислений.
+message BonusMetadata {
+    // Название бонуса (например, "Arena #23", "Gift", "2 Line").
+    string bonus_name = 1;              
+    // Опциональный ID пользователя, чье действие вызвало бонус (например, партнер ниже в структуре).
+    optional uint32 initiator_account_id = 2;
+    // Логин пользователя-инициатора.
+    optional string initiator_login = 3; 
+}
+
+// Метаданные сторнирования (отмены).
+message ReversalMetadata {
+    // ID оригинальной группы транзакций, которая отменяется.
+    uint64 original_group_id = 1;
+    // Описание того, что именно отменено (например, "Transaction (Payout Wincoin 2 Line)").
+    string original_kind_name = 2;       
+}

@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package biconom.types;
+
+// Причина бухгалтерской проводки. Соответствует TransactionEntryReasonKind в ядре.
+message TransactionEntryReason {
+    oneof kind {
+        InternalTransferSend internal_transfer_send = 1;
+        InternalTransferReceive internal_transfer_receive = 2;
+        InternalTransferFeeSender internal_transfer_fee_sender = 3;
+        InternalTransferFeeRecipient internal_transfer_fee_recipient = 4;
+        InternalTransferFeeCompanyFromSender internal_transfer_fee_company_from_sender = 5;
+        InternalTransferFeeCompanyFromRecipient internal_transfer_fee_company_from_recipient = 6;
+        PaymentNetwork payment_network = 7;
+        ExchangeTrade exchange_trade = 8;
+        Bonus bonus = 9;
+        Withdrawal withdrawal = 10;
+        License license = 11;
+        SlotCapacityUpgrade slot_capacity_upgrade = 12;
+        SlotManualPlacement slot_manual_placement = 13;
+    }
+
+    // Исполнитель транзакции.
+    message Executor {
+        oneof kind {
+            Account account = 1;
+            Distributor distributor = 2;
+            Slot slot = 3;
+        }
+        
+        message Account {
+            uint32 account_id = 1;
+        }
+        message Distributor {
+            uint32 account_id = 1;
+            uint32 distributor_id = 2;
+        }
+        message Slot {
+            uint32 account_id = 1;
+            uint32 distributor_id = 2;
+            uint32 slot_id = 3;
+        }
+    }
+
+    message InternalTransferSend {
+        Executor sender = 1;
+        Executor recipient = 2;
+    }
+
+    message InternalTransferReceive {
+        Executor sender = 1;
+        Executor recipient = 2;
+    }
+
+    message InternalTransferFeeSender {}
+    message InternalTransferFeeRecipient {}
+
+    message InternalTransferFeeCompanyFromSender {
+        Executor executor = 1;
+    }
+
+    message InternalTransferFeeCompanyFromRecipient {
+        Executor executor = 1;
+    }
+
+    message PaymentNetwork {
+        oneof data {
+            Bsc bsc = 1;
+            CashDesk cash_desk = 2;
+        }
+        
+        message Bsc {
+            oneof data {
+                Given given = 1;
+                Received received = 2;
+            }
+            message Given {
+                uint32 account_id = 1;
+                string transaction_hash = 2;
+            }
+            message Received {
+                uint32 account_id = 1;
+                string transaction_hash = 2;
+            }
+        }
+        
+        message CashDesk {
+            oneof data {
+                Given given = 1;
+                Received received = 2;
+            }
+            message Given {
+                uint32 account_id = 1;
+            }
+            message Received {
+                uint32 account_id = 1;
+            }
+        }
+    }
+
+    message ExchangeTrade {
+        oneof data {
+            Given given = 1;
+            Received received = 2;
+            GivenFee given_fee = 3;
+            ReceivedFee received_fee = 4;
+            ExchangeGiven exchange_given = 5;
+            ExchangeReceived exchange_received = 6;
+            CompanyReceivedFromGivenFee company_received_from_given_fee = 7;
+            CompanyReceivedFromReceivedFee company_received_from_received_fee = 8;
+        }
+        
+        message Given { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message Received { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message GivenFee { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message ReceivedFee { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message ExchangeGiven { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message ExchangeReceived { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message CompanyReceivedFromGivenFee { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+        message CompanyReceivedFromReceivedFee { Executor executor = 1; uint32 exchange_id = 2; uint32 currency_pair_id = 3; }
+    }
+
+    message Bonus {
+        uint32 bonus_id = 1;
+        bool receive = 2;
+        BonusReason reason = 3;
+    }
+
+    message BonusReason {
+        oneof data {
+            StructureRewardFromExchangeTradeBuyWinCoins structure_reward_from_exchange_trade_buy_win_coins = 1;
+            MarketingRewardFromLicensePurchase marketing_reward_from_license_purchase = 2;
+            MarketingDirectRewardFromLicensePurchase marketing_direct_reward_from_license_purchase = 3;
+            MarketingActivationRewardFromLicensePurchase marketing_activation_reward_from_license_purchase = 4;
+            DividendPoolBonus dividend_pool_bonus = 5;
+            ArenaPrize arena_prize = 6;
+            CompanyPartnerRewardFromLicensePurchase company_partner_reward_from_license_purchase = 7;
+        }
+        
+        message StructureRewardFromExchangeTradeBuyWinCoins {
+            uint32 exchange_id = 1;
+            uint32 currency_pair_id = 2;
+            uint32 to_distributor_id = 3;
+            uint32 from_distributor_id = 4;
+            uint32 depth_level = 5;
+        }
+        message MarketingRewardFromLicensePurchase {
+            uint64 payment_obligation_id = 1;
+        }
+        message MarketingDirectRewardFromLicensePurchase {
+            uint32 to_distributor_id = 1;
+            uint32 from_distributor_id = 2;
+            uint32 voucher_id = 3;
+        }
+        message MarketingActivationRewardFromLicensePurchase {
+            uint32 to_distributor_id = 1;
+            uint32 from_distributor_id = 2;
+            uint32 voucher_id = 3;
+        }
+        message DividendPoolBonus {
+            uint32 distributor_id = 1;
+            uint32 daily_rate = 2;
+            string base_amount = 3;
+        }
+        message ArenaPrize {
+            uint32 arena_id = 1;
+            uint32 cycle_seq = 2;
+            uint32 place = 3;
+        }
+        message CompanyPartnerRewardFromLicensePurchase {
+            Executor executor = 1;
+            uint32 license_voucher_id = 2;
+        }
+    }
+
+    message Withdrawal {
+        oneof data {
+            Given given = 1;
+            GivenFee given_fee = 2;
+            PaymentNetworkReceived payment_network_received = 3;
+            PaymentNetworkReceivedFee payment_network_received_fee = 4;
+        }
+        message Given { Executor executor = 1; uint32 withdrawal_id = 2; }
+        message GivenFee { Executor executor = 1; uint32 withdrawal_id = 2; }
+        message PaymentNetworkReceived { Executor executor = 1; uint32 withdrawal_id = 2; }
+        message PaymentNetworkReceivedFee { Executor executor = 1; uint32 withdrawal_id = 2; }
+    }
+
+    message License {
+        oneof data {
+            DistributorPurchase distributor_purchase = 1;
+            CompanyReceivedFee company_received_fee = 2;
+            CompanyReceivedMarketing company_received_marketing = 3;
+        }
+        message DistributorPurchase { Executor executor = 1; uint32 license_voucher_id = 2; }
+        message CompanyReceivedFee { Executor executor = 1; uint32 license_voucher_id = 2; }
+        message CompanyReceivedMarketing { Executor executor = 1; uint32 license_voucher_id = 2; }
+    }
+
+    message SlotCapacityUpgrade {
+        oneof data {
+            SlotPurchase slot_purchase = 1;
+            CompanyReceived company_received = 2;
+        }
+        message SlotPurchase { Executor executor = 1; uint32 old_children_capacity = 2; uint32 new_children_capacity = 3; }
+        message CompanyReceived { Executor executor = 1; uint32 old_children_capacity = 2; uint32 new_children_capacity = 3; }
+    }
+
+    message SlotManualPlacement {
+        oneof data {
+            SlotPurchase slot_purchase = 1;
+            CompanyReceived company_received = 2;
+        }
+        message SlotPurchase { Executor executor = 1; uint32 target_slot_id = 2; uint32 target_parent_id = 3; uint32 target_parent_branch_number = 4; }
+        message CompanyReceived { Executor executor = 1; uint32 target_slot_id = 2; uint32 target_parent_id = 3; uint32 target_parent_branch_number = 4; }
+    }
+}
