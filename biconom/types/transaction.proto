@@ -123,12 +123,14 @@ message Transaction {
 
             // Метаданные для карточки покупки расширения слота (увеличения ширины / новой ветки)
             message SlotCapacityUpgradeDetails {
+                // Идентификатор дерева
+                uint32 tree_id = 1;
                 // Идентификатор слота, который был расширен.
-                uint32 slot_id = 1;
+                uint32 slot_id = 2;
                 // Предыдущая вместимость (ширина) слота.
-                uint32 old_children_capacity = 2;
+                uint32 old_children_capacity = 3;
                 // Новая вместимость (ширина) слота (например, была 5, стала 6).
-                uint32 new_children_capacity = 3;
+                uint32 new_children_capacity = 4;
             }
 
             // Метаданные для карточки покупки ручной расстановки (установка слота личника в конкретную позицию)
