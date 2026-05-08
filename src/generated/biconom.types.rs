@@ -962,7 +962,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1101,14 +1101,17 @@ pub mod transaction {
             /// Метаданные для карточки покупки расширения слота (увеличения ширины / новой ветки)
             #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct SlotCapacityUpgradeDetails {
-                /// Идентификатор слота, который был расширен.
+                /// Идентификатор дерева
                 #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Идентификатор слота, который был расширен.
+                #[prost(uint32, tag = "2")]
                 pub slot_id: u32,
                 /// Предыдущая вместимость (ширина) слота.
-                #[prost(uint32, tag = "2")]
+                #[prost(uint32, tag = "3")]
                 pub old_children_capacity: u32,
                 /// Новая вместимость (ширина) слота (например, была 5, стала 6).
-                #[prost(uint32, tag = "3")]
+                #[prost(uint32, tag = "4")]
                 pub new_children_capacity: u32,
             }
             /// Метаданные для карточки покупки ручной расстановки (установка слота личника в конкретную позицию)
@@ -1165,6 +1168,31 @@ pub mod transaction {
                 /// Идентификатор дистрибьютора (инициатора), который купил лицензию.
                 #[prost(uint32, tag = "3")]
                 pub initiator_distributor_id: u32,
+                /// Идентификатор слота, на который была куплена лицензия.
+                #[prost(uint32, tag = "4")]
+                pub slot_id: u32,
+                /// Идентификатор купленного ваучера.
+                #[prost(uint32, tag = "5")]
+                pub voucher_id: u32,
+            }
+            /// Метаданные для карточки получения прямого линейного бонуса за продажу лицензии партнером (Payout)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct LicenseDirectBonusDetails {
+                /// Идентификатор дерева (лицензии), за покупку которой начислен бонус.
+                #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Уровень глубины (линия) партнера в линейной структуре.
+                #[prost(uint32, tag = "2")]
+                pub depth_level: u32,
+                /// Идентификатор дистрибьютора (инициатора), который купил лицензию.
+                #[prost(uint32, tag = "3")]
+                pub initiator_distributor_id: u32,
+                /// Идентификатор слота, на который была куплена лицензия.
+                #[prost(uint32, tag = "4")]
+                pub slot_id: u32,
+                /// Идентификатор купленного ваучера.
+                #[prost(uint32, tag = "5")]
+                pub voucher_id: u32,
             }
             /// Метаданные для карточки клейма дивидендов (Claim Dividend Pool)
             ///
@@ -1218,6 +1246,8 @@ pub mod transaction {
                 ArenaPrize(ArenaPrizeDetails),
                 #[prost(message, tag = "19")]
                 WithdrawalFee(WithdrawalFeeDetails),
+                #[prost(message, tag = "20")]
+                LicenseDirectBonus(LicenseDirectBonusDetails),
             }
         }
     }
