@@ -81,4 +81,11 @@ message MarketingSlot {
     repeated biconom.types.Distributor distributors = 7; // Дистрибьюторы, владеющие слотами
     repeated biconom.types.Account accounts = 8; // Аккаунты, владеющие дистрибьюторами
     repeated DistributorState distributor_states = 10; // Состояния дистрибьюторов
+
+    // Количество слотов на каждом уровне иерархии (агрегация)
+    message LevelSlotCount {
+        uint32 level = 1; // Уровень в иерархии
+        uint32 count = 2; // Количество слотов на данном уровне
+    }
+    repeated LevelSlotCount level_slot_counts = 11; // Агрегированное количество слотов по уровням
 }

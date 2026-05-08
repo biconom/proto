@@ -6150,6 +6150,9 @@ pub struct MarketingSlot {
     /// Состояния дистрибьюторов
     #[prost(message, repeated, tag = "10")]
     pub distributor_states: ::prost::alloc::vec::Vec<marketing_slot::DistributorState>,
+    /// Агрегированное количество слотов по уровням
+    #[prost(message, repeated, tag = "11")]
+    pub level_slot_counts: ::prost::alloc::vec::Vec<marketing_slot::LevelSlotCount>,
 }
 /// Nested message and enum types in `MarketingSlot`.
 pub mod marketing_slot {
@@ -6270,6 +6273,16 @@ pub mod marketing_slot {
         /// Список всех ID слотов, относящихся к цепочке
         #[prost(uint32, repeated, tag = "3")]
         pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+    }
+    /// Количество слотов на каждом уровне иерархии (агрегация)
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct LevelSlotCount {
+        /// Уровень в иерархии
+        #[prost(uint32, tag = "1")]
+        pub level: u32,
+        /// Количество слотов на данном уровне
+        #[prost(uint32, tag = "2")]
+        pub count: u32,
     }
 }
 /// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.

@@ -1,3 +1,0 @@
-# Transaction Service API Proposal
-
-...
