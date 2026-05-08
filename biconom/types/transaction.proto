@@ -5,142 +5,188 @@ package biconom.types;
 import "biconom/types/asset.proto";
 import "google/protobuf/timestamp.proto";
 
-// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
-// которые относятся к одной бизнес-операции.
-message TransactionGroup {
-  message Id {
-    uint64 id = 1;
-  }
-
-  message List {
-    repeated TransactionGroup items = 1;
-  }
-
-  uint64 id = 1;
-  google.protobuf.Timestamp created_at = 2;
-  // Список транзакций, входящих в эту группу.
-  repeated Transaction transactions = 3;
-}
-
-// Transaction представляет собой логическую финансовую операцию над одним активом.
-// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
+// Агрегированный визуальный блок истории (карточка в UI).
 message Transaction {
-  message Id {
-    uint64 id = 1;
-  }
+    message Group {
+        uint64 group_id = 1;
+        google.protobuf.Timestamp created_at = 2;
+        message Status {
+            enum Id {
+                UNSPECIFIED = 0;
+                SUCCESS = 1;     
+                IN_PROGRESS = 2; 
+                ERROR = 3;       
+                REVERSED = 4;
+            }
+        }
+        Status.Id status = 3;
+        repeated Entry entries = 4;
 
-  message List {
-    repeated Transaction items = 1;
-  }
+        // Конкретная проводка, готовая к отображению в UI.
+        message Entry {
+            uint32 currency_id = 1;
+            // Направление движения средств.
+            message Direction {
+                enum Id {
+                    UNSPECIFIED = 0;
+                    // Списание со счета.
+                    DEBIT = 1;
+                    // Зачисление на счет.
+                    CREDIT = 2;
+                }
+            }
+            Direction.Id direction = 2;
+            string amount = 3; 
+            oneof details {
+                ReceiveDetails receive = 4;
+                WithdrawalDetails withdrawal = 5;
+                CommentedDetails gift = 6;
+                CommentedDetails adjustment = 7;
+                TransferInDetails transfer_in = 8;
+                TransferOutDetails transfer_out = 9;
+                ExchangeDetails exchange = 10;
+                MarketingVoucherPurchaseDetails marketing_voucher_purchase = 11;
+                SlotCapacityUpgradeDetails slot_capacity_upgrade = 12;
+                SlotManualPlacementDetails slot_manual_placement = 13;
+                ActivationBonusDetails activation_bonus = 14;
+                TradeReferralBonusDetails trade_referral_bonus = 15;
+                LicenseReferralBonusDetails license_referral_bonus = 16;
+                DividendPoolClaimDetails dividend_pool_claim = 17;
+                ArenaPrizeDetails arena_prize = 18;
+                WithdrawalFeeDetails withdrawal_fee = 19;
+            }
 
-  // Слой, на котором выполняется транзакция.
-  message Layer {
-    enum Id {
-      UNSPECIFIED = 0;
-      // Основной слой, немедленное исполнение.
-      PRIMARY = 1;
-      // Запланированная операция, которая будет исполнена в будущем.
-      SCHEDULED = 2;
-      // Платежный слой, связанный с внешними системами.
-      PAYMENT = 3;
+            // Метаданные для карточки пополнения (Receive)
+            message ReceiveDetails {
+                // Идентификатор платежной сети, через которую прошло пополнение (например, ID сети BSC).
+                uint32 payment_network_id = 1;
+                // Хэш транзакции в сети (обязателен для блокчейн пополнений).
+                string transaction_hash = 2;
+                // Адрес, с которого было пополнение (опционально).
+                optional string address = 3;
+            }
+
+            // Метаданные для карточки вывода средств (Withdrawal)
+            message WithdrawalDetails {
+                // Уникальный идентификатор заявки на вывод.
+                uint32 withdrawal_id = 1;
+                // Идентификатор платежной сети, через которую осуществляется вывод (например, ID сети BSC).
+                uint32 payment_network_id = 2;
+                // Адрес кошелька, на который выводятся средства.
+                string address = 3;
+                // Хэш транзакции вывода в сети (опционально, может отсутствовать, если вывод еще в обработке).
+                optional string transaction_hash = 4;
+            }
+
+            // Метаданные для карточки комиссии за вывод средств (Withdrawal Fee)
+            message WithdrawalFeeDetails {
+                // Уникальный идентификатор заявки на вывод, к которой относится эта комиссия.
+                uint32 withdrawal_id = 1;
+            }
+
+            // Общая модель для деталей, содержащих только опциональный комментарий 
+            // (например, для подарка или ручной корректировки/штрафа).
+            message CommentedDetails {
+                // Текстовый комментарий, поясняющий операцию.
+                optional string comment = 1;
+            }
+
+            // Метаданные для карточки входящего внутреннего перевода (Transfer Incoming)
+            message TransferInDetails {
+                // Идентификатор дистрибьютора, который отправил средства.
+                uint32 sender_distributor_id = 1;
+            }
+
+            // Метаданные для карточки исходящего внутреннего перевода (Transfer Outgoing)
+            message TransferOutDetails {
+                // Идентификатор дистрибьютора, которому отправлены средства.
+                uint32 payee_distributor_id = 1;
+            }
+
+            // Метаданные для карточки обмена валют (Trade / Purchase / Exchange)
+            message ExchangeDetails {
+                // Идентификатор торговой/валютной пары.
+                uint32 trading_pair_id = 1;
+                // Идентификатор пула ликвидности (обменника).
+                uint32 exchange_id = 2;
+            }
+
+            // Метаданные для карточки покупки маркетингового ваучера (лицензии)
+            message MarketingVoucherPurchaseDetails {
+                // Идентификатор дерева, который определяет саму лицензию (например, Win Lite, Win Pro).
+                uint32 tree_id = 1;
+                // Идентификатор слота, на который куплен ваучер.
+                uint32 slot_id = 2;
+                // Идентификатор купленного ваучера.
+                uint32 voucher_id = 3;
+            }
+
+            // Метаданные для карточки покупки расширения слота (увеличения ширины / новой ветки)
+            message SlotCapacityUpgradeDetails {
+                // Идентификатор слота, который был расширен.
+                uint32 slot_id = 1;
+                // Предыдущая вместимость (ширина) слота.
+                uint32 old_children_capacity = 2;
+                // Новая вместимость (ширина) слота (например, была 5, стала 6).
+                uint32 new_children_capacity = 3;
+            }
+
+            // Метаданные для карточки покупки ручной расстановки (установка слота личника в конкретную позицию)
+            message SlotManualPlacementDetails {
+                // Идентификатор дерева, в котором производилась расстановка.
+                uint32 tree_id = 1;
+                // Идентификатор слота (личника), который был расставлен.
+                uint32 target_slot_id = 2;
+                // Идентификатор родительского слота, под который произведена расстановка.
+                uint32 target_parent_id = 3;
+                // Номер ответвления (ветки) родительского слота.
+                uint32 target_parent_branch_number = 4;
+            }
+
+            // Метаданные для карточки бонуса за покупку лицензии (Cashback / Activation Bonus)
+            message ActivationBonusDetails {
+                // Идентификатор дерева (лицензии), за которую начислен бонус.
+                uint32 tree_id = 1;
+                // Идентификатор слота, который был активирован.
+                uint32 target_slot_id = 2;
+                // Идентификатор купленного ваучера, за который произошел возврат средств.
+                uint32 voucher_id = 3;
+            }
+
+            // Метаданные для карточки получения реферального бонуса от торговой сделки нижестоящего партнера (Payout)
+            message TradeReferralBonusDetails {
+                // Идентификатор торговой/валютной пары, по которой была совершена сделка.
+                uint32 trading_pair_id = 1;
+                // Уровень глубины (линия) нижестоящего партнера в структуре.
+                uint32 depth_level = 2;
+                // Идентификатор дистрибьютора (инициатора), который совершил сделку.
+                uint32 initiator_distributor_id = 3;
+            }
+
+            // Метаданные для карточки получения реферального/структурного бонуса от покупки лицензии нижестоящим партнером (Payout)
+            message LicenseReferralBonusDetails {
+                // Идентификатор дерева (лицензии), за покупку которой начислен бонус.
+                uint32 tree_id = 1;
+                // Уровень глубины (линия/уровень) нижестоящего партнера в структуре.
+                uint32 depth_level = 2;
+                // Идентификатор дистрибьютора (инициатора), который купил лицензию.
+                uint32 initiator_distributor_id = 3;
+            }
+
+            // Метаданные для карточки клейма дивидендов (Claim Dividend Pool)
+            message DividendPoolClaimDetails {
+                // В текущем UI дополнительные данные не требуются, так как подзаголовок жестко задан ("Dividend Pool").
+            }
+
+            // Метаданные для карточки получения приза за участие в Арене
+            message ArenaPrizeDetails {
+                // Идентификатор арены (например, для определения названия "Wincoin").
+                uint32 arena_id = 1;
+                // Номер цикла арены (например, для вывода "Arena #23").
+                uint32 cycle_seq = 2;
+                // Занятое призовое место (пока не используется в списке транзакций, но полезно для экрана деталей).
+                uint32 place = 3;
+            }
+        }
     }
-  }
-
-  // Статус жизненного цикла транзакции.
-  message Status {
-    enum Id {
-      UNSPECIFIED = 0;
-      // Операция инициирована, но еще не отражена на счетах.
-      PENDING = 1;
-      // Сумма зарезервирована (например, предавторизация по карте).
-      AUTHORIZED = 2;
-      // Проводка отражена в книге (баланс изменен).
-      POSTED = 3;
-      // Аннулирована до отражения (проводки не было).
-      VOIDED = 4;
-      // Отклонена системой (ошибка, лимит, несоответствие).
-      REJECTED = 5;
-      // Сторнирована (была проведена и затем отменена обратной записью).
-      REVERSED = 6;
-      // Сторнирующая (транзакция, которая отменяет другую транзакцию).
-      REVERSAL = 7;
-    }
-  }
-
-  // Уникальный ID транзакции.
-  uint64 id = 1;
-  // ID группы, к которой принадлежит транзакция.
-  uint64 group_id = 2;
-  // ID родительской транзакции (для сторнирования или связанных операций).
-  optional uint64 parent_transaction_id = 3;
-  // Актив, с которым работает транзакция.
-  Asset asset = 4;
-  // Слой исполнения.
-  Layer.Id layer = 5;
-  // Текущий статус.
-  Status.Id status = 6;
-
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
-  // Список проводок, составляющих эту транзакцию.
-  repeated TransactionEntry entries = 9;
-}
-
-// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
-// по одному счету Ledger. Является дочерним элементом Transaction.
-message TransactionEntry {
-  message Id {
-    uint64 id = 1;
-  }
-
-  message List {
-    repeated TransactionEntry items = 1;
-  }
-
-  // Направление движения средств.
-  message Direction {
-    enum Id {
-      UNSPECIFIED = 0;
-      // Списание со счета.
-      DEBIT = 1;
-      // Зачисление на счет.
-      CREDIT = 2;
-    }
-  }
-
-  // Причина или контекст проводки.
-  message Reason {
-    oneof kind {
-      // В будущем здесь будут структурированные причины.
-      // Например: Fee, Commission, Bonus, etc.
-      string json = 1;
-    }
-  }
-
-  // Уникальный ID проводки.
-  uint64 id = 1;
-  // ID родительской транзакции.
-  uint64 transaction_id = 2;
-  // ID счета, по которому выполняется проводка.
-  uint64 ledger_id = 3;
-  // Направление (дебет/кредит).
-  Direction.Id direction = 4;
-  // Сумма проводки в виде строки для высокой точности.
-  string amount = 5;
-  // Причина проводки.
-  Reason reason = 6;
-  // Необязательное примечание.
-  optional string note = 7;
-
-  google.protobuf.Timestamp created_at = 8;
-}
-
-// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
-// в иерархии транзакций (группу, транзакцию или проводку).
-message TransactionScopeId {
-  oneof id {
-    uint64 group_id = 1;
-    uint64 transaction_id = 2;
-    uint64 entry_id = 3;
-  }
 }

@@ -36,6 +36,8 @@ pub struct PublicResponse {
     pub trees: ::prost::alloc::vec::Vec<super::super::types::Tree>,
     #[prost(message, repeated, tag = "14")]
     pub license_plans: ::prost::alloc::vec::Vec<super::super::types::license::Plan>,
+    #[prost(message, repeated, tag = "15")]
+    pub arenas: ::prost::alloc::vec::Vec<super::super::types::Arena>,
 }
 /// Ответ, содержащий все данные текущего пользователя.
 #[derive(Clone, PartialEq, ::prost::Message)]

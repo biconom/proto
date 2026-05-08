@@ -883,313 +883,343 @@ pub mod community_policy {
         pub items: ::prost::alloc::vec::Vec<super::CommunityPolicy>,
     }
 }
-/// TransactionGroup - это контейнер верхнего уровня, объединяющий одну или несколько транзакций,
-/// которые относятся к одной бизнес-операции.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransactionGroup {
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    #[prost(message, optional, tag = "2")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Список транзакций, входящих в эту группу.
-    #[prost(message, repeated, tag = "3")]
-    pub transactions: ::prost::alloc::vec::Vec<Transaction>,
-}
-/// Nested message and enum types in `TransactionGroup`.
-pub mod transaction_group {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TransactionGroup>,
-    }
-}
-/// Transaction представляет собой логическую финансовую операцию над одним активом.
-/// Она состоит из одной или нескольких бухгалтерских проводок (TransactionEntry).
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Transaction {
-    /// Уникальный ID транзакции.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// ID группы, к которой принадлежит транзакция.
-    #[prost(uint64, tag = "2")]
-    pub group_id: u64,
-    /// ID родительской транзакции (для сторнирования или связанных операций).
-    #[prost(uint64, optional, tag = "3")]
-    pub parent_transaction_id: ::core::option::Option<u64>,
-    /// Актив, с которым работает транзакция.
-    #[prost(message, optional, tag = "4")]
-    pub asset: ::core::option::Option<Asset>,
-    /// Слой исполнения.
-    #[prost(enumeration = "transaction::layer::Id", tag = "5")]
-    pub layer: i32,
-    /// Текущий статус.
-    #[prost(enumeration = "transaction::status::Id", tag = "6")]
-    pub status: i32,
-    #[prost(message, optional, tag = "7")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "8")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// Список проводок, составляющих эту транзакцию.
-    #[prost(message, repeated, tag = "9")]
-    pub entries: ::prost::alloc::vec::Vec<TransactionEntry>,
-}
+/// Агрегированный визуальный блок истории (карточка в UI).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Transaction {}
 /// Nested message and enum types in `Transaction`.
 pub mod transaction {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
-        #[prost(uint64, tag = "1")]
-        pub id: u64,
-    }
     #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::Transaction>,
-    }
-    /// Слой, на котором выполняется транзакция.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Layer {}
-    /// Nested message and enum types in `Layer`.
-    pub mod layer {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Основной слой, немедленное исполнение.
-            Primary = 1,
-            /// Запланированная операция, которая будет исполнена в будущем.
-            Scheduled = 2,
-            /// Платежный слой, связанный с внешними системами.
-            Payment = 3,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Primary => "PRIMARY",
-                    Self::Scheduled => "SCHEDULED",
-                    Self::Payment => "PAYMENT",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "PRIMARY" => Some(Self::Primary),
-                    "SCHEDULED" => Some(Self::Scheduled),
-                    "PAYMENT" => Some(Self::Payment),
-                    _ => None,
-                }
-            }
-        }
-    }
-    /// Статус жизненного цикла транзакции.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Status {}
-    /// Nested message and enum types in `Status`.
-    pub mod status {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Операция инициирована, но еще не отражена на счетах.
-            Pending = 1,
-            /// Сумма зарезервирована (например, предавторизация по карте).
-            Authorized = 2,
-            /// Проводка отражена в книге (баланс изменен).
-            Posted = 3,
-            /// Аннулирована до отражения (проводки не было).
-            Voided = 4,
-            /// Отклонена системой (ошибка, лимит, несоответствие).
-            Rejected = 5,
-            /// Сторнирована (была проведена и затем отменена обратной записью).
-            Reversed = 6,
-            /// Сторнирующая (транзакция, которая отменяет другую транзакцию).
-            Reversal = 7,
-        }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
-            ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Pending => "PENDING",
-                    Self::Authorized => "AUTHORIZED",
-                    Self::Posted => "POSTED",
-                    Self::Voided => "VOIDED",
-                    Self::Rejected => "REJECTED",
-                    Self::Reversed => "REVERSED",
-                    Self::Reversal => "REVERSAL",
-                }
-            }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "PENDING" => Some(Self::Pending),
-                    "AUTHORIZED" => Some(Self::Authorized),
-                    "POSTED" => Some(Self::Posted),
-                    "VOIDED" => Some(Self::Voided),
-                    "REJECTED" => Some(Self::Rejected),
-                    "REVERSED" => Some(Self::Reversed),
-                    "REVERSAL" => Some(Self::Reversal),
-                    _ => None,
-                }
-            }
-        }
-    }
-}
-/// TransactionEntry представляет собой одну бухгалтерскую проводку (дебет или кредит)
-/// по одному счету Ledger. Является дочерним элементом Transaction.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TransactionEntry {
-    /// Уникальный ID проводки.
-    #[prost(uint64, tag = "1")]
-    pub id: u64,
-    /// ID родительской транзакции.
-    #[prost(uint64, tag = "2")]
-    pub transaction_id: u64,
-    /// ID счета, по которому выполняется проводка.
-    #[prost(uint64, tag = "3")]
-    pub ledger_id: u64,
-    /// Направление (дебет/кредит).
-    #[prost(enumeration = "transaction_entry::direction::Id", tag = "4")]
-    pub direction: i32,
-    /// Сумма проводки в виде строки для высокой точности.
-    #[prost(string, tag = "5")]
-    pub amount: ::prost::alloc::string::String,
-    /// Причина проводки.
-    #[prost(message, optional, tag = "6")]
-    pub reason: ::core::option::Option<transaction_entry::Reason>,
-    /// Необязательное примечание.
-    #[prost(string, optional, tag = "7")]
-    pub note: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "8")]
-    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-/// Nested message and enum types in `TransactionEntry`.
-pub mod transaction_entry {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Id {
+    pub struct Group {
         #[prost(uint64, tag = "1")]
-        pub id: u64,
+        pub group_id: u64,
+        #[prost(message, optional, tag = "2")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(enumeration = "group::status::Id", tag = "3")]
+        pub status: i32,
+        #[prost(message, repeated, tag = "4")]
+        pub entries: ::prost::alloc::vec::Vec<group::Entry>,
     }
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct List {
-        #[prost(message, repeated, tag = "1")]
-        pub items: ::prost::alloc::vec::Vec<super::TransactionEntry>,
-    }
-    /// Направление движения средств.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Direction {}
-    /// Nested message and enum types in `Direction`.
-    pub mod direction {
-        #[derive(
-            Clone,
-            Copy,
-            Debug,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            ::prost::Enumeration
-        )]
-        #[repr(i32)]
-        pub enum Id {
-            Unspecified = 0,
-            /// Списание со счета.
-            Debit = 1,
-            /// Зачисление на счет.
-            Credit = 2,
+    /// Nested message and enum types in `Group`.
+    pub mod group {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Status {}
+        /// Nested message and enum types in `Status`.
+        pub mod status {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                Success = 1,
+                InProgress = 2,
+                Error = 3,
+                Reversed = 4,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Success => "SUCCESS",
+                        Self::InProgress => "IN_PROGRESS",
+                        Self::Error => "ERROR",
+                        Self::Reversed => "REVERSED",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "SUCCESS" => Some(Self::Success),
+                        "IN_PROGRESS" => Some(Self::InProgress),
+                        "ERROR" => Some(Self::Error),
+                        "REVERSED" => Some(Self::Reversed),
+                        _ => None,
+                    }
+                }
+            }
         }
-        impl Id {
-            /// String value of the enum field names used in the ProtoBuf definition.
+        /// Конкретная проводка, готовая к отображению в UI.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Entry {
+            #[prost(uint32, tag = "1")]
+            pub currency_id: u32,
+            #[prost(enumeration = "entry::direction::Id", tag = "2")]
+            pub direction: i32,
+            #[prost(string, tag = "3")]
+            pub amount: ::prost::alloc::string::String,
+            #[prost(
+                oneof = "entry::Details",
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+            )]
+            pub details: ::core::option::Option<entry::Details>,
+        }
+        /// Nested message and enum types in `Entry`.
+        pub mod entry {
+            /// Направление движения средств.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct Direction {}
+            /// Nested message and enum types in `Direction`.
+            pub mod direction {
+                #[derive(
+                    Clone,
+                    Copy,
+                    Debug,
+                    PartialEq,
+                    Eq,
+                    Hash,
+                    PartialOrd,
+                    Ord,
+                    ::prost::Enumeration
+                )]
+                #[repr(i32)]
+                pub enum Id {
+                    Unspecified = 0,
+                    /// Списание со счета.
+                    Debit = 1,
+                    /// Зачисление на счет.
+                    Credit = 2,
+                }
+                impl Id {
+                    /// String value of the enum field names used in the ProtoBuf definition.
+                    ///
+                    /// The values are not transformed in any way and thus are considered stable
+                    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                    pub fn as_str_name(&self) -> &'static str {
+                        match self {
+                            Self::Unspecified => "UNSPECIFIED",
+                            Self::Debit => "DEBIT",
+                            Self::Credit => "CREDIT",
+                        }
+                    }
+                    /// Creates an enum from field names used in the ProtoBuf definition.
+                    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                        match value {
+                            "UNSPECIFIED" => Some(Self::Unspecified),
+                            "DEBIT" => Some(Self::Debit),
+                            "CREDIT" => Some(Self::Credit),
+                            _ => None,
+                        }
+                    }
+                }
+            }
+            /// Метаданные для карточки пополнения (Receive)
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct ReceiveDetails {
+                /// Идентификатор платежной сети, через которую прошло пополнение (например, ID сети BSC).
+                #[prost(uint32, tag = "1")]
+                pub payment_network_id: u32,
+                /// Хэш транзакции в сети (обязателен для блокчейн пополнений).
+                #[prost(string, tag = "2")]
+                pub transaction_hash: ::prost::alloc::string::String,
+                /// Адрес, с которого было пополнение (опционально).
+                #[prost(string, optional, tag = "3")]
+                pub address: ::core::option::Option<::prost::alloc::string::String>,
+            }
+            /// Метаданные для карточки вывода средств (Withdrawal)
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct WithdrawalDetails {
+                /// Уникальный идентификатор заявки на вывод.
+                #[prost(uint32, tag = "1")]
+                pub withdrawal_id: u32,
+                /// Идентификатор платежной сети, через которую осуществляется вывод (например, ID сети BSC).
+                #[prost(uint32, tag = "2")]
+                pub payment_network_id: u32,
+                /// Адрес кошелька, на который выводятся средства.
+                #[prost(string, tag = "3")]
+                pub address: ::prost::alloc::string::String,
+                /// Хэш транзакции вывода в сети (опционально, может отсутствовать, если вывод еще в обработке).
+                #[prost(string, optional, tag = "4")]
+                pub transaction_hash: ::core::option::Option<
+                    ::prost::alloc::string::String,
+                >,
+            }
+            /// Метаданные для карточки комиссии за вывод средств (Withdrawal Fee)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct WithdrawalFeeDetails {
+                /// Уникальный идентификатор заявки на вывод, к которой относится эта комиссия.
+                #[prost(uint32, tag = "1")]
+                pub withdrawal_id: u32,
+            }
+            /// Общая модель для деталей, содержащих только опциональный комментарий
+            /// (например, для подарка или ручной корректировки/штрафа).
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct CommentedDetails {
+                /// Текстовый комментарий, поясняющий операцию.
+                #[prost(string, optional, tag = "1")]
+                pub comment: ::core::option::Option<::prost::alloc::string::String>,
+            }
+            /// Метаданные для карточки входящего внутреннего перевода (Transfer Incoming)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct TransferInDetails {
+                /// Идентификатор дистрибьютора, который отправил средства.
+                #[prost(uint32, tag = "1")]
+                pub sender_distributor_id: u32,
+            }
+            /// Метаданные для карточки исходящего внутреннего перевода (Transfer Outgoing)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct TransferOutDetails {
+                /// Идентификатор дистрибьютора, которому отправлены средства.
+                #[prost(uint32, tag = "1")]
+                pub payee_distributor_id: u32,
+            }
+            /// Метаданные для карточки обмена валют (Trade / Purchase / Exchange)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct ExchangeDetails {
+                /// Идентификатор торговой/валютной пары.
+                #[prost(uint32, tag = "1")]
+                pub trading_pair_id: u32,
+                /// Идентификатор пула ликвидности (обменника).
+                #[prost(uint32, tag = "2")]
+                pub exchange_id: u32,
+            }
+            /// Метаданные для карточки покупки маркетингового ваучера (лицензии)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct MarketingVoucherPurchaseDetails {
+                /// Идентификатор дерева, который определяет саму лицензию (например, Win Lite, Win Pro).
+                #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Идентификатор слота, на который куплен ваучер.
+                #[prost(uint32, tag = "2")]
+                pub slot_id: u32,
+                /// Идентификатор купленного ваучера.
+                #[prost(uint32, tag = "3")]
+                pub voucher_id: u32,
+            }
+            /// Метаданные для карточки покупки расширения слота (увеличения ширины / новой ветки)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct SlotCapacityUpgradeDetails {
+                /// Идентификатор слота, который был расширен.
+                #[prost(uint32, tag = "1")]
+                pub slot_id: u32,
+                /// Предыдущая вместимость (ширина) слота.
+                #[prost(uint32, tag = "2")]
+                pub old_children_capacity: u32,
+                /// Новая вместимость (ширина) слота (например, была 5, стала 6).
+                #[prost(uint32, tag = "3")]
+                pub new_children_capacity: u32,
+            }
+            /// Метаданные для карточки покупки ручной расстановки (установка слота личника в конкретную позицию)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct SlotManualPlacementDetails {
+                /// Идентификатор дерева, в котором производилась расстановка.
+                #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Идентификатор слота (личника), который был расставлен.
+                #[prost(uint32, tag = "2")]
+                pub target_slot_id: u32,
+                /// Идентификатор родительского слота, под который произведена расстановка.
+                #[prost(uint32, tag = "3")]
+                pub target_parent_id: u32,
+                /// Номер ответвления (ветки) родительского слота.
+                #[prost(uint32, tag = "4")]
+                pub target_parent_branch_number: u32,
+            }
+            /// Метаданные для карточки бонуса за покупку лицензии (Cashback / Activation Bonus)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct ActivationBonusDetails {
+                /// Идентификатор дерева (лицензии), за которую начислен бонус.
+                #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Идентификатор слота, который был активирован.
+                #[prost(uint32, tag = "2")]
+                pub target_slot_id: u32,
+                /// Идентификатор купленного ваучера, за который произошел возврат средств.
+                #[prost(uint32, tag = "3")]
+                pub voucher_id: u32,
+            }
+            /// Метаданные для карточки получения реферального бонуса от торговой сделки нижестоящего партнера (Payout)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct TradeReferralBonusDetails {
+                /// Идентификатор торговой/валютной пары, по которой была совершена сделка.
+                #[prost(uint32, tag = "1")]
+                pub trading_pair_id: u32,
+                /// Уровень глубины (линия) нижестоящего партнера в структуре.
+                #[prost(uint32, tag = "2")]
+                pub depth_level: u32,
+                /// Идентификатор дистрибьютора (инициатора), который совершил сделку.
+                #[prost(uint32, tag = "3")]
+                pub initiator_distributor_id: u32,
+            }
+            /// Метаданные для карточки получения реферального/структурного бонуса от покупки лицензии нижестоящим партнером (Payout)
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct LicenseReferralBonusDetails {
+                /// Идентификатор дерева (лицензии), за покупку которой начислен бонус.
+                #[prost(uint32, tag = "1")]
+                pub tree_id: u32,
+                /// Уровень глубины (линия/уровень) нижестоящего партнера в структуре.
+                #[prost(uint32, tag = "2")]
+                pub depth_level: u32,
+                /// Идентификатор дистрибьютора (инициатора), который купил лицензию.
+                #[prost(uint32, tag = "3")]
+                pub initiator_distributor_id: u32,
+            }
+            /// Метаданные для карточки клейма дивидендов (Claim Dividend Pool)
             ///
-            /// The values are not transformed in any way and thus are considered stable
-            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-            pub fn as_str_name(&self) -> &'static str {
-                match self {
-                    Self::Unspecified => "UNSPECIFIED",
-                    Self::Debit => "DEBIT",
-                    Self::Credit => "CREDIT",
-                }
+            /// В текущем UI дополнительные данные не требуются, так как подзаголовок жестко задан ("Dividend Pool").
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct DividendPoolClaimDetails {}
+            /// Метаданные для карточки получения приза за участие в Арене
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct ArenaPrizeDetails {
+                /// Идентификатор арены (например, для определения названия "Wincoin").
+                #[prost(uint32, tag = "1")]
+                pub arena_id: u32,
+                /// Номер цикла арены (например, для вывода "Arena #23").
+                #[prost(uint32, tag = "2")]
+                pub cycle_seq: u32,
+                /// Занятое призовое место (пока не используется в списке транзакций, но полезно для экрана деталей).
+                #[prost(uint32, tag = "3")]
+                pub place: u32,
             }
-            /// Creates an enum from field names used in the ProtoBuf definition.
-            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                match value {
-                    "UNSPECIFIED" => Some(Self::Unspecified),
-                    "DEBIT" => Some(Self::Debit),
-                    "CREDIT" => Some(Self::Credit),
-                    _ => None,
-                }
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum Details {
+                #[prost(message, tag = "4")]
+                Receive(ReceiveDetails),
+                #[prost(message, tag = "5")]
+                Withdrawal(WithdrawalDetails),
+                #[prost(message, tag = "6")]
+                Gift(CommentedDetails),
+                #[prost(message, tag = "7")]
+                Adjustment(CommentedDetails),
+                #[prost(message, tag = "8")]
+                TransferIn(TransferInDetails),
+                #[prost(message, tag = "9")]
+                TransferOut(TransferOutDetails),
+                #[prost(message, tag = "10")]
+                Exchange(ExchangeDetails),
+                #[prost(message, tag = "11")]
+                MarketingVoucherPurchase(MarketingVoucherPurchaseDetails),
+                #[prost(message, tag = "12")]
+                SlotCapacityUpgrade(SlotCapacityUpgradeDetails),
+                #[prost(message, tag = "13")]
+                SlotManualPlacement(SlotManualPlacementDetails),
+                #[prost(message, tag = "14")]
+                ActivationBonus(ActivationBonusDetails),
+                #[prost(message, tag = "15")]
+                TradeReferralBonus(TradeReferralBonusDetails),
+                #[prost(message, tag = "16")]
+                LicenseReferralBonus(LicenseReferralBonusDetails),
+                #[prost(message, tag = "17")]
+                DividendPoolClaim(DividendPoolClaimDetails),
+                #[prost(message, tag = "18")]
+                ArenaPrize(ArenaPrizeDetails),
+                #[prost(message, tag = "19")]
+                WithdrawalFee(WithdrawalFeeDetails),
             }
         }
-    }
-    /// Причина или контекст проводки.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Reason {
-        #[prost(oneof = "reason::Kind", tags = "1")]
-        pub kind: ::core::option::Option<reason::Kind>,
-    }
-    /// Nested message and enum types in `Reason`.
-    pub mod reason {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Kind {
-            /// В будущем здесь будут структурированные причины.
-            /// Например: Fee, Commission, Bonus, etc.
-            #[prost(string, tag = "1")]
-            Json(::prost::alloc::string::String),
-        }
-    }
-}
-/// TransactionScopeId - это универсальный идентификатор, который может указывать на любую сущность
-/// в иерархии транзакций (группу, транзакцию или проводку).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TransactionScopeId {
-    #[prost(oneof = "transaction_scope_id::Id", tags = "1, 2, 3")]
-    pub id: ::core::option::Option<transaction_scope_id::Id>,
-}
-/// Nested message and enum types in `TransactionScopeId`.
-pub mod transaction_scope_id {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Id {
-        #[prost(uint64, tag = "1")]
-        GroupId(u64),
-        #[prost(uint64, tag = "2")]
-        TransactionId(u64),
-        #[prost(uint64, tag = "3")]
-        EntryId(u64),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2395,7 +2425,7 @@ pub mod confirmation {
             #[prost(string, tag = "4")]
             AuthorizationBearer(::prost::alloc::string::String),
             #[prost(message, tag = "5")]
-            TransactionGroup(super::super::TransactionGroup),
+            TransactionGroup(super::super::transaction::Group),
             /// Для подтверждения добавления в "белый список".
             #[prost(message, tag = "6")]
             PaymentDestinationRequest(super::super::payment_destination::Request),
@@ -6714,540 +6744,6 @@ pub mod tree {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::Tree>,
-    }
-}
-/// Причина бухгалтерской проводки. Соответствует TransactionEntryReasonKind в ядре.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TransactionEntryReason {
-    #[prost(
-        oneof = "transaction_entry_reason::Kind",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13"
-    )]
-    pub kind: ::core::option::Option<transaction_entry_reason::Kind>,
-}
-/// Nested message and enum types in `TransactionEntryReason`.
-pub mod transaction_entry_reason {
-    /// Исполнитель транзакции.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Executor {
-        #[prost(oneof = "executor::Kind", tags = "1, 2, 3")]
-        pub kind: ::core::option::Option<executor::Kind>,
-    }
-    /// Nested message and enum types in `Executor`.
-    pub mod executor {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Account {
-            #[prost(uint32, tag = "1")]
-            pub account_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Distributor {
-            #[prost(uint32, tag = "1")]
-            pub account_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub distributor_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Slot {
-            #[prost(uint32, tag = "1")]
-            pub account_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub distributor_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub slot_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Kind {
-            #[prost(message, tag = "1")]
-            Account(Account),
-            #[prost(message, tag = "2")]
-            Distributor(Distributor),
-            #[prost(message, tag = "3")]
-            Slot(Slot),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferSend {
-        #[prost(message, optional, tag = "1")]
-        pub sender: ::core::option::Option<Executor>,
-        #[prost(message, optional, tag = "2")]
-        pub recipient: ::core::option::Option<Executor>,
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferReceive {
-        #[prost(message, optional, tag = "1")]
-        pub sender: ::core::option::Option<Executor>,
-        #[prost(message, optional, tag = "2")]
-        pub recipient: ::core::option::Option<Executor>,
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferFeeSender {}
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferFeeRecipient {}
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferFeeCompanyFromSender {
-        #[prost(message, optional, tag = "1")]
-        pub executor: ::core::option::Option<Executor>,
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct InternalTransferFeeCompanyFromRecipient {
-        #[prost(message, optional, tag = "1")]
-        pub executor: ::core::option::Option<Executor>,
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct PaymentNetwork {
-        #[prost(oneof = "payment_network::Data", tags = "1, 2")]
-        pub data: ::core::option::Option<payment_network::Data>,
-    }
-    /// Nested message and enum types in `PaymentNetwork`.
-    pub mod payment_network {
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Bsc {
-            #[prost(oneof = "bsc::Data", tags = "1, 2")]
-            pub data: ::core::option::Option<bsc::Data>,
-        }
-        /// Nested message and enum types in `Bsc`.
-        pub mod bsc {
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Given {
-                #[prost(uint32, tag = "1")]
-                pub account_id: u32,
-                #[prost(string, tag = "2")]
-                pub transaction_hash: ::prost::alloc::string::String,
-            }
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Received {
-                #[prost(uint32, tag = "1")]
-                pub account_id: u32,
-                #[prost(string, tag = "2")]
-                pub transaction_hash: ::prost::alloc::string::String,
-            }
-            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-            pub enum Data {
-                #[prost(message, tag = "1")]
-                Given(Given),
-                #[prost(message, tag = "2")]
-                Received(Received),
-            }
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CashDesk {
-            #[prost(oneof = "cash_desk::Data", tags = "1, 2")]
-            pub data: ::core::option::Option<cash_desk::Data>,
-        }
-        /// Nested message and enum types in `CashDesk`.
-        pub mod cash_desk {
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Given {
-                #[prost(uint32, tag = "1")]
-                pub account_id: u32,
-            }
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Received {
-                #[prost(uint32, tag = "1")]
-                pub account_id: u32,
-            }
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-            pub enum Data {
-                #[prost(message, tag = "1")]
-                Given(Given),
-                #[prost(message, tag = "2")]
-                Received(Received),
-            }
-        }
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            Bsc(Bsc),
-            #[prost(message, tag = "2")]
-            CashDesk(CashDesk),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct ExchangeTrade {
-        #[prost(oneof = "exchange_trade::Data", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
-        pub data: ::core::option::Option<exchange_trade::Data>,
-    }
-    /// Nested message and enum types in `ExchangeTrade`.
-    pub mod exchange_trade {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Given {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Received {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct GivenFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ReceivedFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ExchangeGiven {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ExchangeReceived {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceivedFromGivenFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceivedFromReceivedFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub currency_pair_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            Given(Given),
-            #[prost(message, tag = "2")]
-            Received(Received),
-            #[prost(message, tag = "3")]
-            GivenFee(GivenFee),
-            #[prost(message, tag = "4")]
-            ReceivedFee(ReceivedFee),
-            #[prost(message, tag = "5")]
-            ExchangeGiven(ExchangeGiven),
-            #[prost(message, tag = "6")]
-            ExchangeReceived(ExchangeReceived),
-            #[prost(message, tag = "7")]
-            CompanyReceivedFromGivenFee(CompanyReceivedFromGivenFee),
-            #[prost(message, tag = "8")]
-            CompanyReceivedFromReceivedFee(CompanyReceivedFromReceivedFee),
-        }
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Bonus {
-        #[prost(uint32, tag = "1")]
-        pub bonus_id: u32,
-        #[prost(bool, tag = "2")]
-        pub receive: bool,
-        #[prost(message, optional, tag = "3")]
-        pub reason: ::core::option::Option<BonusReason>,
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct BonusReason {
-        #[prost(oneof = "bonus_reason::Data", tags = "1, 2, 3, 4, 5, 6, 7")]
-        pub data: ::core::option::Option<bonus_reason::Data>,
-    }
-    /// Nested message and enum types in `BonusReason`.
-    pub mod bonus_reason {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct StructureRewardFromExchangeTradeBuyWinCoins {
-            #[prost(uint32, tag = "1")]
-            pub exchange_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub currency_pair_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub to_distributor_id: u32,
-            #[prost(uint32, tag = "4")]
-            pub from_distributor_id: u32,
-            #[prost(uint32, tag = "5")]
-            pub depth_level: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct MarketingRewardFromLicensePurchase {
-            #[prost(uint64, tag = "1")]
-            pub payment_obligation_id: u64,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct MarketingDirectRewardFromLicensePurchase {
-            #[prost(uint32, tag = "1")]
-            pub to_distributor_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub from_distributor_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub voucher_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct MarketingActivationRewardFromLicensePurchase {
-            #[prost(uint32, tag = "1")]
-            pub to_distributor_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub from_distributor_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub voucher_id: u32,
-        }
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct DividendPoolBonus {
-            #[prost(uint32, tag = "1")]
-            pub distributor_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub daily_rate: u32,
-            #[prost(string, tag = "3")]
-            pub base_amount: ::prost::alloc::string::String,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ArenaPrize {
-            #[prost(uint32, tag = "1")]
-            pub arena_id: u32,
-            #[prost(uint32, tag = "2")]
-            pub cycle_seq: u32,
-            #[prost(uint32, tag = "3")]
-            pub place: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyPartnerRewardFromLicensePurchase {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub license_voucher_id: u32,
-        }
-        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            StructureRewardFromExchangeTradeBuyWinCoins(
-                StructureRewardFromExchangeTradeBuyWinCoins,
-            ),
-            #[prost(message, tag = "2")]
-            MarketingRewardFromLicensePurchase(MarketingRewardFromLicensePurchase),
-            #[prost(message, tag = "3")]
-            MarketingDirectRewardFromLicensePurchase(
-                MarketingDirectRewardFromLicensePurchase,
-            ),
-            #[prost(message, tag = "4")]
-            MarketingActivationRewardFromLicensePurchase(
-                MarketingActivationRewardFromLicensePurchase,
-            ),
-            #[prost(message, tag = "5")]
-            DividendPoolBonus(DividendPoolBonus),
-            #[prost(message, tag = "6")]
-            ArenaPrize(ArenaPrize),
-            #[prost(message, tag = "7")]
-            CompanyPartnerRewardFromLicensePurchase(
-                CompanyPartnerRewardFromLicensePurchase,
-            ),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Withdrawal {
-        #[prost(oneof = "withdrawal::Data", tags = "1, 2, 3, 4")]
-        pub data: ::core::option::Option<withdrawal::Data>,
-    }
-    /// Nested message and enum types in `Withdrawal`.
-    pub mod withdrawal {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct Given {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub withdrawal_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct GivenFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub withdrawal_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct PaymentNetworkReceived {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub withdrawal_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct PaymentNetworkReceivedFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub withdrawal_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            Given(Given),
-            #[prost(message, tag = "2")]
-            GivenFee(GivenFee),
-            #[prost(message, tag = "3")]
-            PaymentNetworkReceived(PaymentNetworkReceived),
-            #[prost(message, tag = "4")]
-            PaymentNetworkReceivedFee(PaymentNetworkReceivedFee),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct License {
-        #[prost(oneof = "license::Data", tags = "1, 2, 3")]
-        pub data: ::core::option::Option<license::Data>,
-    }
-    /// Nested message and enum types in `License`.
-    pub mod license {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct DistributorPurchase {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub license_voucher_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceivedFee {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub license_voucher_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceivedMarketing {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub license_voucher_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            DistributorPurchase(DistributorPurchase),
-            #[prost(message, tag = "2")]
-            CompanyReceivedFee(CompanyReceivedFee),
-            #[prost(message, tag = "3")]
-            CompanyReceivedMarketing(CompanyReceivedMarketing),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct SlotCapacityUpgrade {
-        #[prost(oneof = "slot_capacity_upgrade::Data", tags = "1, 2")]
-        pub data: ::core::option::Option<slot_capacity_upgrade::Data>,
-    }
-    /// Nested message and enum types in `SlotCapacityUpgrade`.
-    pub mod slot_capacity_upgrade {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct SlotPurchase {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub old_children_capacity: u32,
-            #[prost(uint32, tag = "3")]
-            pub new_children_capacity: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceived {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub old_children_capacity: u32,
-            #[prost(uint32, tag = "3")]
-            pub new_children_capacity: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            SlotPurchase(SlotPurchase),
-            #[prost(message, tag = "2")]
-            CompanyReceived(CompanyReceived),
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct SlotManualPlacement {
-        #[prost(oneof = "slot_manual_placement::Data", tags = "1, 2")]
-        pub data: ::core::option::Option<slot_manual_placement::Data>,
-    }
-    /// Nested message and enum types in `SlotManualPlacement`.
-    pub mod slot_manual_placement {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct SlotPurchase {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub target_slot_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub target_parent_id: u32,
-            #[prost(uint32, tag = "4")]
-            pub target_parent_branch_number: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct CompanyReceived {
-            #[prost(message, optional, tag = "1")]
-            pub executor: ::core::option::Option<super::Executor>,
-            #[prost(uint32, tag = "2")]
-            pub target_slot_id: u32,
-            #[prost(uint32, tag = "3")]
-            pub target_parent_id: u32,
-            #[prost(uint32, tag = "4")]
-            pub target_parent_branch_number: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Data {
-            #[prost(message, tag = "1")]
-            SlotPurchase(SlotPurchase),
-            #[prost(message, tag = "2")]
-            CompanyReceived(CompanyReceived),
-        }
-    }
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
-    pub enum Kind {
-        #[prost(message, tag = "1")]
-        InternalTransferSend(InternalTransferSend),
-        #[prost(message, tag = "2")]
-        InternalTransferReceive(InternalTransferReceive),
-        #[prost(message, tag = "3")]
-        InternalTransferFeeSender(InternalTransferFeeSender),
-        #[prost(message, tag = "4")]
-        InternalTransferFeeRecipient(InternalTransferFeeRecipient),
-        #[prost(message, tag = "5")]
-        InternalTransferFeeCompanyFromSender(InternalTransferFeeCompanyFromSender),
-        #[prost(message, tag = "6")]
-        InternalTransferFeeCompanyFromRecipient(InternalTransferFeeCompanyFromRecipient),
-        #[prost(message, tag = "7")]
-        PaymentNetwork(PaymentNetwork),
-        #[prost(message, tag = "8")]
-        ExchangeTrade(ExchangeTrade),
-        #[prost(message, tag = "9")]
-        Bonus(Bonus),
-        #[prost(message, tag = "10")]
-        Withdrawal(Withdrawal),
-        #[prost(message, tag = "11")]
-        License(License),
-        #[prost(message, tag = "12")]
-        SlotCapacityUpgrade(SlotCapacityUpgrade),
-        #[prost(message, tag = "13")]
-        SlotManualPlacement(SlotManualPlacement),
     }
 }
 /// TreeDistributorPolicy определяет набор правил для группы связей TreeDistributor.

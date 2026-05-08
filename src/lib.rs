@@ -4,9 +4,6 @@ pub mod biconom {
         pub mod arena {
             include!("generated/biconom.admin.arena.rs");
         }
-        pub mod ledger {
-            include!("generated/biconom.admin.ledger.rs");
-        }
         pub mod marketing {
             include!("generated/biconom.admin.marketing.rs");
         }
@@ -18,9 +15,6 @@ pub mod biconom {
         }
         pub mod tasks {
             include!("generated/biconom.admin.tasks.rs");
-        }
-        pub mod transaction {
-            include!("generated/biconom.admin.transaction.rs");
         }
     }
     pub mod client {
