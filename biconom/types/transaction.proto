@@ -54,6 +54,7 @@ message Transaction {
                 DividendPoolClaimDetails dividend_pool_claim = 17;
                 ArenaPrizeDetails arena_prize = 18;
                 WithdrawalFeeDetails withdrawal_fee = 19;
+                LicenseDirectBonusDetails license_direct_bonus = 20;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -170,6 +171,16 @@ message Transaction {
                 // Идентификатор дерева (лицензии), за покупку которой начислен бонус.
                 uint32 tree_id = 1;
                 // Уровень глубины (линия/уровень) нижестоящего партнера в структуре.
+                uint32 depth_level = 2;
+                // Идентификатор дистрибьютора (инициатора), который купил лицензию.
+                uint32 initiator_distributor_id = 3;
+            }
+
+            // Метаданные для карточки получения прямого линейного бонуса за продажу лицензии партнером (Payout)
+            message LicenseDirectBonusDetails {
+                // Идентификатор дерева (лицензии), за покупку которой начислен бонус.
+                uint32 tree_id = 1;
+                // Уровень глубины (линия) партнера в линейной структуре.
                 uint32 depth_level = 2;
                 // Идентификатор дистрибьютора (инициатора), который купил лицензию.
                 uint32 initiator_distributor_id = 3;
