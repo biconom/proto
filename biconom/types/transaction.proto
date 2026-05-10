@@ -25,17 +25,6 @@ message Transaction {
         // Конкретная проводка, готовая к отображению в UI.
         message Entry {
             uint32 currency_id = 1;
-            // Направление движения средств.
-            message Direction {
-                enum Id {
-                    UNSPECIFIED = 0;
-                    // Списание со счета.
-                    DEBIT = 1;
-                    // Зачисление на счет.
-                    CREDIT = 2;
-                }
-            }
-            Direction.Id direction = 2;
             string amount = 3; 
             oneof details {
                 ReceiveDetails receive = 4;

@@ -956,8 +956,6 @@ pub mod transaction {
         pub struct Entry {
             #[prost(uint32, tag = "1")]
             pub currency_id: u32,
-            #[prost(enumeration = "entry::direction::Id", tag = "2")]
-            pub direction: i32,
             #[prost(string, tag = "3")]
             pub amount: ::prost::alloc::string::String,
             #[prost(
@@ -968,53 +966,6 @@ pub mod transaction {
         }
         /// Nested message and enum types in `Entry`.
         pub mod entry {
-            /// Направление движения средств.
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-            pub struct Direction {}
-            /// Nested message and enum types in `Direction`.
-            pub mod direction {
-                #[derive(
-                    Clone,
-                    Copy,
-                    Debug,
-                    PartialEq,
-                    Eq,
-                    Hash,
-                    PartialOrd,
-                    Ord,
-                    ::prost::Enumeration
-                )]
-                #[repr(i32)]
-                pub enum Id {
-                    Unspecified = 0,
-                    /// Списание со счета.
-                    Debit = 1,
-                    /// Зачисление на счет.
-                    Credit = 2,
-                }
-                impl Id {
-                    /// String value of the enum field names used in the ProtoBuf definition.
-                    ///
-                    /// The values are not transformed in any way and thus are considered stable
-                    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-                    pub fn as_str_name(&self) -> &'static str {
-                        match self {
-                            Self::Unspecified => "UNSPECIFIED",
-                            Self::Debit => "DEBIT",
-                            Self::Credit => "CREDIT",
-                        }
-                    }
-                    /// Creates an enum from field names used in the ProtoBuf definition.
-                    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-                        match value {
-                            "UNSPECIFIED" => Some(Self::Unspecified),
-                            "DEBIT" => Some(Self::Debit),
-                            "CREDIT" => Some(Self::Credit),
-                            _ => None,
-                        }
-                    }
-                }
-            }
             /// Метаданные для карточки пополнения (Receive)
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct ReceiveDetails {
