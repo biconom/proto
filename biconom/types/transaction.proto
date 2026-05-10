@@ -44,6 +44,7 @@ message Transaction {
                 ArenaPrizeDetails arena_prize = 18;
                 WithdrawalFeeDetails withdrawal_fee = 19;
                 LicenseDirectBonusDetails license_direct_bonus = 20;
+                SplitMatchingBonusDetails split_matching_bonus = 21;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -196,6 +197,16 @@ message Transaction {
                 uint32 cycle_seq = 2;
                 // Занятое призовое место (пока не используется в списке транзакций, но полезно для экрана деталей).
                 uint32 place = 3;
+            }
+
+            // Метаданные для карточки получения скользящего матчинг бонуса (сплит бонуса)
+            message SplitMatchingBonusDetails {
+                // Идентификатор дистрибьютора (инициатора), от которого пошло вознаграждение.
+                uint32 initiator_distributor_id = 1;
+                // Уровень глубины (линия) нижестоящего партнера в структуре.
+                uint32 depth_level = 2;
+                // Изначальный объем вознаграждения, который распределялся вверх по структуре.
+                string original_matching_amount = 3;
             }
         }
     }

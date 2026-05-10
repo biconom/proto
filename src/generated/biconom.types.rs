@@ -960,7 +960,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1163,6 +1163,19 @@ pub mod transaction {
                 #[prost(uint32, tag = "3")]
                 pub place: u32,
             }
+            /// Метаданные для карточки получения скользящего матчинг бонуса (сплит бонуса)
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct SplitMatchingBonusDetails {
+                /// Идентификатор дистрибьютора (инициатора), от которого пошло вознаграждение.
+                #[prost(uint32, tag = "1")]
+                pub initiator_distributor_id: u32,
+                /// Уровень глубины (линия) нижестоящего партнера в структуре.
+                #[prost(uint32, tag = "2")]
+                pub depth_level: u32,
+                /// Изначальный объем вознаграждения, который распределялся вверх по структуре.
+                #[prost(string, tag = "3")]
+                pub original_matching_amount: ::prost::alloc::string::String,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1199,6 +1212,8 @@ pub mod transaction {
                 WithdrawalFee(WithdrawalFeeDetails),
                 #[prost(message, tag = "20")]
                 LicenseDirectBonus(LicenseDirectBonusDetails),
+                #[prost(message, tag = "21")]
+                SplitMatchingBonus(SplitMatchingBonusDetails),
             }
         }
     }
