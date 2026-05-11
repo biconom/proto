@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package biconom.client.push;
+
+import "google/protobuf/empty.proto";
+
+// Сервис управления Web Push-подписками пользователя.
+//
+// Поток на клиенте:
+//   1. UI вызывает GetVapidPublicKey (доступен Guest), получает publicKey.
+//   2. UI вызывает navigator.serviceWorker.pushManager.subscribe({applicationServerKey}).
+//   3. Из полученной подписки берёт endpoint / keys.p256dh / keys.auth и зовёт Subscribe (Session).
+//   4. При явной отписке UI зовёт Unsubscribe (Session).
+service PushService {
+    // Получить публичный VAPID-ключ. Доступен без аутентификации,
+    // потому что нужен ещё на странице регистрации/онбординга.
+    rpc GetVapidPublicKey(google.protobuf.Empty) returns (VapidPublicKeyResponse);
+
+    // Зарегистрировать (или обновить) подписку текущего пользователя.
+    rpc Subscribe(SubscribeRequest) returns (google.protobuf.Empty);
+
+    // Удалить подписку текущего пользователя по endpoint.
+    //
+    // Требует Session-токен и x-device-id header. Public-unsubscribe (без auth)
+    // НЕ предусмотрен: знание чужого endpoint'а не должно давать возможность
+    // отписать жертву от security-push'ей. Для отписки на стороне браузера
+    // используется native subscription.unsubscribe() в Service Worker —
+    // наш бэк автоматически удалит запись при следующем push'е (410 Gone).
+    // См. docs/push_notifications.md секцию "Unsubscribe".
+    rpc Unsubscribe(UnsubscribeRequest) returns (google.protobuf.Empty);
+
+    // Список всех устройств текущего юзера (страница «Мои устройства»).
+    // Возвращает все device-записи юзера: и активные (с session), и orphan
+    // (без активной сессии — например, logged-out устройство, не очищенное
+    // на стороне UI). Требует Session-токен.
+    rpc ListDevices(google.protobuf.Empty) returns (ListDevicesResponse);
+
+    // Отвязать конкретный device без полного logout'а текущего юзера.
+    //
+    // Если у device активная session — она отзывается (как session.Revoke),
+    // на жертве срабатывает security-push, push-подписки удаляются.
+    // Если session уже 0 (orphan device) — просто удаляются подписки.
+    //
+    // Требует Session-токен. Чужие устройства отвязать нельзя
+    // (проверка device.user_id == executor_user_id).
+    rpc UnbindDevice(UnbindDeviceRequest) returns (google.protobuf.Empty);
+}
+
+message VapidPublicKeyResponse {
+    // base64url-encoded P-256 публичный ключ (для applicationServerKey в браузере).
+    string public_key = 1;
+}
+
+message SubscribeRequest {
+    // URL push-сервиса, выданный браузером (FCM/Mozilla/Apple/...).
+    string endpoint = 1;
+    // ECDH публичный ключ браузера (base64url, ~88 символов).
+    string p256dh = 2;
+    // Секрет аутентификации (base64url, ~24 символа).
+    string auth = 3;
+}
+
+message UnsubscribeRequest {
+    // Endpoint, ранее переданный в Subscribe.
+    string endpoint = 1;
+}
+
+// Один device юзера для ListDevices.
+message DeviceInfo {
+    // UUID v4 в hyphenated form (то же значение, что UI хранит в localStorage
+    // и шлёт в `x-device-id` header'е).
+    string device_id = 1;
+    // ID активной user_session, привязанной к device. `0` — orphan
+    // (юзер залогинен, но эта device-запись без сессии).
+    uint64 session_id = 2;
+    // Совпадает ли device_id текущего запроса с этой записью.
+    // UI помечает её в списке «вы здесь».
+    bool is_current_session = 3;
+    // Снимок UA, который был при последнем bind ("{os} / {browser}").
+    string user_agent = 4;
+    // Снимок IP при последнем bind.
+    string ip_address = 5;
+    // Unix sec создания записи.
+    uint32 created_at = 6;
+    // Unix sec последнего активного действия (touch при bind_or_create).
+    uint32 last_seen_at = 7;
+}
+
+message ListDevicesResponse {
+    repeated DeviceInfo items = 1;
+}
+
+message UnbindDeviceRequest {
+    // UUID v4 устройства, которое нужно отвязать.
+    string device_id = 1;
+}

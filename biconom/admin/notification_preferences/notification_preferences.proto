@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package biconom.admin.notification_preferences;
+
+import "google/protobuf/empty.proto";
+
+// Admin Notification Preferences API — отражение
+// `biconom.client.notification_preferences.NotificationPreferencesService`,
+// но с правом обращаться к prefs произвольного пользователя.
+//
+// Все три RPC требуют Permission::ADMIN_NOTIFICATION_PREFS (см.
+// core/src/infra/access_control.rs). По умолчанию это право выдано user_id=1.
+//
+// Зачем это нужно:
+//   1) Поддержка / compliance: показать или править prefs конкретного
+//      юзера, когда он не может сам.
+//   2) Ручной override Optional-пар ("забанить marketing для этого юзера").
+//   3) UI-справочник: получить полную policy table для рендера админ-панели.
+//
+// Что админ НЕ может:
+//   - Менять company policy (Mandatory/Forbidden/Optional + default_on) —
+//     она зашита в коде (core/src/infra/notification_preferences/policy.rs).
+//   - Override'ить Mandatory/Forbidden пары — `SetForUser` silently
+//     игнорирует такие попытки (как и client API `Update`).
+service NotificationPreferencesAdminService {
+    // Получить эффективные preferences указанного юзера. Возвращает ту же
+    // структуру, что `client.NotificationPreferencesService.Get` —
+    // полная матрица пар (channel, topic) с учётом user override.
+    rpc GetForUser(GetForUserRequest) returns (GetForUserResponse);
+
+    // Перезаписать override одной пары для указанного юзера.
+    // Поведение совпадает с client `Update`:
+    //   - Если пара Mandatory/Forbidden — silently ignored.
+    //   - Если topic неизвестен (см. is_valid_topic_id) — InvalidArgument.
+    //   - Если value=INHERIT — запись удаляется (юзер вернулся к default).
+    rpc SetForUser(SetForUserRequest) returns (google.protobuf.Empty);
+
+    // Полный список policies, известных серверу. Read-only справочник —
+    // нужен админ-UI, чтобы знать, какие пары существуют и какой у них
+    // PolicyKind / default_on / push_scope. Записывать UI не может —
+    // только показать.
+    rpc ListPolicies(google.protobuf.Empty) returns (ListPoliciesResponse);
+}
+
+message GetForUserRequest {
+    uint32 user_id = 1;
+}
+
+message GetForUserResponse {
+    repeated PreferenceState items = 1;
+}
+
+// Одно состояние пары (channel, topic) для конкретного юзера.
+// Те же поля, что и в client API; повторено локально, чтобы admin proto
+// не зависело от client/notification_preferences/.
+message PreferenceState {
+    // Канонический идентификатор канала: "email" / "telegram" / "push".
+    string channel = 1;
+    // Канонический topic_id (snake_case, см. core/src/domain/notification_topic_ids.rs).
+    string topic = 2;
+    // Эффективно ли уведомление включено для отправки СЕЙЧАС.
+    bool effective_enabled = 3;
+    // Может ли юзер изменить состояние (true для Optional, false иначе).
+    bool user_can_override = 4;
+    // Дефолт компании (только для Optional).
+    bool default_on = 5;
+    // Текущий пользовательский override: "inherit" / "on" / "off".
+    string user_override = 6;
+}
+
+message SetForUserRequest {
+    uint32 user_id = 1;
+    // "email" / "telegram" / "push" (валидируется на сервере).
+    string channel = 2;
+    // Канонический topic_id; см. is_valid_topic_id в
+    // core/src/domain/notification_topic_ids.rs. Незарегистрированный
+    // topic_id → InvalidArgument.
+    string topic = 3;
+    // "inherit" / "on" / "off".
+    string value = 4;
+}
+
+message ListPoliciesResponse {
+    repeated PolicyDescriptor items = 1;
+}
+
+message PolicyDescriptor {
+    // "email" / "telegram" / "push".
+    string channel = 1;
+    // Канонический topic_id.
+    string topic = 2;
+    // "mandatory" / "forbidden" / "optional".
+    string policy_kind = 3;
+    // Только осмысленно для optional (значение по умолчанию, когда юзер
+    // в INHERIT-режиме). Для mandatory/forbidden — true/false соответственно.
+    bool default_on = 4;
+    // Только осмысленно для (channel="push"). Один из:
+    //   "" (нет, для не-push каналов или mis-configured push pair),
+    //   "all_sessions",
+    //   "all_except_origin",
+    //   "origin_only".
+    string push_scope = 5;
+}

@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package biconom.client.notification_preferences;
+
+import "google/protobuf/empty.proto";
+
+// Управление пользовательскими настройками уведомлений: матрица
+// (channel × topic) → эффективное состояние + возможность override'а.
+//
+// Поведение:
+//   Get      — возвращает полную матрицу: все (channel, topic), для которых
+//              существует company policy (mandatory / forbidden / optional).
+//              Для каждой пары — effective_enabled (с учётом юзерских overrides),
+//              user_can_override (true только для optional), и текущий
+//              user_override (Inherit/On/Off).
+//   Update   — применяет user overrides. Изменения mandatory/forbidden пар
+//              молча игнорируются (storage просто не хранит то, что не
+//              optional). Пустой `overrides` — no-op.
+service NotificationPreferencesService {
+    rpc Get(google.protobuf.Empty) returns (GetResponse);
+    rpc Update(UpdateRequest) returns (google.protobuf.Empty);
+}
+
+// Канал доставки.
+enum Channel {
+    CHANNEL_UNSPECIFIED = 0;
+    CHANNEL_EMAIL = 1;
+    CHANNEL_TELEGRAM = 2;
+    CHANNEL_PUSH = 3;
+}
+
+// Тема уведомления. Должна оставаться 1:1 с
+// `domain::model::NotificationTopic`. При добавлении нового топика — обновить
+// здесь, в маппинге в коде сервиса И в policy table.
+//
+// Канонические строковые имена см. в
+// `core/src/domain/notification_topic_ids.rs`. Эти строки — public API:
+// admin gRPC `SetForUser.topic` принимает их как `string`.
+enum Topic {
+    TOPIC_UNSPECIFIED = 0;
+    TOPIC_VERIFICATION = 1;
+    TOPIC_WITHDRAWAL_CREATED = 2;
+    TOPIC_NEW_REFERRAL = 3;
+    TOPIC_SESSION_REVOKED_BY_OTHER = 4;
+    TOPIC_NEW_DEVICE_LOGIN = 5;
+    TOPIC_PASSWORD_CHANGED = 6;
+    TOPIC_PASSWORD_RESET_REQ = 7;
+    TOPIC_TWO_FA_STATUS_CHANGED = 8;
+    TOPIC_SUSPICIOUS_ACTIVITY = 9;
+    TOPIC_WITHDRAWAL_PROCESSED = 10;
+    TOPIC_WITHDRAWAL_REJECTED = 11;
+    TOPIC_DEPOSIT_RECEIVED = 12;
+    TOPIC_TRANSFER_RECEIVED = 13;
+    TOPIC_TRANSFER_SENT = 14;
+    TOPIC_EXCHANGE_COMPLETED = 15;
+    TOPIC_ARENA_COMPLETED = 16;
+    TOPIC_NEWS_ANNOUNCEMENT = 17;
+}
+
+// Пользовательский override для optional пары.
+//   INHERIT — используется default_on из company policy
+//   ON / OFF — явный выбор юзера
+enum UserOverride {
+    USER_OVERRIDE_INHERIT = 0;
+    USER_OVERRIDE_ON = 1;
+    USER_OVERRIDE_OFF = 2;
+}
+
+// Состояние одной пары (channel, topic).
+message PreferenceState {
+    Channel channel = 1;
+    Topic topic = 2;
+    // Эффективно ли уведомление включено для отправки СЕЙЧАС.
+    // С учётом и company policy, и user override'а.
+    bool effective_enabled = 3;
+    // Может ли user изменить состояние:
+    //   false — mandatory или forbidden (UI рендерит как readonly / скрывает).
+    //   true  — optional (UI рендерит редактируемый switch).
+    bool user_can_override = 4;
+    // Дефолт компании (только для optional). UI рендерит подпись «default: ON/OFF».
+    bool default_on = 5;
+    // Текущий пользовательский override.
+    UserOverride user_override = 6;
+}
+
+message GetResponse {
+    repeated PreferenceState items = 1;
+}
+
+message UpdateRequest {
+    // Какие пары (channel, topic) поменять. Только optional пары имеют эффект;
+    // mandatory/forbidden — silently ignored.
+    repeated UserOverrideEntry overrides = 1;
+}
+
+message UserOverrideEntry {
+    Channel channel = 1;
+    Topic topic = 2;
+    UserOverride value = 3;
+}

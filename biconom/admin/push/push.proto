@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package biconom.admin.push;
+
+// Admin Push API — отправка Web Push-уведомлений с серверной стороны
+// (RFC 8291/8292). Доступно только держателям Permission::PUSH_BROADCAST
+// (см. core/src/infra/access_control.rs).
+//
+// Ключевая особенность: один RPC `Send` поддерживает 5 разных скоупов
+// получателей через `oneof target`. UI/админка собирает запрос с одним
+// из вариантов и единым payload.
+//
+// Ответ всегда — `SendResponse` со статистикой fanout'а:
+//   total  — сколько эндпоинтов попало в рассылку
+//   sent   — сколько вернули 2xx (успешно доставлено push-сервису)
+//   gone   — сколько вернули 410/404 (подписка протухла, удалена автоматически)
+//   errors — сколько вернули 4xx/5xx или сетевую ошибку (после ретраев)
+service PushService {
+  // Отправить push-уведомление в указанный скоуп.
+  rpc Send(SendRequest) returns (SendResponse);
+
+  // Получить список записей audit-лога.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse);
+}
+
+// Запрос на рассылку. Поле `target` обязательное — выбирается ровно один
+// из 5 вариантов получателей. Поле `payload` тоже обязательное.
+message SendRequest {
+  // Получатели уведомления. Ровно один из вариантов.
+  oneof target {
+    // 1. Всем пользователям с активной сессией. Тяжёлая операция —
+    //    проходит по всем активным device-записям. Использовать только
+    //    для broadcast-объявлений (maintenance, важные события платформы).
+    AllUsers all_users = 1;
+
+    // 2. Один конкретный device по device_id (UUID v4). Полезно для
+    //    диагностики и тест-отправок («проверить, что мой браузер
+    //    подписан»).
+    string device_id = 2;
+
+    // 3. Все активные сессии конкретного пользователя — типичный
+    //    сценарий «у вас входящий перевод», «верификация прошла».
+    uint32 user_id = 3;
+
+    // 4. Конкретная сессия пользователя — security-targeted уведомление
+    //    («подтвердите вход с устройства Y»).
+    uint64 session_id = 4;
+
+    // 5. Все активные сессии владельца указанной сессии, КРОМЕ самой
+    //    `exclude_session_id`. Типичный кейс: «новый вход в ваш аккаунт
+    //    с IP X» — та сессия, что только что вошла, уведомление получать
+    //    не должна. `user_id` владельца резолвится из сессии автоматически
+    //    (`session_id` глобально уникален), отдельное поле user_id не нужно.
+    ExceptSession except_session = 5;
+  }
+
+  // Содержимое уведомления.
+  PushPayload payload = 10;
+}
+
+// Маркер для "all users" варианта. Пустое сообщение, чтобы oneof
+// различал "всем" от "никому" (отсутствие variant'а).
+message AllUsers {}
+
+// Скоуп: владелец сессии, КРОМЕ этой сессии.
+//
+// `user_id` владельца резолвится сервером через
+// `core.mlm.cache.user_session.space.get(exclude_session_id).user_id()`.
+// Если сессия не найдена — сервер вернёт InvalidArgument.
+message ExceptSession {
+  uint64 exclude_session_id = 1;
+}
+
+// Полезная нагрузка push-уведомления.
+//
+// Поля title и body — обязательные (это заголовок и тело уведомления,
+// которые пользователь видит в notification center браузера/ОС).
+//
+// url и tag — опциональные (см. PushPayload в core/src/infra/push_sender):
+//   - url: куда вести при клике на нотификацию (если SW так настроен).
+//   - tag: ключ дедупликации в браузере. Если несколько push'ей пришло
+//          с одним tag, браузер схлопывает их в одно уведомление —
+//          полезно для часто шлющихся событий («новое сообщение»).
+message PushPayload {
+  string title = 1;
+  string body  = 2;
+  optional string url = 3;
+  optional string tag = 4;
+}
+
+// Сводка результатов рассылки. Все поля — счётчики; `total = sent + gone + errors`.
+message SendResponse {
+  // Всего эндпоинтов попало в рассылку.
+  uint64 total = 1;
+  // Принято push-сервисом (FCM/Mozilla/Apple).
+  uint64 sent = 2;
+  // Получено 410/404 — подписка устарела, удалена автоматически.
+  uint64 gone = 3;
+  // 4xx/5xx/сетевая ошибка после ретраев.
+  uint64 errors = 4;
+}
+
+// Запрос списка audit-записей. Один из фильтров обязателен.
+message ListAuditLogRequest {
+  oneof filter {
+    // Все записи указанного админа в обратном хронологическом порядке.
+    uint32 admin_user_id = 1;
+    // Все записи в окне [from_ts, to_ts] (включительно).
+    TimeRange time_range = 2;
+  }
+  // Сколько записей вернуть. 0 → дефолт 100, максимум 1000.
+  uint32 limit = 10;
+}
+
+message TimeRange {
+  uint32 from_ts = 1;   // unix sec
+  uint32 to_ts = 2;     // unix sec
+}
+
+message ListAuditLogResponse {
+  repeated AuditEntry items = 1;
+}
+
+// Одна запись audit-лога. Поля 1:1 с `PushAuditRecord`.
+message AuditEntry {
+  uint64 id = 1;
+  uint32 timestamp = 2;
+  uint32 admin_user_id = 3;
+  uint64 admin_session_id = 4;
+  string admin_ip_address = 5;        // IP отформатирован как строка
+  string admin_user_agent = 6;
+  // Канонический строковый target: "all_users" / "device" / "user" / "session" / "except_session"
+  string target_kind = 7;
+  string target_payload = 8;          // например "user_id=42"
+  string payload_title = 9;           // фактический title push'а
+  uint32 payload_body_len = 10;       // длина тела
+  uint32 fanout_total = 11;
+  uint32 fanout_sent = 12;
+  uint32 fanout_gone = 13;
+  uint32 fanout_errors = 14;
+  // Пусто если запрос успешный; иначе строковый код ошибки/rejection
+  optional string rejected_reason = 15;
+}
