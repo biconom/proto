@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package biconom.admin.token_grant;
+
+// TokenGrantService — админский сервис «подарок токена пользователю».
+// Под капотом — refill quote-валюты + Buy-трейд от имени получателя
+// (паттерн из пост-миграции v01_09_00.rs).
+service TokenGrantService {
+    // Купить указанному дистрибьютору base-токен пары за quote-валюту,
+    // оформив подарок (рефилл quote-баланса) и тут же исполнив сделку.
+    //
+    // Намерение задаётся ОДНОЙ из двух сумм (oneof amount):
+    //   * quote_amount — «отдаю N долларов, сколько получится — столько»;
+    //   * base_amount  — «пользователь получит ровно N токенов».
+    //
+    // Курс задаётся опционально:
+    //   * rate указан     — фиксируется временный Exchanger-курс (buy=sell=rate)
+    //                       на время операции, после — восстанавливается;
+    //   * rate не указан  — используется текущий sell_price пары (тикер
+    //                       не модифицируется).
+    //
+    // 4 сценария: {quote, base} × {фикс. курс, актуальный курс}.
+    //
+    // Доступ — только под Permission::ADMIN_TOKEN_GRANT (у user_id=1).
+    rpc BuyTokensFor(BuyTokensForRequest) returns (BuyTokensForResponse);
+}
+
+message BuyTokensForRequest {
+    // ID дистрибьютора-получателя.
+    uint32 target_distributor_id = 1;
+
+    // Биржа и валютная пара.
+    uint32 exchange_id = 2;
+    uint32 currency_pair_id = 3;
+
+    // Намерение: задаётся ровно одна из сумм.
+    // Все mantissa-строки (как в biconom.client.trade), > 0.
+    oneof amount {
+        // Сколько quote-валюты админ отдаёт (списывается из ORG_POOL_GIFT
+        // через refill, затем тратится на trade).
+        string quote_amount = 4;
+        // Сколько base-токена должен получить пользователь. Сумма quote
+        // вычисляется как `base × rate` (с проверкой переполнения u128).
+        string base_amount = 5;
+    }
+
+    // Опциональный фиксированный курс — количество quote за 1 base
+    // (например, "0.25" для 0.25 USDT за 1 WIN). Decimal-строка в
+    // precision quote-валюты. Если опущен — используется текущий
+    // sell_price пары из тикера, тикер не модифицируется.
+    optional string rate = 6;
+
+    // TradeSkipFlags — что отключить в побочных эффектах трейда.
+    bool skip_marketing      = 7;  // Маркетинг-бонусы аплайну
+    bool skip_arena          = 8;  // Очки в Arena
+    bool skip_dividend_pool  = 9;  // Учёт инвестиций в дивидендный пул
+}
+
+message BuyTokensForResponse {
+    // ID биржи.
+    uint32 exchange_id = 1;
+
+    // ID валютной пары.
+    uint32 currency_pair_id = 2;
+
+    // ID transaction_group, созданной трейдом.
+    uint64 group_id = 3;
+
+    // ID валюты, которая была отдана (списана) — quote currency.
+    uint32 quote_currency_id = 4;
+
+    // Фактически списанный с получателя объем quote.
+    string sell_amount = 5;
+
+    // ID валюты, которая была получена (куплена) — base currency.
+    uint32 base_currency_id = 6;
+
+    // Фактически зачисленный получателю объем base.
+    string buy_amount = 7;
+
+    // Использованный курс (decimal string):
+    // либо переданный админом, либо прочитанный из тикера.
+    string applied_rate = 8;
+
+    // true, если на время операции был временно установлен и затем
+    // восстановлен Exchanger-курс пары; false — если работали по
+    // существующему курсу пары без модификации тикера.
+    bool rate_was_temporary = 9;
+}

@@ -2432,6 +2432,84 @@ pub mod confirmation {
             ),
         }
     }
+    /// Запрос на подписку к статусу поля формы.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct SubscribeToFieldStatusRequest {
+        #[prost(uint64, tag = "1")]
+        pub confirmation_id: u64,
+        #[prost(uint32, tag = "2")]
+        pub field_id: u32,
+    }
+    /// Статусы доставки в stream.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct DeliveryStatusStreamResponse {
+        #[prost(enumeration = "delivery_status_stream_response::Status", tag = "1")]
+        pub status: i32,
+        #[prost(string, optional, tag = "2")]
+        pub details: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(message, optional, tag = "3")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `DeliveryStatusStreamResponse`.
+    pub mod delivery_status_stream_response {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            Pending = 1,
+            Sent = 2,
+            Delivered = 3,
+            Opened = 4,
+            Clicked = 5,
+            Bounced = 6,
+            Spam = 7,
+            Failed = 8,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Pending => "PENDING",
+                    Self::Sent => "SENT",
+                    Self::Delivered => "DELIVERED",
+                    Self::Opened => "OPENED",
+                    Self::Clicked => "CLICKED",
+                    Self::Bounced => "BOUNCED",
+                    Self::Spam => "SPAM",
+                    Self::Failed => "FAILED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PENDING" => Some(Self::Pending),
+                    "SENT" => Some(Self::Sent),
+                    "DELIVERED" => Some(Self::Delivered),
+                    "OPENED" => Some(Self::Opened),
+                    "CLICKED" => Some(Self::Clicked),
+                    "BOUNCED" => Some(Self::Bounced),
+                    "SPAM" => Some(Self::Spam),
+                    "FAILED" => Some(Self::Failed),
+                    _ => None,
+                }
+            }
+        }
+    }
     /// Статус формы подтверждения.
     #[derive(
         Clone,

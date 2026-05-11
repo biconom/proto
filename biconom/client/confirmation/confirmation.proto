@@ -23,6 +23,9 @@ service ConfirmationService {
 
 	// Сгенерировать новый код для поля.
 	rpc GenerateCode (biconom.types.Confirmation.GenerateCodeRequest) returns (biconom.types.Confirmation.Field.Chanel);
+
+	// Подписаться на события статуса доставки кода для поля формы.
+	rpc SubscribeToFieldStatus (biconom.types.Confirmation.SubscribeToFieldStatusRequest) returns (stream biconom.types.Confirmation.DeliveryStatusStreamResponse);
 }
 
 message ListRequest {

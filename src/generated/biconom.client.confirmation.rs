@@ -73,6 +73,25 @@ pub mod confirmation_service_server {
             tonic::Response<super::super::super::types::confirmation::field::Chanel>,
             tonic::Status,
         >;
+        /// Server streaming response type for the SubscribeToFieldStatus method.
+        type SubscribeToFieldStatusStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<
+                    super::super::super::types::confirmation::DeliveryStatusStreamResponse,
+                    tonic::Status,
+                >,
+            >
+            + std::marker::Send
+            + 'static;
+        /// Подписаться на события статуса доставки кода для поля формы.
+        async fn subscribe_to_field_status(
+            &self,
+            request: tonic::Request<
+                super::super::super::types::confirmation::SubscribeToFieldStatusRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<Self::SubscribeToFieldStatusStream>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct ConfirmationServiceServer<T> {
@@ -383,6 +402,59 @@ pub mod confirmation_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.confirmation.ConfirmationService/SubscribeToFieldStatus" => {
+                    #[allow(non_camel_case_types)]
+                    struct SubscribeToFieldStatusSvc<T: ConfirmationService>(pub Arc<T>);
+                    impl<
+                        T: ConfirmationService,
+                    > tonic::server::ServerStreamingService<
+                        super::super::super::types::confirmation::SubscribeToFieldStatusRequest,
+                    > for SubscribeToFieldStatusSvc<T> {
+                        type Response = super::super::super::types::confirmation::DeliveryStatusStreamResponse;
+                        type ResponseStream = T::SubscribeToFieldStatusStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::confirmation::SubscribeToFieldStatusRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ConfirmationService>::subscribe_to_field_status(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SubscribeToFieldStatusSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

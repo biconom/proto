@@ -173,6 +173,30 @@ message Confirmation {
 		}
 	}
 
+	// Запрос на подписку к статусу поля формы.
+	message SubscribeToFieldStatusRequest {
+		uint64 confirmation_id = 1;
+		uint32 field_id = 2;
+	}
+
+	// Статусы доставки в stream.
+	message DeliveryStatusStreamResponse {
+		enum Status {
+			UNSPECIFIED = 0;
+			PENDING = 1;
+			SENT = 2;
+			DELIVERED = 3;
+			OPENED = 4;
+			CLICKED = 5;
+			BOUNCED = 6;
+			SPAM = 7;
+			FAILED = 8;
+		}
+		Status status = 1;
+		optional string details = 2;
+		google.protobuf.Timestamp updated_at = 3;
+	}
+
 	// ---- Поля основного сообщения Confirmation ----
 
 	optional uint64 id = 1;

@@ -16,6 +16,15 @@ pub mod biconom {
         pub mod tasks {
             include!("generated/biconom.admin.tasks.rs");
         }
+        pub mod push {
+            include!("generated/biconom.admin.push.rs");
+        }
+        pub mod notification_preferences {
+            include!("generated/biconom.admin.notification_preferences.rs");
+        }
+        pub mod token_grant {
+            include!("generated/biconom.admin.token_grant.rs");
+        }
     }
     pub mod client {
         pub mod account {
@@ -98,6 +107,12 @@ pub mod biconom {
         }
         pub mod payment_network_currency {
             include!("generated/biconom.client.payment_network_currency.rs");
+        }
+        pub mod push {
+            include!("generated/biconom.client.push.rs");
+        }
+        pub mod notification_preferences {
+            include!("generated/biconom.client.notification_preferences.rs");
         }
         pub mod wallet {
             include!("generated/biconom.client.wallet.rs");
