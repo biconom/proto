@@ -41,7 +41,16 @@
 Команде фронтенда для полноценной интеграции необходимо реализовать следующий флоу.
 
 ### 1. Получение публичного VAPID ключа
-Публичный ключ передается сервером или вшит в конфигурацию приложения.
+**Важно:** Не нужно хардкодить публичный ключ в `.env` фронтенда! 
+Система разработана так, что ключ запрашивается с бэкенда динамически. Это обеспечивает безопасность и позволяет нам менять ключи без пересборки Frontend приложения.
+
+Для этого используйте gRPC-метод `GetVapidPublicKey` в сервисе `biconom.client.push.PushService`. Метод доступен даже для Guest (не требует авторизации).
+
+```javascript
+// Запрашиваем ключ у бэкенда
+const response = await PushServiceClient.GetVapidPublicKey({});
+const vapidPublicKey = response.publicKey; // Строка в формате base64url
+```
 
 ### 2. Регистрация Service Worker и создание подписки
 ```javascript
@@ -53,10 +62,12 @@ const permission = await Notification.requestPermission();
 if (permission !== 'granted') throw new Error('Permission denied');
 
 // 3. Подписываемся на пуши в браузере
+// Вспомогательная функция для конвертации base64url в Uint8Array
+const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
 const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    // applicationServerKey - это VAPID Public Key, конвертированный в Uint8Array
-    applicationServerKey: urlBase64ToUint8Array('B...ВАШ_VAPID_PUBLIC_KEY...=')
+    applicationServerKey: applicationServerKey
 });
 
 // 4. Извлекаем ключи для отправки на бэкенд
