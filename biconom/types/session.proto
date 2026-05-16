@@ -47,6 +47,9 @@ message Session {
 	optional string device = 5;
 	optional string browser = 6;
 	google.protobuf.Timestamp created_at = 7;
+	// Время последнего посещения (in-memory). Обновляется при каждом запросе
+	// с этой сессией. После рестарта сервиса и до первого запроса возвращает
+	// зафиксированное в БД значение (момент создания/последнего изменения записи).
 	google.protobuf.Timestamp updated_at = 8;
 	biconom.types.Presence.Status presence_status = 9;
 }

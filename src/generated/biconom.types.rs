@@ -1900,6 +1900,9 @@ pub struct Session {
     pub browser: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "7")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Время последнего посещения (in-memory). Обновляется при каждом запросе
+    /// с этой сессией. После рестарта сервиса и до первого запроса возвращает
+    /// зафиксированное в БД значение (момент создания/последнего изменения записи).
     #[prost(message, optional, tag = "8")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "presence::Status", tag = "9")]
