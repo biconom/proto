@@ -79,6 +79,50 @@ pub struct PlacementQuotaRequest {
     #[prost(uint32, tag = "2")]
     pub amount: u32,
 }
+/// Ответ на запрос чтения глобальной битовой маски маркетинга.
+/// Каждое поле — отдельный бит маски `MarketingFlags`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMarketingFlagsResponse {
+    /// V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
+    #[prost(bool, tag = "1")]
+    pub v2: bool,
+}
+/// Запрос на изменение глобальной битовой маски маркетинга.
+/// Каждое поле — отдельный бит маски `MarketingFlags`.
+/// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetMarketingFlagsRequest {
+    /// V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
+    #[prost(bool, optional, tag = "1")]
+    pub v2: ::core::option::Option<bool>,
+}
+/// Запрос на чтение битовой маски флагов дистрибьютора.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDistributorFlagsRequest {
+    /// ID дистрибьютора (> 0).
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+}
+/// Ответ на запрос чтения битовой маски флагов дистрибьютора.
+/// Каждое поле — отдельный бит маски `Distributor::flags`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetDistributorFlagsResponse {
+    /// Полное наследование матчинг-бонуса.
+    #[prost(bool, tag = "1")]
+    pub matching_bonus_full_inheritance: bool,
+}
+/// Запрос на изменение битовой маски флагов дистрибьютора.
+/// Каждое поле — отдельный бит маски `Distributor::flags`.
+/// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDistributorFlagsRequest {
+    /// ID дистрибьютора (> 0).
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+    /// Полное наследование матчинг-бонуса.
+    #[prost(bool, optional, tag = "2")]
+    pub matching_bonus_full_inheritance: ::core::option::Option<bool>,
+}
 /// Generated server implementations.
 pub mod marketing_service_server {
     #![allow(
@@ -124,6 +168,38 @@ pub mod marketing_service_server {
             >,
             tonic::Status,
         >;
+        /// Прочитать глобальную битовую маску маркетинга.
+        /// Каждое поле ответа отражает отдельный бит маски `MarketingFlags`.
+        async fn get_marketing_flags(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetMarketingFlagsResponse>,
+            tonic::Status,
+        >;
+        /// Изменить глобальную битовую маску маркетинга.
+        /// Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+        /// true → устанавливается. false → сбрасывается.
+        async fn set_marketing_flags(
+            &self,
+            request: tonic::Request<super::SetMarketingFlagsRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        /// Прочитать битовую маску флагов конкретного дистрибьютора.
+        /// Каждое поле ответа отражает отдельный бит маски `Distributor::flags`.
+        async fn get_distributor_flags(
+            &self,
+            request: tonic::Request<super::GetDistributorFlagsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetDistributorFlagsResponse>,
+            tonic::Status,
+        >;
+        /// Изменить битовую маску флагов конкретного дистрибьютора.
+        /// Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+        /// true → устанавливается. false → сбрасывается.
+        async fn set_distributor_flags(
+            &self,
+            request: tonic::Request<super::SetDistributorFlagsRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
     }
     /// MarketingService — админский сервис для управления маркетинговыми сущностями.
     #[derive(Debug)]
@@ -331,6 +407,197 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = PenalizePlacementQuotaSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.marketing.MarketingService/GetMarketingFlags" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetMarketingFlagsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<T: MarketingService> tonic::server::UnaryService<()>
+                    for GetMarketingFlagsSvc<T> {
+                        type Response = super::GetMarketingFlagsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_marketing_flags(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetMarketingFlagsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.marketing.MarketingService/SetMarketingFlags" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetMarketingFlagsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::SetMarketingFlagsRequest>
+                    for SetMarketingFlagsSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetMarketingFlagsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::set_marketing_flags(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetMarketingFlagsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.marketing.MarketingService/GetDistributorFlags" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetDistributorFlagsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::GetDistributorFlagsRequest>
+                    for GetDistributorFlagsSvc<T> {
+                        type Response = super::GetDistributorFlagsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetDistributorFlagsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_distributor_flags(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetDistributorFlagsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.marketing.MarketingService/SetDistributorFlags" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetDistributorFlagsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::SetDistributorFlagsRequest>
+                    for SetDistributorFlagsSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetDistributorFlagsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::set_distributor_flags(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetDistributorFlagsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

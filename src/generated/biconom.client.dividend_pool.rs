@@ -48,6 +48,69 @@ pub struct GetDividendPoolHistoryResponse {
     #[prost(message, repeated, tag = "1")]
     pub items: ::prost::alloc::vec::Vec<super::super::types::dividend_pool::Record>,
 }
+/// Запрос на получение страницы истории матчинг-бонуса.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetMatchingBonusHistoryRequest {
+    /// Курсор для пагинации — record_id, после/до которого продолжаем выборку
+    /// (в зависимости от направления Sort).
+    /// null/0 — начать с начала.
+    #[prost(uint64, optional, tag = "1")]
+    pub cursor: ::core::option::Option<u64>,
+    /// Параметры сортировки и лимита. По умолчанию — BACKWARD (от новых к старым).
+    #[prost(message, optional, tag = "2")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
+}
+/// Ответ с историей матчинг-бонуса.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetMatchingBonusHistoryResponse {
+    /// Список записей текущей страницы.
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<MatchingBonusHistoryItem>,
+    /// Суммарно получено матчинг-бонусом за всё время (formatted USDT mantissa).
+    #[prost(string, tag = "2")]
+    pub cumulative_received: ::prost::alloc::string::String,
+    /// Суммарно упущенная выгода за всё время — то, что прошло мимо вверх по цепочке
+    /// (formatted USDT mantissa).
+    #[prost(string, tag = "3")]
+    pub cumulative_missed: ::prost::alloc::string::String,
+}
+/// Одна запись истории матчинг-бонуса (выплата конкретному спонсору в рамках группы).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MatchingBonusHistoryItem {
+    /// ID записи в `matching_bonus_record`.
+    #[prost(uint64, tag = "1")]
+    pub record_id: u64,
+    /// ID группы распределения в `matching_bonus_group`.
+    #[prost(uint64, tag = "2")]
+    pub group_id: u64,
+    /// Инициатор клейма, чьё действие вызвало распределение.
+    #[prost(uint32, tag = "3")]
+    pub initiator_distributor_id: u32,
+    /// Глубина от инициатора (1 = прямой реферер).
+    #[prost(uint32, tag = "4")]
+    pub depth: u32,
+    /// Снимок депозита спонсора (invested_usdt) на момент выплаты (formatted USDT mantissa).
+    #[prost(string, tag = "5")]
+    pub sponsor_deposit_at_pay: ::prost::alloc::string::String,
+    /// Верхний предел доли спонсора `min((ДС × РБ) / ДИ, РБ)` (formatted USDT mantissa).
+    #[prost(string, tag = "6")]
+    pub target_limit: ::prost::alloc::string::String,
+    /// Уже выплаченное на момент достижения этого спонсора (formatted USDT mantissa).
+    #[prost(string, tag = "7")]
+    pub paid_to_pivot: ::prost::alloc::string::String,
+    /// Сумма, фактически зачисленная спонсору (formatted USDT mantissa).
+    #[prost(string, tag = "8")]
+    pub payout: ::prost::alloc::string::String,
+    /// Сумма, ушедшая выше или в пул (упущенная выгода) (formatted USDT mantissa).
+    #[prost(string, tag = "9")]
+    pub missed_amount: ::prost::alloc::string::String,
+    /// Был ли активен флаг `MATCHING_BONUS_FULL_INHERITANCE` у спонсора в момент выплаты.
+    #[prost(bool, tag = "10")]
+    pub had_flag: bool,
+    /// Время создания записи (unix seconds).
+    #[prost(uint32, tag = "11")]
+    pub created_at: u32,
+}
 /// Generated server implementations.
 pub mod dividend_pool_service_server {
     #![allow(
@@ -98,6 +161,16 @@ pub mod dividend_pool_service_server {
             request: tonic::Request<()>,
         ) -> std::result::Result<
             tonic::Response<super::GetDividendPoolHistoryResponse>,
+            tonic::Status,
+        >;
+        /// Получить историю матчинг-бонуса авторизованного пользователя как спонсора.
+        /// Курсорная пагинация по record_id; кумулятивные суммы (получено / упущено)
+        /// отдаются отдельно для виджета сводки.
+        async fn get_matching_bonus_history(
+            &self,
+            request: tonic::Request<super::GetMatchingBonusHistoryRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetMatchingBonusHistoryResponse>,
             tonic::Status,
         >;
     }
@@ -303,6 +376,59 @@ pub mod dividend_pool_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetDividendPoolHistorySvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.dividend_pool.DividendPoolService/GetMatchingBonusHistory" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetMatchingBonusHistorySvc<T: DividendPoolService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: DividendPoolService,
+                    > tonic::server::UnaryService<super::GetMatchingBonusHistoryRequest>
+                    for GetMatchingBonusHistorySvc<T> {
+                        type Response = super::GetMatchingBonusHistoryResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::GetMatchingBonusHistoryRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolService>::get_matching_bonus_history(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetMatchingBonusHistorySvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

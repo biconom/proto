@@ -4,6 +4,7 @@ package biconom.client.dividend_pool;
 
 import "google/protobuf/empty.proto";
 import "biconom/types/dividend_pool.proto";
+import "biconom/types/sort.proto";
 
 // DividendPoolService — клиентский сервис дивидендного пула.
 //
@@ -36,6 +37,11 @@ service DividendPoolService {
     // Получить полную историю выплат дивидендов.
     // Возвращает все записи (без пагинации, ~365 записей/год).
     rpc GetDividendPoolHistory(google.protobuf.Empty) returns (GetDividendPoolHistoryResponse);
+
+    // Получить историю матчинг-бонуса авторизованного пользователя как спонсора.
+    // Курсорная пагинация по record_id; кумулятивные суммы (получено / упущено)
+    // отдаются отдельно для виджета сводки.
+    rpc GetMatchingBonusHistory(GetMatchingBonusHistoryRequest) returns (GetMatchingBonusHistoryResponse);
 }
 
 // Ответ с текущим состоянием дивидендного пула.
@@ -79,4 +85,64 @@ message ClaimDividendPoolResponse {
 message GetDividendPoolHistoryResponse {
     // Список записей о выплатах (хронологический порядок).
     repeated biconom.types.DividendPool.Record items = 1;
+}
+
+// Запрос на получение страницы истории матчинг-бонуса.
+message GetMatchingBonusHistoryRequest {
+    // Курсор для пагинации — record_id, после/до которого продолжаем выборку
+    // (в зависимости от направления Sort).
+    // null/0 — начать с начала.
+    optional uint64 cursor = 1;
+
+    // Параметры сортировки и лимита. По умолчанию — BACKWARD (от новых к старым).
+    optional biconom.types.Sort sort = 2;
+}
+
+// Ответ с историей матчинг-бонуса.
+message GetMatchingBonusHistoryResponse {
+    // Список записей текущей страницы.
+    repeated MatchingBonusHistoryItem items = 1;
+
+    // Суммарно получено матчинг-бонусом за всё время (formatted USDT mantissa).
+    string cumulative_received = 2;
+
+    // Суммарно упущенная выгода за всё время — то, что прошло мимо вверх по цепочке
+    // (formatted USDT mantissa).
+    string cumulative_missed = 3;
+}
+
+// Одна запись истории матчинг-бонуса (выплата конкретному спонсору в рамках группы).
+message MatchingBonusHistoryItem {
+    // ID записи в `matching_bonus_record`.
+    uint64 record_id = 1;
+
+    // ID группы распределения в `matching_bonus_group`.
+    uint64 group_id = 2;
+
+    // Инициатор клейма, чьё действие вызвало распределение.
+    uint32 initiator_distributor_id = 3;
+
+    // Глубина от инициатора (1 = прямой реферер).
+    uint32 depth = 4;
+
+    // Снимок депозита спонсора (invested_usdt) на момент выплаты (formatted USDT mantissa).
+    string sponsor_deposit_at_pay = 5;
+
+    // Верхний предел доли спонсора `min((ДС × РБ) / ДИ, РБ)` (formatted USDT mantissa).
+    string target_limit = 6;
+
+    // Уже выплаченное на момент достижения этого спонсора (formatted USDT mantissa).
+    string paid_to_pivot = 7;
+
+    // Сумма, фактически зачисленная спонсору (formatted USDT mantissa).
+    string payout = 8;
+
+    // Сумма, ушедшая выше или в пул (упущенная выгода) (formatted USDT mantissa).
+    string missed_amount = 9;
+
+    // Был ли активен флаг `MATCHING_BONUS_FULL_INHERITANCE` у спонсора в момент выплаты.
+    bool had_flag = 10;
+
+    // Время создания записи (unix seconds).
+    uint32 created_at = 11;
 }

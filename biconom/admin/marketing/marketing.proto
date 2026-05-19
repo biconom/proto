@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package biconom.admin.marketing;
 
+import "google/protobuf/empty.proto";
+
 import "biconom/types/license.proto";
 import "biconom/types/marketing_slot.proto";
 import "biconom/types/marketing_slot_placement.proto";
@@ -20,6 +22,24 @@ service MarketingService {
     // Гарантия: баланс никогда не уйдёт ниже нуля.
     // Если amount > quota_available — возвращает FAILED_PRECONDITION.
     rpc PenalizePlacementQuota(PlacementQuotaRequest) returns (biconom.types.MarketingSlotPlacement.Balance);
+
+    // Прочитать глобальную битовую маску маркетинга.
+    // Каждое поле ответа отражает отдельный бит маски `MarketingFlags`.
+    rpc GetMarketingFlags(google.protobuf.Empty) returns (GetMarketingFlagsResponse);
+
+    // Изменить глобальную битовую маску маркетинга.
+    // Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+    // true → устанавливается. false → сбрасывается.
+    rpc SetMarketingFlags(SetMarketingFlagsRequest) returns (google.protobuf.Empty);
+
+    // Прочитать битовую маску флагов конкретного дистрибьютора.
+    // Каждое поле ответа отражает отдельный бит маски `Distributor::flags`.
+    rpc GetDistributorFlags(GetDistributorFlagsRequest) returns (GetDistributorFlagsResponse);
+
+    // Изменить битовую маску флагов конкретного дистрибьютора.
+    // Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+    // true → устанавливается. false → сбрасывается.
+    rpc SetDistributorFlags(SetDistributorFlagsRequest) returns (google.protobuf.Empty);
 }
 
 // Запрос на выдачу лицензии администратором.
@@ -59,4 +79,42 @@ message PlacementQuotaRequest {
     uint32 slot_id = 1;
     // Количество единиц квоты (> 0).
     uint32 amount = 2;
+}
+
+// Ответ на запрос чтения глобальной битовой маски маркетинга.
+// Каждое поле — отдельный бит маски `MarketingFlags`.
+message GetMarketingFlagsResponse {
+    // V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
+    bool v2 = 1;
+}
+
+// Запрос на изменение глобальной битовой маски маркетинга.
+// Каждое поле — отдельный бит маски `MarketingFlags`.
+// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+message SetMarketingFlagsRequest {
+    // V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
+    optional bool v2 = 1;
+}
+
+// Запрос на чтение битовой маски флагов дистрибьютора.
+message GetDistributorFlagsRequest {
+    // ID дистрибьютора (> 0).
+    uint32 distributor_id = 1;
+}
+
+// Ответ на запрос чтения битовой маски флагов дистрибьютора.
+// Каждое поле — отдельный бит маски `Distributor::flags`.
+message GetDistributorFlagsResponse {
+    // Полное наследование матчинг-бонуса.
+    bool matching_bonus_full_inheritance = 1;
+}
+
+// Запрос на изменение битовой маски флагов дистрибьютора.
+// Каждое поле — отдельный бит маски `Distributor::flags`.
+// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+message SetDistributorFlagsRequest {
+    // ID дистрибьютора (> 0).
+    uint32 distributor_id = 1;
+    // Полное наследование матчинг-бонуса.
+    optional bool matching_bonus_full_inheritance = 2;
 }
