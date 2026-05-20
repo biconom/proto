@@ -54,6 +54,9 @@ message PublicResponse {
     repeated biconom.types.Tree trees = 13;
     repeated biconom.types.License.Plan license_plans = 14;
     repeated biconom.types.Arena arenas = 15;
+
+    // Флаг перехода на новую версию маркетинга (V2: выплата реферального бонуса только на 1-м уровне).
+    bool marketing_v2 = 16;
 }
 
 // Ответ, содержащий все данные текущего пользователя.

@@ -38,6 +38,9 @@ pub struct PublicResponse {
     pub license_plans: ::prost::alloc::vec::Vec<super::super::types::license::Plan>,
     #[prost(message, repeated, tag = "15")]
     pub arenas: ::prost::alloc::vec::Vec<super::super::types::Arena>,
+    /// Флаг перехода на новую версию маркетинга (V2: выплата реферального бонуса только на 1-м уровне).
+    #[prost(bool, tag = "16")]
+    pub marketing_v2: bool,
 }
 /// Ответ, содержащий все данные текущего пользователя.
 #[derive(Clone, PartialEq, ::prost::Message)]
