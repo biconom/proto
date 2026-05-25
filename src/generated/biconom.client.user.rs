@@ -15,6 +15,11 @@ pub struct GetTelegramBotLinkResponse {
     /// Ссылка для подключения к телеграм боту.
     #[prost(string, tag = "1")]
     pub link: ::prost::alloc::string::String,
+    /// true — у пользователя уже есть привязанный Telegram. Ссылка всё равно
+    /// возвращается: пользователь может перейти по ней и перепривязать TG
+    /// к этой же учётной записи (бот обработает relink-сценарий).
+    #[prost(bool, tag = "2")]
+    pub is_already_connected: bool,
 }
 /// Ответ, содержащий ссылку для загрузки аватара.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

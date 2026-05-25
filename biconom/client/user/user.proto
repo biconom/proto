@@ -36,6 +36,11 @@ message GetPermissionsResponse {
 message GetTelegramBotLinkResponse {
     // Ссылка для подключения к телеграм боту.
     string link = 1;
+
+    // true — у пользователя уже есть привязанный Telegram. Ссылка всё равно
+    // возвращается: пользователь может перейти по ней и перепривязать TG
+    // к этой же учётной записи (бот обработает relink-сценарий).
+    bool is_already_connected = 2;
 }
 
 // Ответ, содержащий ссылку для загрузки аватара.

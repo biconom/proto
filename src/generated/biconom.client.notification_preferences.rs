@@ -104,6 +104,8 @@ pub enum Topic {
     ExchangeCompleted = 15,
     ArenaCompleted = 16,
     NewsAnnouncement = 17,
+    TelegramUnboundByApi = 18,
+    DepositDetected = 19,
 }
 impl Topic {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -130,6 +132,8 @@ impl Topic {
             Self::ExchangeCompleted => "TOPIC_EXCHANGE_COMPLETED",
             Self::ArenaCompleted => "TOPIC_ARENA_COMPLETED",
             Self::NewsAnnouncement => "TOPIC_NEWS_ANNOUNCEMENT",
+            Self::TelegramUnboundByApi => "TOPIC_TELEGRAM_UNBOUND_BY_API",
+            Self::DepositDetected => "TOPIC_DEPOSIT_DETECTED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -153,6 +157,8 @@ impl Topic {
             "TOPIC_EXCHANGE_COMPLETED" => Some(Self::ExchangeCompleted),
             "TOPIC_ARENA_COMPLETED" => Some(Self::ArenaCompleted),
             "TOPIC_NEWS_ANNOUNCEMENT" => Some(Self::NewsAnnouncement),
+            "TOPIC_TELEGRAM_UNBOUND_BY_API" => Some(Self::TelegramUnboundByApi),
+            "TOPIC_DEPOSIT_DETECTED" => Some(Self::DepositDetected),
             _ => None,
         }
     }

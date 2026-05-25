@@ -55,6 +55,8 @@ enum Topic {
     TOPIC_EXCHANGE_COMPLETED = 15;
     TOPIC_ARENA_COMPLETED = 16;
     TOPIC_NEWS_ANNOUNCEMENT = 17;
+    TOPIC_TELEGRAM_UNBOUND_BY_API = 18;
+    TOPIC_DEPOSIT_DETECTED = 19;
 }
 
 // Пользовательский override для optional пары.
