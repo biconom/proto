@@ -106,6 +106,10 @@ pub enum Topic {
     NewsAnnouncement = 17,
     TelegramUnboundByApi = 18,
     DepositDetected = 19,
+    /// Umbrella для всех видов бонусных начислений (dividend claim,
+    /// matching, marketing, structure, partner). Конкретный вид — поле
+    /// `kind` в payload события (см. `BonusKind` в Rust-домене).
+    BonusReceived = 20,
 }
 impl Topic {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -134,6 +138,7 @@ impl Topic {
             Self::NewsAnnouncement => "TOPIC_NEWS_ANNOUNCEMENT",
             Self::TelegramUnboundByApi => "TOPIC_TELEGRAM_UNBOUND_BY_API",
             Self::DepositDetected => "TOPIC_DEPOSIT_DETECTED",
+            Self::BonusReceived => "TOPIC_BONUS_RECEIVED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -159,6 +164,7 @@ impl Topic {
             "TOPIC_NEWS_ANNOUNCEMENT" => Some(Self::NewsAnnouncement),
             "TOPIC_TELEGRAM_UNBOUND_BY_API" => Some(Self::TelegramUnboundByApi),
             "TOPIC_DEPOSIT_DETECTED" => Some(Self::DepositDetected),
+            "TOPIC_BONUS_RECEIVED" => Some(Self::BonusReceived),
             _ => None,
         }
     }

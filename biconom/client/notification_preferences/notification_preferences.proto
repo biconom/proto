@@ -57,6 +57,10 @@ enum Topic {
     TOPIC_NEWS_ANNOUNCEMENT = 17;
     TOPIC_TELEGRAM_UNBOUND_BY_API = 18;
     TOPIC_DEPOSIT_DETECTED = 19;
+    // Umbrella для всех видов бонусных начислений (dividend claim,
+    // matching, marketing, structure, partner). Конкретный вид — поле
+    // `kind` в payload события (см. `BonusKind` в Rust-домене).
+    TOPIC_BONUS_RECEIVED = 20;
 }
 
 // Пользовательский override для optional пары.
