@@ -157,6 +157,15 @@ pub struct User {
     /// Аватарка пользователя. Отсутствует, если пользователь не загружал изображение.
     #[prost(message, optional, tag = "6")]
     pub avatar: ::core::option::Option<Image>,
+    /// Email пользователя. Заполняется ТОЛЬКО в контекстах, где у запрашивающего есть право видеть
+    /// контакты (например, просмотр профиля своей команды/иерархии в DistributorService.Get).
+    /// В прочих ответах, отдающих User, отсутствует.
+    #[prost(string, optional, tag = "7")]
+    pub email: ::core::option::Option<::prost::alloc::string::String>,
+    /// Telegram username пользователя (без внутреннего telegram_user_id).
+    /// Условия заполнения — те же, что и для email.
+    #[prost(string, optional, tag = "8")]
+    pub telegram_username: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Nested message and enum types in `User`.
 pub mod user {

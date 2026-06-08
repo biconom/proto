@@ -24,4 +24,13 @@ message User {
 
 	// Аватарка пользователя. Отсутствует, если пользователь не загружал изображение.
 	optional biconom.types.Image avatar = 6;
+
+	// Email пользователя. Заполняется ТОЛЬКО в контекстах, где у запрашивающего есть право видеть
+	// контакты (например, просмотр профиля своей команды/иерархии в DistributorService.Get).
+	// В прочих ответах, отдающих User, отсутствует.
+	optional string email = 7;
+
+	// Telegram username пользователя (без внутреннего telegram_user_id).
+	// Условия заполнения — те же, что и для email.
+	optional string telegram_username = 8;
 }
