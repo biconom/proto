@@ -25,6 +25,9 @@ pub mod biconom {
         pub mod token_grant {
             include!("generated/biconom.admin.token_grant.rs");
         }
+        pub mod system {
+            include!("generated/biconom.admin.system.rs");
+        }
     }
     pub mod client {
         pub mod account {

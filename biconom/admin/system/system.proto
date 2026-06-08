@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package biconom.admin.system;
+
+// SystemControlService — ROOT-only оперативное управление платформой.
+// Доступ только под Permission::ROOT (по умолчанию у user_id=1).
+// Введён после инцидента 2026-06-08 для мгновенного реагирования без
+// деплоя/миграции: вкл/выкл вывода, бан/разбан, сброс сессий.
+service SystemControlService {
+    // Вкл/выкл вывод платёжной сети (payment_network_currency.withdraw_settings.enabled).
+    // currency_id = 0 → применить ко ВСЕМ валютам указанной сети.
+    rpc PaymentNetworkWithdrawalSetEnabled(PaymentNetworkWithdrawalSetEnabledRequest) returns (PaymentNetworkWithdrawalSetEnabledResponse);
+
+    // Бан/разбан пользователя (banned-флаг проверяется на КАЖДЫЙ авторизованный
+    // запрос в extract_session). Опционально — снести все его активные сессии.
+    rpc UserBanSet(UserBanSetRequest) returns (UserBanSetResponse);
+
+    // Снести ВСЕ активные/pending сессии пользователя (status → Revoked).
+    rpc UserSessionsRevokeAll(UserSessionsRevokeAllRequest) returns (UserSessionsRevokeAllResponse);
+}
+
+message PaymentNetworkWithdrawalSetEnabledRequest {
+    uint32 payment_network_id = 1;
+    uint32 currency_id        = 2; // 0 = все валюты сети
+    bool   enabled            = 3;
+}
+message PaymentNetworkWithdrawalSetEnabledResponse {
+    uint32 affected = 1; // сколько payment_network_currency-записей изменено
+    bool   enabled  = 2; // итоговое значение
+}
+
+message UserBanSetRequest {
+    uint32 user_id         = 1;
+    bool   banned          = 2;
+    bool   revoke_sessions = 3; // при banned=true — снести все сессии
+}
+message UserBanSetResponse {
+    uint32 user_id          = 1;
+    bool   banned           = 2;
+    uint32 sessions_revoked = 3;
+}
+
+message UserSessionsRevokeAllRequest {
+    uint32 user_id = 1;
+}
+message UserSessionsRevokeAllResponse {
+    uint32 user_id          = 1;
+    uint32 sessions_revoked = 2;
+}
