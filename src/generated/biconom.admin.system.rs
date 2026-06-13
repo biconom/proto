@@ -67,6 +67,26 @@ pub struct UserEmailSetResponse {
     #[prost(string, optional, tag = "3")]
     pub previous_email: ::core::option::Option<::prost::alloc::string::String>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UserFindByEmailRequest {
+    #[prost(string, tag = "1")]
+    pub email: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UserFindByEmailResponse {
+    /// найден ли пользователь
+    #[prost(bool, tag = "1")]
+    pub found: bool,
+    /// 0 если не найден
+    #[prost(uint32, tag = "2")]
+    pub user_id: u32,
+    /// сохранённая (сырая) почта найденного юзера
+    #[prost(string, tag = "3")]
+    pub email: ::prost::alloc::string::String,
+    /// забанен ли
+    #[prost(bool, tag = "4")]
+    pub banned: bool,
+}
 /// Generated server implementations.
 pub mod system_control_service_server {
     #![allow(
@@ -114,6 +134,15 @@ pub mod system_control_service_server {
             request: tonic::Request<super::UserEmailSetRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UserEmailSetResponse>,
+            tonic::Status,
+        >;
+        /// Найти пользователя по почте (ROOT). Резолв канонический: точное совпадение,
+        /// иначе наименьший record id в канонической группе (как в авторизации).
+        async fn user_find_by_email(
+            &self,
+            request: tonic::Request<super::UserFindByEmailRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UserFindByEmailResponse>,
             tonic::Status,
         >;
     }
@@ -380,6 +409,55 @@ pub mod system_control_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UserEmailSetSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.system.SystemControlService/UserFindByEmail" => {
+                    #[allow(non_camel_case_types)]
+                    struct UserFindByEmailSvc<T: SystemControlService>(pub Arc<T>);
+                    impl<
+                        T: SystemControlService,
+                    > tonic::server::UnaryService<super::UserFindByEmailRequest>
+                    for UserFindByEmailSvc<T> {
+                        type Response = super::UserFindByEmailResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UserFindByEmailRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SystemControlService>::user_find_by_email(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UserFindByEmailSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

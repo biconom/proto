@@ -22,6 +22,10 @@ service SystemControlService {
     // блок disposable-доменов, canonical busy-чек, очистка старой почты.
     // previous_email в ответе — прошлая почта, если она была до смены.
     rpc UserEmailSet(UserEmailSetRequest) returns (UserEmailSetResponse);
+
+    // Найти пользователя по почте (ROOT). Резолв канонический: точное совпадение,
+    // иначе наименьший record id в канонической группе (как в авторизации).
+    rpc UserFindByEmail(UserFindByEmailRequest) returns (UserFindByEmailResponse);
 }
 
 message PaymentNetworkWithdrawalSetEnabledRequest {
@@ -61,4 +65,14 @@ message UserEmailSetResponse {
     uint32 user_id                 = 1;
     string email                   = 2; // нормализованная установленная почта
     optional string previous_email = 3; // прошлая почта, если была до смены
+}
+
+message UserFindByEmailRequest {
+    string email = 1;
+}
+message UserFindByEmailResponse {
+    bool   found   = 1; // найден ли пользователь
+    uint32 user_id = 2; // 0 если не найден
+    string email   = 3; // сохранённая (сырая) почта найденного юзера
+    bool   banned  = 4; // забанен ли
 }
