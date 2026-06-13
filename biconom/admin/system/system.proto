@@ -17,6 +17,11 @@ service SystemControlService {
 
     // Снести ВСЕ активные/pending сессии пользователя (status → Revoked).
     rpc UserSessionsRevokeAll(UserSessionsRevokeAllRequest) returns (UserSessionsRevokeAllResponse);
+
+    // Сменить почту пользователя (ROOT). Полный flow: валидация формата,
+    // блок disposable-доменов, canonical busy-чек, очистка старой почты.
+    // previous_email в ответе — прошлая почта, если она была до смены.
+    rpc UserEmailSet(UserEmailSetRequest) returns (UserEmailSetResponse);
 }
 
 message PaymentNetworkWithdrawalSetEnabledRequest {
@@ -46,4 +51,14 @@ message UserSessionsRevokeAllRequest {
 message UserSessionsRevokeAllResponse {
     uint32 user_id          = 1;
     uint32 sessions_revoked = 2;
+}
+
+message UserEmailSetRequest {
+    uint32 user_id = 1;
+    string email   = 2;
+}
+message UserEmailSetResponse {
+    uint32 user_id                 = 1;
+    string email                   = 2; // нормализованная установленная почта
+    optional string previous_email = 3; // прошлая почта, если была до смены
 }

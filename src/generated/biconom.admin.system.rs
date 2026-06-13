@@ -49,6 +49,24 @@ pub struct UserSessionsRevokeAllResponse {
     #[prost(uint32, tag = "2")]
     pub sessions_revoked: u32,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UserEmailSetRequest {
+    #[prost(uint32, tag = "1")]
+    pub user_id: u32,
+    #[prost(string, tag = "2")]
+    pub email: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UserEmailSetResponse {
+    #[prost(uint32, tag = "1")]
+    pub user_id: u32,
+    /// нормализованная установленная почта
+    #[prost(string, tag = "2")]
+    pub email: ::prost::alloc::string::String,
+    /// прошлая почта, если была до смены
+    #[prost(string, optional, tag = "3")]
+    pub previous_email: ::core::option::Option<::prost::alloc::string::String>,
+}
 /// Generated server implementations.
 pub mod system_control_service_server {
     #![allow(
@@ -86,6 +104,16 @@ pub mod system_control_service_server {
             request: tonic::Request<super::UserSessionsRevokeAllRequest>,
         ) -> std::result::Result<
             tonic::Response<super::UserSessionsRevokeAllResponse>,
+            tonic::Status,
+        >;
+        /// Сменить почту пользователя (ROOT). Полный flow: валидация формата,
+        /// блок disposable-доменов, canonical busy-чек, очистка старой почты.
+        /// previous_email в ответе — прошлая почта, если она была до смены.
+        async fn user_email_set(
+            &self,
+            request: tonic::Request<super::UserEmailSetRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UserEmailSetResponse>,
             tonic::Status,
         >;
     }
@@ -306,6 +334,52 @@ pub mod system_control_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UserSessionsRevokeAllSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.system.SystemControlService/UserEmailSet" => {
+                    #[allow(non_camel_case_types)]
+                    struct UserEmailSetSvc<T: SystemControlService>(pub Arc<T>);
+                    impl<
+                        T: SystemControlService,
+                    > tonic::server::UnaryService<super::UserEmailSetRequest>
+                    for UserEmailSetSvc<T> {
+                        type Response = super::UserEmailSetResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UserEmailSetRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SystemControlService>::user_email_set(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UserEmailSetSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
