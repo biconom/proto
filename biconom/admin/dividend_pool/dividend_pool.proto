@@ -23,6 +23,11 @@ service DividendPoolAdminService {
     // Эквивалент первого нажатия ClaimDividendPool каждым пользователем.
     // Требует статус Active. Возвращает количество активированных.
     rpc ActivateAll(google.protobuf.Empty) returns (ActivateAllResponse);
+
+    // Установить статус (active) последнего состояния авто-реинвеста дистрибьютора.
+    // Пользователь сам отменить авто-реинвест не может — только админ.
+    // Ошибка DIVIDEND_POOL_AUTO_REINVEST_NOT_FOUND, если состояния нет.
+    rpc SetDistributorAutoReinvestStatus(SetDistributorAutoReinvestStatusRequest) returns (SetDistributorAutoReinvestStatusResponse);
 }
 
 // Ответ с текущим статусом и агрегированной статистикой.
@@ -55,4 +60,18 @@ message SetStatusRequest {
 message ActivateAllResponse {
     // Количество дистрибьюторов, для которых был сгенерирован первый бонус.
     uint32 activated_count = 1;
+}
+
+// Запрос на изменение статуса авто-реинвеста дистрибьютора.
+message SetDistributorAutoReinvestStatusRequest {
+    // Дистрибьютор, чьё состояние авто-реинвеста меняем.
+    uint32 distributor_id = 1;
+
+    // Новый статус: true — включить, false — выключить.
+    bool active = 2;
+}
+
+// Ответ с обновлённым состоянием авто-реинвеста.
+message SetDistributorAutoReinvestStatusResponse {
+    biconom.types.DividendPool.AutoReinvestState state = 1;
 }

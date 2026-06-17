@@ -42,6 +42,16 @@ service DividendPoolService {
     // Курсорная пагинация по record_id; кумулятивные суммы (получено / упущено)
     // отдаются отдельно для виджета сводки.
     rpc GetMatchingBonusHistory(GetMatchingBonusHistoryRequest) returns (GetMatchingBonusHistoryResponse);
+
+    // Выбрать авто-реинвест из актуальной конфигурации по числу циклов.
+    // Дисконт берётся из конфигурации. Требует invested > 0 и статус Active.
+    // При активном авто-реинвесте ручной ClaimDividendPool запрещён —
+    // claim выполняется автоматически фоновым воркером.
+    rpc SetAutoReinvest(SetAutoReinvestRequest) returns (SetAutoReinvestResponse);
+
+    // Получить состояние авто-реинвеста: текущее состояние, доступные тарифы
+    // из конфигурации и историю прошлых выборов.
+    rpc GetAutoReinvest(google.protobuf.Empty) returns (GetAutoReinvestResponse);
 }
 
 // Ответ с текущим состоянием дивидендного пула.
@@ -68,6 +78,13 @@ message GetDividendPoolResponse {
 
     // Текущий дневной процент (например "0.2667"). Пустая строка если ещё не генерировался.
     string current_daily_rate = 7;
+
+    // Активен ли авто-реинвест прямо сейчас (включён + есть остаток циклов).
+    // Если true — ручной ClaimDividendPool запрещён (DIVIDEND_POOL_AUTO_REINVEST_ACTIVE).
+    bool auto_reinvest_active = 8;
+
+    // Текущее состояние авто-реинвеста (если когда-либо выбирался).
+    optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 9;
 }
 
 // Ответ после клейма бонуса.
@@ -145,4 +162,29 @@ message MatchingBonusHistoryItem {
 
     // Время создания записи (unix seconds).
     uint32 created_at = 11;
+}
+
+// Запрос на выбор авто-реинвеста.
+message SetAutoReinvestRequest {
+    // Число циклов клейма из конфигурации. Должно совпадать с одним
+    // из тарифов; иначе ошибка DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES.
+    uint32 cycles = 1;
+}
+
+// Ответ на выбор авто-реинвеста.
+message SetAutoReinvestResponse {
+    // Созданное/обновлённое состояние авто-реинвеста.
+    biconom.types.DividendPool.AutoReinvestState state = 1;
+}
+
+// Ответ с полным состоянием авто-реинвеста.
+message GetAutoReinvestResponse {
+    // Текущее состояние (если авто-реинвест когда-либо выбирался).
+    optional biconom.types.DividendPool.AutoReinvestState state = 1;
+
+    // Доступные тарифы из конфигурации (отсортированы по возрастанию циклов).
+    repeated biconom.types.DividendPool.AutoReinvestTier tiers = 2;
+
+    // История прошлых выборов (от новых к старым).
+    repeated biconom.types.DividendPool.AutoReinvestArchive history = 3;
 }

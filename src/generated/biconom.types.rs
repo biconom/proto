@@ -4994,6 +4994,57 @@ pub mod dividend_pool {
         #[prost(message, optional, tag = "6")]
         pub claimed_at: ::core::option::Option<::prost_types::Timestamp>,
     }
+    /// Тариф авто-реинвеста из конфигурации (YAML): число циклов клейма
+    /// (1 цикл = lock_duration) и соответствующий процент дисконта.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct AutoReinvestTier {
+        /// Количество циклов клейма.
+        #[prost(uint32, tag = "1")]
+        pub cycles: u32,
+        /// Процент дисконта (например "10.0000").
+        #[prost(string, tag = "2")]
+        pub discount_percent: ::prost::alloc::string::String,
+    }
+    /// Текущее состояние авто-реинвеста пользователя.
+    /// Активен, пока active == true И cycles_remaining > 0.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct AutoReinvestState {
+        /// Включён ли авто-реинвест (админ может выключить).
+        #[prost(bool, tag = "1")]
+        pub active: bool,
+        /// Выбранное число циклов клейма.
+        #[prost(uint32, tag = "2")]
+        pub cycles: u32,
+        /// Процент дисконта (снэпшот конфигурации на момент выбора).
+        #[prost(string, tag = "3")]
+        pub discount_percent: ::prost::alloc::string::String,
+        /// Сколько циклов уже отработано авто-claim'ом.
+        #[prost(uint32, tag = "4")]
+        pub cycles_spent: u32,
+        /// Остаток неиспользованных циклов (cycles - cycles_spent).
+        #[prost(uint32, tag = "5")]
+        pub cycles_remaining: u32,
+        /// Когда был выбран авто-реинвест.
+        #[prost(message, optional, tag = "6")]
+        pub selected_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Архивная запись прошлого выбора авто-реинвеста (создаётся при смене
+    /// выбора, если в прошлом состоянии были использованные циклы).
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct AutoReinvestArchive {
+        #[prost(uint32, tag = "1")]
+        pub cycles: u32,
+        #[prost(string, tag = "2")]
+        pub discount_percent: ::prost::alloc::string::String,
+        #[prost(uint32, tag = "3")]
+        pub cycles_spent: u32,
+        #[prost(bool, tag = "4")]
+        pub active: bool,
+        #[prost(message, optional, tag = "5")]
+        pub selected_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "6")]
+        pub archived_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
 }
 /// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.
 #[derive(Clone, PartialEq, ::prost::Message)]

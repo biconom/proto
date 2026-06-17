@@ -70,4 +70,47 @@ message DividendPool {
         // Когда пользователь забрал бонус.
         google.protobuf.Timestamp claimed_at = 6;
     }
+
+    // Тариф авто-реинвеста из конфигурации (YAML): число циклов клейма
+    // (1 цикл = lock_duration) и соответствующий процент дисконта.
+    message AutoReinvestTier {
+        // Количество циклов клейма.
+        uint32 cycles = 1;
+
+        // Процент дисконта (например "10.0000").
+        string discount_percent = 2;
+    }
+
+    // Текущее состояние авто-реинвеста пользователя.
+    // Активен, пока active == true И cycles_remaining > 0.
+    message AutoReinvestState {
+        // Включён ли авто-реинвест (админ может выключить).
+        bool active = 1;
+
+        // Выбранное число циклов клейма.
+        uint32 cycles = 2;
+
+        // Процент дисконта (снэпшот конфигурации на момент выбора).
+        string discount_percent = 3;
+
+        // Сколько циклов уже отработано авто-claim'ом.
+        uint32 cycles_spent = 4;
+
+        // Остаток неиспользованных циклов (cycles - cycles_spent).
+        uint32 cycles_remaining = 5;
+
+        // Когда был выбран авто-реинвест.
+        google.protobuf.Timestamp selected_at = 6;
+    }
+
+    // Архивная запись прошлого выбора авто-реинвеста (создаётся при смене
+    // выбора, если в прошлом состоянии были использованные циклы).
+    message AutoReinvestArchive {
+        uint32 cycles = 1;
+        string discount_percent = 2;
+        uint32 cycles_spent = 3;
+        bool active = 4;
+        google.protobuf.Timestamp selected_at = 5;
+        google.protobuf.Timestamp archived_at = 6;
+    }
 }

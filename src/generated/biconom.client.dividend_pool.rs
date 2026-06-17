@@ -28,6 +28,15 @@ pub struct GetDividendPoolResponse {
     /// Текущий дневной процент (например "0.2667"). Пустая строка если ещё не генерировался.
     #[prost(string, tag = "7")]
     pub current_daily_rate: ::prost::alloc::string::String,
+    /// Активен ли авто-реинвест прямо сейчас (включён + есть остаток циклов).
+    /// Если true — ручной ClaimDividendPool запрещён (DIVIDEND_POOL_AUTO_REINVEST_ACTIVE).
+    #[prost(bool, tag = "8")]
+    pub auto_reinvest_active: bool,
+    /// Текущее состояние авто-реинвеста (если когда-либо выбирался).
+    #[prost(message, optional, tag = "9")]
+    pub auto_reinvest: ::core::option::Option<
+        super::super::types::dividend_pool::AutoReinvestState,
+    >,
 }
 /// Ответ после клейма бонуса.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -111,6 +120,42 @@ pub struct MatchingBonusHistoryItem {
     #[prost(uint32, tag = "11")]
     pub created_at: u32,
 }
+/// Запрос на выбор авто-реинвеста.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetAutoReinvestRequest {
+    /// Число циклов клейма из конфигурации. Должно совпадать с одним
+    /// из тарифов; иначе ошибка DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES.
+    #[prost(uint32, tag = "1")]
+    pub cycles: u32,
+}
+/// Ответ на выбор авто-реинвеста.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetAutoReinvestResponse {
+    /// Созданное/обновлённое состояние авто-реинвеста.
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<
+        super::super::types::dividend_pool::AutoReinvestState,
+    >,
+}
+/// Ответ с полным состоянием авто-реинвеста.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAutoReinvestResponse {
+    /// Текущее состояние (если авто-реинвест когда-либо выбирался).
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<
+        super::super::types::dividend_pool::AutoReinvestState,
+    >,
+    /// Доступные тарифы из конфигурации (отсортированы по возрастанию циклов).
+    #[prost(message, repeated, tag = "2")]
+    pub tiers: ::prost::alloc::vec::Vec<
+        super::super::types::dividend_pool::AutoReinvestTier,
+    >,
+    /// История прошлых выборов (от новых к старым).
+    #[prost(message, repeated, tag = "3")]
+    pub history: ::prost::alloc::vec::Vec<
+        super::super::types::dividend_pool::AutoReinvestArchive,
+    >,
+}
 /// Generated server implementations.
 pub mod dividend_pool_service_server {
     #![allow(
@@ -171,6 +216,26 @@ pub mod dividend_pool_service_server {
             request: tonic::Request<super::GetMatchingBonusHistoryRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetMatchingBonusHistoryResponse>,
+            tonic::Status,
+        >;
+        /// Выбрать авто-реинвест из актуальной конфигурации по числу циклов.
+        /// Дисконт берётся из конфигурации. Требует invested > 0 и статус Active.
+        /// При активном авто-реинвесте ручной ClaimDividendPool запрещён —
+        /// claim выполняется автоматически фоновым воркером.
+        async fn set_auto_reinvest(
+            &self,
+            request: tonic::Request<super::SetAutoReinvestRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetAutoReinvestResponse>,
+            tonic::Status,
+        >;
+        /// Получить состояние авто-реинвеста: текущее состояние, доступные тарифы
+        /// из конфигурации и историю прошлых выборов.
+        async fn get_auto_reinvest(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAutoReinvestResponse>,
             tonic::Status,
         >;
     }
@@ -429,6 +494,99 @@ pub mod dividend_pool_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetMatchingBonusHistorySvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.dividend_pool.DividendPoolService/SetAutoReinvest" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetAutoReinvestSvc<T: DividendPoolService>(pub Arc<T>);
+                    impl<
+                        T: DividendPoolService,
+                    > tonic::server::UnaryService<super::SetAutoReinvestRequest>
+                    for SetAutoReinvestSvc<T> {
+                        type Response = super::SetAutoReinvestResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetAutoReinvestRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolService>::set_auto_reinvest(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetAutoReinvestSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.dividend_pool.DividendPoolService/GetAutoReinvest" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetAutoReinvestSvc<T: DividendPoolService>(pub Arc<T>);
+                    impl<T: DividendPoolService> tonic::server::UnaryService<()>
+                    for GetAutoReinvestSvc<T> {
+                        type Response = super::GetAutoReinvestResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolService>::get_auto_reinvest(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetAutoReinvestSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
