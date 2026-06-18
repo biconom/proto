@@ -45,6 +45,15 @@ pub mod account_view {
         pub dividend_pool_bonus: ::core::option::Option<
             super::super::super::types::dividend_pool::PendingBonus,
         >,
+        /// Состояние авто-реинвеста дистрибьютора (если когда-либо выбирался) —
+        /// та же модель, что и в GetAutoReinvest/GetDividendPool, чтобы баннер
+        /// на главной знал про авто-реинвест без отдельного запроса.
+        /// Активен ⇔ active == true И cycles_remaining > 0; пока активен — ручной
+        /// Claim запрещён (клейм идёт автоматически на бэке).
+        #[prost(message, optional, tag = "6")]
+        pub auto_reinvest: ::core::option::Option<
+            super::super::super::types::dividend_pool::AutoReinvestState,
+        >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {

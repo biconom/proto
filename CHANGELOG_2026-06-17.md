@@ -59,6 +59,34 @@ message GetDividendPoolResponse {
 > 📍 Для основного экрана пула этого достаточно: `auto_reinvest_active` + `auto_reinvest`
 > приходят прямо в `GetDividendPool`, отдельный запрос делать не нужно.
 
+### `client/account.proto` — 1 новое поле в `AccountView.Distributor`
+
+Для баннера клейма на **главной** (где раньше использовались `dividend_pool_status`
+из `AccountView` и `dividend_pool_bonus` из `AccountView.Distributor`) добавлено
+состояние авто-реинвеста — чтобы не делать доп-запрос `GetDividendPool`/`GetAutoReinvest`:
+
+```protobuf
+message AccountView {
+    message Distributor {
+        // ...поля 1–4 + dividend_pool_bonus = 5 без изменений...
+
+        // Состояние авто-реинвеста дистрибьютора (если когда-либо выбирался).
+        // Та же модель AutoReinvestState, что и в GetAutoReinvest/GetDividendPool.
+        optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 6;
+    }
+    // ...dividend_pool_status = 6 (глобальный) без изменений...
+}
+```
+
+> 🧮 **Активность авто-реинвеста** = `auto_reinvest != null && auto_reinvest.active &&
+> auto_reinvest.cycles_remaining > 0`. Если активен — ручной Claim на главной
+> скрыть/задизейблить (как и на экране пула). `auto_reinvest == null` → авто-реинвест
+> никогда не выбирался, ведём себя как раньше (обычный Claim по `dividend_pool_bonus`).
+>
+> Поле отдаётся в `GetCurrent` (метод `client/account/AccountService/GetCurrent`)
+> для **своих** дистрибьюторов. Аналог в `client/distributor` `Response` пока **не**
+> добавлен — если нужен и там, скажите.
+
 ### `client/dividend_pool.proto` — 2 новых RPC
 
 ```protobuf

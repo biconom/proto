@@ -30,6 +30,12 @@ message AccountView {
 		repeated biconom.types.MarketingSlot.State slot_states = 3;
 		biconom.types.MarketingSlot.DistributorState distributor_state = 4;
 		optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5;
+		// Состояние авто-реинвеста дистрибьютора (если когда-либо выбирался) —
+		// та же модель, что и в GetAutoReinvest/GetDividendPool, чтобы баннер
+		// на главной знал про авто-реинвест без отдельного запроса.
+		// Активен ⇔ active == true И cycles_remaining > 0; пока активен — ручной
+		// Claim запрещён (клейм идёт автоматически на бэке).
+		optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 6;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;
