@@ -969,7 +969,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1227,6 +1227,24 @@ pub mod transaction {
                 #[prost(bool, tag = "7")]
                 pub had_flag: bool,
             }
+            /// Метаданные для карточки дисконт-бонуса авто-реинвеста.
+            ///
+            /// Это ОТДЕЛЬНАЯ транзакция (свой `group_id`), не входящая в группу
+            /// покупки WIN. Начисляется эмиссией WIN сверх купленного объёма на
+            /// каждом авто-цикле дивидендного пула. Сама сумма дисконта (в WIN)
+            /// лежит в `amount` проводки; здесь — пояснительные метаданные.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct ReinvestDiscountDetails {
+                /// Процент дисконта, по которому начислен бонус (снимок тарифа на
+                /// момент выбора авто-реинвеста). Строка с 4 знаками, напр. "20.0000".
+                #[prost(string, tag = "1")]
+                pub discount_percent: ::prost::alloc::string::String,
+                /// Объём купленного WIN на этом авто-цикле, от которого считался
+                /// дисконт (`amount = source_win × discount_percent / 100`).
+                /// Строка в десятичном виде с учётом точности WIN.
+                #[prost(string, tag = "2")]
+                pub source_win: ::prost::alloc::string::String,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1265,6 +1283,8 @@ pub mod transaction {
                 LicenseDirectBonus(LicenseDirectBonusDetails),
                 #[prost(message, tag = "21")]
                 SplitMatchingBonus(SplitMatchingBonusDetails),
+                #[prost(message, tag = "22")]
+                ReinvestDiscount(ReinvestDiscountDetails),
             }
         }
     }
@@ -5027,23 +5047,6 @@ pub mod dividend_pool {
         /// Когда был выбран авто-реинвест.
         #[prost(message, optional, tag = "6")]
         pub selected_at: ::core::option::Option<::prost_types::Timestamp>,
-    }
-    /// Архивная запись прошлого выбора авто-реинвеста (создаётся при смене
-    /// выбора, если в прошлом состоянии были использованные циклы).
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct AutoReinvestArchive {
-        #[prost(uint32, tag = "1")]
-        pub cycles: u32,
-        #[prost(string, tag = "2")]
-        pub discount_percent: ::prost::alloc::string::String,
-        #[prost(uint32, tag = "3")]
-        pub cycles_spent: u32,
-        #[prost(bool, tag = "4")]
-        pub active: bool,
-        #[prost(message, optional, tag = "5")]
-        pub selected_at: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(message, optional, tag = "6")]
-        pub archived_at: ::core::option::Option<::prost_types::Timestamp>,
     }
 }
 /// InviteLink представляет собой реферальную ссылку, используемую для привлечения новых участников.

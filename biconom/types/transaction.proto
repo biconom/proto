@@ -45,6 +45,7 @@ message Transaction {
                 WithdrawalFeeDetails withdrawal_fee = 19;
                 LicenseDirectBonusDetails license_direct_bonus = 20;
                 SplitMatchingBonusDetails split_matching_bonus = 21;
+                ReinvestDiscountDetails reinvest_discount = 22;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -251,6 +252,23 @@ message Transaction {
                 // Если `true` — пользователь забрал весь остаток группы независимо
                 // от пропорциональной формулы, и цепочка обрыватся на нём.
                 bool had_flag = 7;
+            }
+
+            // Метаданные для карточки дисконт-бонуса авто-реинвеста.
+            //
+            // Это ОТДЕЛЬНАЯ транзакция (свой `group_id`), не входящая в группу
+            // покупки WIN. Начисляется эмиссией WIN сверх купленного объёма на
+            // каждом авто-цикле дивидендного пула. Сама сумма дисконта (в WIN)
+            // лежит в `amount` проводки; здесь — пояснительные метаданные.
+            message ReinvestDiscountDetails {
+                // Процент дисконта, по которому начислен бонус (снимок тарифа на
+                // момент выбора авто-реинвеста). Строка с 4 знаками, напр. "20.0000".
+                string discount_percent = 1;
+
+                // Объём купленного WIN на этом авто-цикле, от которого считался
+                // дисконт (`amount = source_win × discount_percent / 100`).
+                // Строка в десятичном виде с учётом точности WIN.
+                string source_win = 2;
             }
         }
     }

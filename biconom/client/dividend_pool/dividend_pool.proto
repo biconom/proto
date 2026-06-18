@@ -184,7 +184,4 @@ message GetAutoReinvestResponse {
 
     // Доступные тарифы из конфигурации (отсортированы по возрастанию циклов).
     repeated biconom.types.DividendPool.AutoReinvestTier tiers = 2;
-
-    // История прошлых выборов (от новых к старым).
-    repeated biconom.types.DividendPool.AutoReinvestArchive history = 3;
 }

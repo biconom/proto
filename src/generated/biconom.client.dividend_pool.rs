@@ -150,11 +150,6 @@ pub struct GetAutoReinvestResponse {
     pub tiers: ::prost::alloc::vec::Vec<
         super::super::types::dividend_pool::AutoReinvestTier,
     >,
-    /// История прошлых выборов (от новых к старым).
-    #[prost(message, repeated, tag = "3")]
-    pub history: ::prost::alloc::vec::Vec<
-        super::super::types::dividend_pool::AutoReinvestArchive,
-    >,
 }
 /// Generated server implementations.
 pub mod dividend_pool_service_server {

@@ -16,7 +16,7 @@
 
 ## 🚀 Изменения в API
 
-### `types/dividend_pool.proto` — 3 новых сообщения внутри `DividendPool`
+### `types/dividend_pool.proto` — 2 новых сообщения внутри `DividendPool`
 
 ```protobuf
 message DividendPool {
@@ -37,16 +37,6 @@ message DividendPool {
         uint32 cycles_spent = 4;       // уже отработано
         uint32 cycles_remaining = 5;   // осталось (cycles - cycles_spent)
         google.protobuf.Timestamp selected_at = 6;
-    }
-
-    // Архивная запись прошлого выбора (для истории).
-    message AutoReinvestArchive {
-        uint32 cycles = 1;
-        string discount_percent = 2;
-        uint32 cycles_spent = 3;
-        bool   active = 4;
-        google.protobuf.Timestamp selected_at = 5;
-        google.protobuf.Timestamp archived_at = 6;
     }
 }
 ```
@@ -79,7 +69,7 @@ service DividendPoolService {
     // Выбрать авто-реинвест по числу циклов из конфигурации.
     rpc SetAutoReinvest(SetAutoReinvestRequest) returns (SetAutoReinvestResponse);
 
-    // Состояние + доступные тарифы + история прошлых выборов (для экрана выбора).
+    // Текущее состояние + доступные тарифы из конфигурации (для экрана выбора).
     rpc GetAutoReinvest(google.protobuf.Empty) returns (GetAutoReinvestResponse);
 }
 
@@ -92,7 +82,6 @@ message SetAutoReinvestResponse {
 message GetAutoReinvestResponse {
     optional biconom.types.DividendPool.AutoReinvestState state = 1; // текущее (может отсутствовать)
     repeated biconom.types.DividendPool.AutoReinvestTier tiers = 2;  // что можно выбрать
-    repeated biconom.types.DividendPool.AutoReinvestArchive history = 3; // от новых к старым
 }
 ```
 
@@ -113,6 +102,28 @@ message SetDistributorAutoReinvestStatusResponse {
 
 > ℹ️ Пользователь **сам отменить** авто-реинвест не может — выключить статус может
 > только админ через этот метод. На клиенте кнопки «отменить авто-реинвест» нет.
+
+### `types/transaction.proto` — 1 новая карточка в `Transaction.Group.Entry.details`
+
+Новый вариант `oneof details` для отрисовки **дисконт-бонуса авто-реинвеста** в истории:
+
+```protobuf
+message Entry {
+    oneof details {
+        // ...существующие 1–21 без изменений...
+        ReinvestDiscountDetails reinvest_discount = 22; // НОВЫЙ
+    }
+
+    message ReinvestDiscountDetails {
+        string discount_percent = 1; // снэпшот тарифа, напр. "20.0000"
+        string source_win = 2;       // купленный WIN, от которого считался дисконт
+    }
+}
+```
+
+> Изменение **additive** — новый тег `22` в oneof. Старые клиенты, не знающие
+> про него, увидят `details == None` (как и для любого незнакомого варианта) и
+> отрисуют запись как обычное начисление WIN.
 
 ---
 
@@ -158,8 +169,7 @@ renderTiers(a.tiers.map(t => ({
   discount: `${parseFloat(t.discountPercent)}%`,
 })));
 
-if (a.state) renderCurrent(a.state);   // активный/последний выбор
-renderHistory(a.history);              // архив прошлых выборов (новые → старые)
+if (a.state) renderCurrent(a.state);   // текущий выбор
 
 // Выбор тарифа:
 async function pick(cycles) {
@@ -190,11 +200,80 @@ async function pick(cycles) {
 
 ---
 
+## 🧾 Как один авто-цикл выглядит в истории транзакций
+
+Каждый автоматический клейм порождает **до 4 НЕЗАВИСИМЫХ транзакций**, и в
+`GetTransactions` они приходят **отдельными группами** (`Transaction.Group`),
+каждая со своим `group_id` и своим `created_at`. Они **НЕ** объединены в одну
+карточку — это намеренно, чтобы дивиденд, покупка и дисконт были видны по
+отдельности. Порядок по времени: дивиденд → (матчинг) → покупка → дисконт.
+
+| # | Группа (карточка) | Валюта | `details` вариант | Знак | Как опознать |
+|---|---|---|---|:---:|---|
+| 1 | Выплата дивиденда | USDT | `dividend_pool_claim` (17) | `+` | подзаголовок «Dividend Pool» |
+| 2 | Матчинг-бонус спонсорам* | USDT | `split_matching_bonus` (21) | `+` | приходит **спонсорам**, не самому юзеру |
+| 3 | Покупка WIN | WIN/USDT | `exchange` (10) | `+`/`−` | `trading_pair_id` + `exchange_id` |
+| 4 | **Дисконт-бонус** | WIN | `reinvest_discount` (22) | `+` | **новая карточка**, `discount_percent` |
+
+\* Группа 2 появляется только при включённом матчинге (V2) и видна **получателям
+бонуса** (вышестоящим спонсорам), а не инициатору авто-реинвеста.
+
+### Группа покупки WIN (как у обычной покупки)
+
+Покупка WIN на полученный дивиденд проходит как **обычная торговая сделка** —
+та же карточка `exchange`, те же структурные награды вышестоящим
+(`trade_referral_bonus`, отдельными группами у получателей). Для пользователя
+визуально это неотличимо от ручной покупки WIN. Никакого спец-флага на этой
+карточке нет.
+
+### Группа дисконт-бонуса (новое, отдельная группа)
+
+```jsonc
+// Transaction.Group
+{
+  "group_id": 987654,            // СВОЙ group_id, не равен группе покупки
+  "created_at": "2026-06-18T...",
+  "status": "SUCCESS",
+  "entries": [
+    {
+      "currency_id": <WIN>,
+      "amount": "30.00",         // фактически начисленный дисконт в WIN
+      "reinvest_discount": {     // <-- идентификатор карточки
+        "discount_percent": "20.0000",
+        "source_win": "150.00"   // куплено WIN, 20% от него = 30 WIN
+      }
+    }
+  ]
+}
+```
+
+**Как верстальщику отличить дисконт от прочих начислений WIN:**
+
+- Карточка опознаётся **исключительно** по выставленному `details.reinvest_discount`.
+  Не привязывайтесь к сумме/валюте — только к варианту oneof.
+- `amount` проводки = сам дисконт (в WIN). `source_win` — справочно (объём
+  покупки, от которого считали процент): `amount = source_win × percent / 100`,
+  округление **вниз**.
+- `discount_percent` — строка с 4 знаками (`parseFloat` → `20`). Это **снэпшот**
+  тарифа на момент выбора авто-реинвеста, не пересчитывается между циклами.
+- Это **отдельная группа** в ленте — рендерить как самостоятельную карточку
+  «Бонус авто-реинвеста +N WIN», рядом (по времени) с карточкой покупки WIN, но
+  **не** внутри неё.
+
+### Что НЕ приходит
+
+- Карточки «отмены»/«возврата» дисконта не существует — дисконт не отзывается.
+- Внутри группы дисконта всегда **ровно одна** видимая проводка (начисление на
+  кошелёк); системное списание из org-пула на стороне клиента отфильтровано.
+
+---
+
 ## 🛡️ Версионирование backend
 
 Бэк: следующий релиз `core` (после **`core@1.9.74`**). Изменение схемы **additive**
-(новые сообщения/RPC + поля 8–9 в `GetDividendPoolResponse`) — старые клиенты их
-игнорируют, можно деплоить бэк до фронта.
+(новые сообщения/RPC + поля 8–9 в `GetDividendPoolResponse` + карточка
+`reinvest_discount = 22` в `transaction.proto`) — старые клиенты их игнорируют,
+можно деплоить бэк до фронта.
 
 > ⚙️ Авто-реинвест включается на бэке per-environment (`config.yaml` →
 > `dividend_pool.auto_reinvest.win_usdt_exchange_id/currency_pair_id`). Пока пара

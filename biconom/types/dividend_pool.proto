@@ -103,14 +103,4 @@ message DividendPool {
         google.protobuf.Timestamp selected_at = 6;
     }
 
-    // Архивная запись прошлого выбора авто-реинвеста (создаётся при смене
-    // выбора, если в прошлом состоянии были использованные циклы).
-    message AutoReinvestArchive {
-        uint32 cycles = 1;
-        string discount_percent = 2;
-        uint32 cycles_spent = 3;
-        bool active = 4;
-        google.protobuf.Timestamp selected_at = 5;
-        google.protobuf.Timestamp archived_at = 6;
-    }
 }
