@@ -73,10 +73,34 @@ message AccountView {
         // Состояние авто-реинвеста дистрибьютора (если когда-либо выбирался).
         // Та же модель AutoReinvestState, что и в GetAutoReinvest/GetDividendPool.
         optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 6;
+        // Активен ли авто-реинвест прямо сейчас (дубль вывода из auto_reinvest,
+        // как auto_reinvest_active в GetDividendPool).
+        bool auto_reinvest_active = 7;
     }
     // ...dividend_pool_status = 6 (глобальный) без изменений...
 }
 ```
+
+### `client/distributor.proto` — 2 новых поля в `Response` (метод `Get`)
+
+Симметрично `AccountView.Distributor`: при просмотре **своего** профиля
+(`client/distributor/DistributorService/Get`) приходит состояние авто-реинвеста —
+та же пара полей, что в `GetDividendPool`:
+
+```protobuf
+message Response {
+    // ...поля 1–4 + dividend_pool_bonus = 5 + dividend_pool_status = 6 без изменений...
+
+    // Активен ли авто-реинвест прямо сейчас (active && cycles_remaining > 0).
+    bool auto_reinvest_active = 7;
+    // Состояние авто-реинвеста (если когда-либо выбирался), модель AutoReinvestState.
+    optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 8;
+}
+```
+
+> ⚠️ Оба поля приходят **только при просмотре своего профиля**. Для чужих
+> дистрибьюторов и гостевого доступа — `auto_reinvest == null`,
+> `auto_reinvest_active == false` (как и `dividend_pool_bonus`).
 
 > 🧮 **Активность авто-реинвеста** = `auto_reinvest != null && auto_reinvest.active &&
 > auto_reinvest.cycles_remaining > 0`. Если активен — ручной Claim на главной
@@ -296,14 +320,6 @@ async function pick(cycles) {
 
 ---
 
-## 🛡️ Версионирование backend
-
-Бэк: следующий релиз `core` (после **`core@1.9.74`**). Изменение схемы **additive**
-(новые сообщения/RPC + поля 8–9 в `GetDividendPoolResponse` + карточка
-`reinvest_discount = 22` в `transaction.proto`) — старые клиенты их игнорируют,
-можно деплоить бэк до фронта.
-
-> ⚙️ Авто-реинвест включается на бэке per-environment (`config.yaml` →
-> `dividend_pool.auto_reinvest.win_usdt_exchange_id/currency_pair_id`). Пока пара
-> не задана — `SetAutoReinvest` отдаёт `…_NOT_CONFIGURED`, экран выбора показывать
-> не нужно (или показывать «скоро»).
+> ℹ️ Изменения схемы **additive** (новые сообщения/RPC/поля) — старые экраны не
+> ломаются. Если `SetAutoReinvest` вернул `…_NOT_CONFIGURED` — экран выбора
+> тарифа не показывать (или показать «скоро»).

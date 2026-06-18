@@ -36,6 +36,10 @@ message AccountView {
 		// Активен ⇔ active == true И cycles_remaining > 0; пока активен — ручной
 		// Claim запрещён (клейм идёт автоматически на бэке).
 		optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 6;
+		// Активен ли авто-реинвест прямо сейчас (active && cycles_remaining > 0).
+		// Дублирует вывод из auto_reinvest для удобства — как auto_reinvest_active
+		// в GetDividendPool.
+		bool auto_reinvest_active = 7;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;

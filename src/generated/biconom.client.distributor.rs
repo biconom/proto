@@ -31,6 +31,17 @@ pub struct Response {
         tag = "6"
     )]
     pub dividend_pool_status: i32,
+    /// Активен ли авто-реинвест прямо сейчас (active && cycles_remaining > 0).
+    /// Если true — ручной Claim запрещён. Заполняется только при просмотре
+    /// собственного профиля.
+    #[prost(bool, tag = "7")]
+    pub auto_reinvest_active: bool,
+    /// Состояние авто-реинвеста (если когда-либо выбирался) — та же модель, что в
+    /// GetDividendPool/GetAutoReinvest. Заполняется только при просмотре своего профиля.
+    #[prost(message, optional, tag = "8")]
+    pub auto_reinvest: ::core::option::Option<
+        super::super::types::dividend_pool::AutoReinvestState,
+    >,
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их

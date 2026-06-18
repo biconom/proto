@@ -54,6 +54,11 @@ pub mod account_view {
         pub auto_reinvest: ::core::option::Option<
             super::super::super::types::dividend_pool::AutoReinvestState,
         >,
+        /// Активен ли авто-реинвест прямо сейчас (active && cycles_remaining > 0).
+        /// Дублирует вывод из auto_reinvest для удобства — как auto_reinvest_active
+        /// в GetDividendPool.
+        #[prost(bool, tag = "7")]
+        pub auto_reinvest_active: bool,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {

@@ -45,6 +45,13 @@ message Response {
 	optional biconom.types.DividendPool.PendingBonus dividend_pool_bonus = 5;
 	// Глобальный статус дивидендного пула.
 	biconom.types.DividendPool.ServiceStatus.Id dividend_pool_status = 6;
+	// Активен ли авто-реинвест прямо сейчас (active && cycles_remaining > 0).
+	// Если true — ручной Claim запрещён. Заполняется только при просмотре
+	// собственного профиля.
+	bool auto_reinvest_active = 7;
+	// Состояние авто-реинвеста (если когда-либо выбирался) — та же модель, что в
+	// GetDividendPool/GetAutoReinvest. Заполняется только при просмотре своего профиля.
+	optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 8;
 }
 
 // ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
