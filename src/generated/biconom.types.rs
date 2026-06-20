@@ -166,6 +166,11 @@ pub struct User {
     /// Условия заполнения — те же, что и для email.
     #[prost(string, optional, tag = "8")]
     pub telegram_username: ::core::option::Option<::prost::alloc::string::String>,
+    /// Заблокирован ли пользователь (banned-флаг, управляемый через SystemControlService.UserBanSet).
+    /// Заполняется ТОЛЬКО при просмотре пользователей своей структуры/иерархии
+    /// (DistributorService.Get, ListPartners и т.д.). В прочих контекстах — false.
+    #[prost(bool, tag = "9")]
+    pub is_banned: bool,
 }
 /// Nested message and enum types in `User`.
 pub mod user {

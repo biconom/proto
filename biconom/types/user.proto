@@ -33,4 +33,9 @@ message User {
 	// Telegram username пользователя (без внутреннего telegram_user_id).
 	// Условия заполнения — те же, что и для email.
 	optional string telegram_username = 8;
+
+	// Заблокирован ли пользователь (banned-флаг, управляемый через SystemControlService.UserBanSet).
+	// Заполняется ТОЛЬКО при просмотре пользователей своей структуры/иерархии
+	// (DistributorService.Get, ListPartners и т.д.). В прочих контекстах — false.
+	bool is_banned = 9;
 }
