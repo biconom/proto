@@ -167,8 +167,7 @@ pub struct User {
     #[prost(string, optional, tag = "8")]
     pub telegram_username: ::core::option::Option<::prost::alloc::string::String>,
     /// Заблокирован ли пользователь (banned-флаг, управляемый через SystemControlService.UserBanSet).
-    /// Заполняется ТОЛЬКО при просмотре пользователей своей структуры/иерархии
-    /// (DistributorService.Get, ListPartners и т.д.). В прочих контекстах — false.
+    /// Отдаётся во всех ответах, возвращающих User.
     #[prost(bool, tag = "9")]
     pub is_banned: bool,
 }

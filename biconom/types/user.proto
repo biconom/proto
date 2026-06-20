@@ -35,7 +35,6 @@ message User {
 	optional string telegram_username = 8;
 
 	// Заблокирован ли пользователь (banned-флаг, управляемый через SystemControlService.UserBanSet).
-	// Заполняется ТОЛЬКО при просмотре пользователей своей структуры/иерархии
-	// (DistributorService.Get, ListPartners и т.д.). В прочих контекстах — false.
+	// Отдаётся во всех ответах, возвращающих User.
 	bool is_banned = 9;
 }
