@@ -86,6 +86,9 @@ pub struct GetMarketingFlagsResponse {
     /// V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
     #[prost(bool, tag = "1")]
     pub v2: bool,
+    /// Разрешает покупку расширения ширины слота (capacity upgrade).
+    #[prost(bool, tag = "2")]
+    pub allow_capacity_upgrade: bool,
 }
 /// Запрос на изменение глобальной битовой маски маркетинга.
 /// Каждое поле — отдельный бит маски `MarketingFlags`.
@@ -95,6 +98,9 @@ pub struct SetMarketingFlagsRequest {
     /// V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
     #[prost(bool, optional, tag = "1")]
     pub v2: ::core::option::Option<bool>,
+    /// Разрешает покупку расширения ширины слота (capacity upgrade).
+    #[prost(bool, optional, tag = "2")]
+    pub allow_capacity_upgrade: ::core::option::Option<bool>,
 }
 /// Запрос на чтение битовой маски флагов дистрибьютора.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

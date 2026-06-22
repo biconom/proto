@@ -86,6 +86,8 @@ message PlacementQuotaRequest {
 message GetMarketingFlagsResponse {
     // V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
     bool v2 = 1;
+    // Разрешает покупку расширения ширины слота (capacity upgrade).
+    bool allow_capacity_upgrade = 2;
 }
 
 // Запрос на изменение глобальной битовой маски маркетинга.
@@ -94,6 +96,8 @@ message GetMarketingFlagsResponse {
 message SetMarketingFlagsRequest {
     // V2: выплата реферального бонуса только на 1-м уровне (только инвайт-бонус 10%).
     optional bool v2 = 1;
+    // Разрешает покупку расширения ширины слота (capacity upgrade).
+    optional bool allow_capacity_upgrade = 2;
 }
 
 // Запрос на чтение битовой маски флагов дистрибьютора.
