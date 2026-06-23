@@ -30,7 +30,7 @@ service MarketingService {
     // Изменить глобальную битовую маску маркетинга.
     // Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
     // true → устанавливается. false → сбрасывается.
-    rpc SetMarketingFlags(SetMarketingFlagsRequest) returns (google.protobuf.Empty);
+    rpc SetMarketingFlags(SetMarketingFlagsRequest) returns (GetMarketingFlagsResponse);
 
     // Прочитать битовую маску флагов конкретного дистрибьютора.
     // Каждое поле ответа отражает отдельный бит маски `Distributor::flags`.
@@ -39,7 +39,7 @@ service MarketingService {
     // Изменить битовую маску флагов конкретного дистрибьютора.
     // Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
     // true → устанавливается. false → сбрасывается.
-    rpc SetDistributorFlags(SetDistributorFlagsRequest) returns (google.protobuf.Empty);
+    rpc SetDistributorFlags(SetDistributorFlagsRequest) returns (GetDistributorFlagsResponse);
 }
 
 // Запрос на выдачу лицензии администратором.
@@ -93,6 +93,10 @@ message GetMarketingFlagsResponse {
     // динамическая глубина выплат по количеству активных личников,
     // сквозное начисление (pass-through).
     bool v3 = 3;
+    // Разрешает покупку лицензионного ваучера для другого дистрибьютора (подарок).
+    bool allow_buy_voucher_for_others = 4;
+    // Разрешает досрочное ручное расставление слотов.
+    bool allow_slot_placement = 5;
 }
 
 // Запрос на изменение глобальной битовой маски маркетинга.
@@ -105,6 +109,10 @@ message SetMarketingFlagsRequest {
     optional bool allow_capacity_upgrade = 2;
     // V3: новая механика маркетинговых начислений.
     optional bool v3 = 3;
+    // Разрешает покупку лицензионного ваучера для другого дистрибьютора (подарок).
+    optional bool allow_buy_voucher_for_others = 4;
+    // Разрешает досрочное ручное расставление слотов.
+    optional bool allow_slot_placement = 5;
 }
 
 // Запрос на чтение битовой маски флагов дистрибьютора.
@@ -118,14 +126,38 @@ message GetDistributorFlagsRequest {
 message GetDistributorFlagsResponse {
     // Полное наследование матчинг-бонуса.
     bool matching_bonus_full_inheritance = 1;
+    // Запрет перевода денег.
+    bool block_transfer = 2;
+    // Запрет выплат.
+    bool block_withdrawal = 3;
+    // Запрет на расстановку слотов.
+    bool block_slot_placement = 4;
+    // Запрет на покупку токена (обмен USDT на WINCOINS).
+    bool block_token_purchase = 5;
+    // Запрет на покупку новых ваучеров самому себе.
+    bool block_buy_voucher_for_self = 6;
+    // Запрет покупки другим ваучеров.
+    bool block_buy_voucher_for_others = 7;
 }
 
 // Запрос на изменение битовой маски флагов дистрибьютора.
-// Каждое поле — отдельный бит маски `Distributor::flags`.
-// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+// Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+// true → устанавливается. false → сбрасывается.
 message SetDistributorFlagsRequest {
     // ID дистрибьютора (> 0).
     uint32 distributor_id = 1;
     // Полное наследование матчинг-бонуса.
     optional bool matching_bonus_full_inheritance = 2;
+    // Запрет перевода денег.
+    optional bool block_transfer = 3;
+    // Запрет выплат.
+    optional bool block_withdrawal = 4;
+    // Запрет на расстановку слотов.
+    optional bool block_slot_placement = 5;
+    // Запрет на покупку токена (обмен USDT на WINCOINS).
+    optional bool block_token_purchase = 6;
+    // Запрет на покупку новых ваучеров самому себе.
+    optional bool block_buy_voucher_for_self = 7;
+    // Запрет покупки другим ваучеров.
+    optional bool block_buy_voucher_for_others = 8;
 }

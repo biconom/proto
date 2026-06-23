@@ -95,6 +95,12 @@ pub struct GetMarketingFlagsResponse {
     /// сквозное начисление (pass-through).
     #[prost(bool, tag = "3")]
     pub v3: bool,
+    /// Разрешает покупку лицензионного ваучера для другого дистрибьютора (подарок).
+    #[prost(bool, tag = "4")]
+    pub allow_buy_voucher_for_others: bool,
+    /// Разрешает досрочное ручное расставление слотов.
+    #[prost(bool, tag = "5")]
+    pub allow_slot_placement: bool,
 }
 /// Запрос на изменение глобальной битовой маски маркетинга.
 /// Каждое поле — отдельный бит маски `MarketingFlags`.
@@ -110,6 +116,12 @@ pub struct SetMarketingFlagsRequest {
     /// V3: новая механика маркетинговых начислений.
     #[prost(bool, optional, tag = "3")]
     pub v3: ::core::option::Option<bool>,
+    /// Разрешает покупку лицензионного ваучера для другого дистрибьютора (подарок).
+    #[prost(bool, optional, tag = "4")]
+    pub allow_buy_voucher_for_others: ::core::option::Option<bool>,
+    /// Разрешает досрочное ручное расставление слотов.
+    #[prost(bool, optional, tag = "5")]
+    pub allow_slot_placement: ::core::option::Option<bool>,
 }
 /// Запрос на чтение битовой маски флагов дистрибьютора.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -125,10 +137,28 @@ pub struct GetDistributorFlagsResponse {
     /// Полное наследование матчинг-бонуса.
     #[prost(bool, tag = "1")]
     pub matching_bonus_full_inheritance: bool,
+    /// Запрет перевода денег.
+    #[prost(bool, tag = "2")]
+    pub block_transfer: bool,
+    /// Запрет выплат.
+    #[prost(bool, tag = "3")]
+    pub block_withdrawal: bool,
+    /// Запрет на расстановку слотов.
+    #[prost(bool, tag = "4")]
+    pub block_slot_placement: bool,
+    /// Запрет на покупку токена (обмен USDT на WINCOINS).
+    #[prost(bool, tag = "5")]
+    pub block_token_purchase: bool,
+    /// Запрет на покупку новых ваучеров самому себе.
+    #[prost(bool, tag = "6")]
+    pub block_buy_voucher_for_self: bool,
+    /// Запрет покупки другим ваучеров.
+    #[prost(bool, tag = "7")]
+    pub block_buy_voucher_for_others: bool,
 }
 /// Запрос на изменение битовой маски флагов дистрибьютора.
-/// Каждое поле — отдельный бит маски `Distributor::flags`.
-/// null/absent → бит не меняется. true → устанавливается. false → сбрасывается.
+/// Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
+/// true → устанавливается. false → сбрасывается.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetDistributorFlagsRequest {
     /// ID дистрибьютора (> 0).
@@ -137,6 +167,24 @@ pub struct SetDistributorFlagsRequest {
     /// Полное наследование матчинг-бонуса.
     #[prost(bool, optional, tag = "2")]
     pub matching_bonus_full_inheritance: ::core::option::Option<bool>,
+    /// Запрет перевода денег.
+    #[prost(bool, optional, tag = "3")]
+    pub block_transfer: ::core::option::Option<bool>,
+    /// Запрет выплат.
+    #[prost(bool, optional, tag = "4")]
+    pub block_withdrawal: ::core::option::Option<bool>,
+    /// Запрет на расстановку слотов.
+    #[prost(bool, optional, tag = "5")]
+    pub block_slot_placement: ::core::option::Option<bool>,
+    /// Запрет на покупку токена (обмен USDT на WINCOINS).
+    #[prost(bool, optional, tag = "6")]
+    pub block_token_purchase: ::core::option::Option<bool>,
+    /// Запрет на покупку новых ваучеров самому себе.
+    #[prost(bool, optional, tag = "7")]
+    pub block_buy_voucher_for_self: ::core::option::Option<bool>,
+    /// Запрет покупки другим ваучеров.
+    #[prost(bool, optional, tag = "8")]
+    pub block_buy_voucher_for_others: ::core::option::Option<bool>,
 }
 /// Generated server implementations.
 pub mod marketing_service_server {
@@ -198,7 +246,10 @@ pub mod marketing_service_server {
         async fn set_marketing_flags(
             &self,
             request: tonic::Request<super::SetMarketingFlagsRequest>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        ) -> std::result::Result<
+            tonic::Response<super::GetMarketingFlagsResponse>,
+            tonic::Status,
+        >;
         /// Прочитать битовую маску флагов конкретного дистрибьютора.
         /// Каждое поле ответа отражает отдельный бит маски `Distributor::flags`.
         async fn get_distributor_flags(
@@ -214,7 +265,10 @@ pub mod marketing_service_server {
         async fn set_distributor_flags(
             &self,
             request: tonic::Request<super::SetDistributorFlagsRequest>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
+        ) -> std::result::Result<
+            tonic::Response<super::GetDistributorFlagsResponse>,
+            tonic::Status,
+        >;
     }
     /// MarketingService — админский сервис для управления маркетинговыми сущностями.
     #[derive(Debug)]
@@ -488,7 +542,7 @@ pub mod marketing_service_server {
                         T: MarketingService,
                     > tonic::server::UnaryService<super::SetMarketingFlagsRequest>
                     for SetMarketingFlagsSvc<T> {
-                        type Response = ();
+                        type Response = super::GetMarketingFlagsResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -586,7 +640,7 @@ pub mod marketing_service_server {
                         T: MarketingService,
                     > tonic::server::UnaryService<super::SetDistributorFlagsRequest>
                     for SetDistributorFlagsSvc<T> {
-                        type Response = ();
+                        type Response = super::GetDistributorFlagsResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
