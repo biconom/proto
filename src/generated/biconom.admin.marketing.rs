@@ -89,6 +89,12 @@ pub struct GetMarketingFlagsResponse {
     /// Разрешает покупку расширения ширины слота (capacity upgrade).
     #[prost(bool, tag = "2")]
     pub allow_capacity_upgrade: bool,
+    /// V3: новая механика маркетинговых начислений.
+    /// Балансированная расстановка, мгновенная авторасстановка,
+    /// динамическая глубина выплат по количеству активных личников,
+    /// сквозное начисление (pass-through).
+    #[prost(bool, tag = "3")]
+    pub v3: bool,
 }
 /// Запрос на изменение глобальной битовой маски маркетинга.
 /// Каждое поле — отдельный бит маски `MarketingFlags`.
@@ -101,6 +107,9 @@ pub struct SetMarketingFlagsRequest {
     /// Разрешает покупку расширения ширины слота (capacity upgrade).
     #[prost(bool, optional, tag = "2")]
     pub allow_capacity_upgrade: ::core::option::Option<bool>,
+    /// V3: новая механика маркетинговых начислений.
+    #[prost(bool, optional, tag = "3")]
+    pub v3: ::core::option::Option<bool>,
 }
 /// Запрос на чтение битовой маски флагов дистрибьютора.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
