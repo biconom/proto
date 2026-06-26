@@ -89,3 +89,36 @@ message MarketingSlot {
     }
     repeated LevelSlotCount level_slot_counts = 11; // Агрегированное количество слотов по уровням
 }
+
+// MarketingSlotV2 — облегчённая модель просмотра слота.
+//
+// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains; в slots/distributors/
+// accounts/states присутствуют только авторизованный (executor) и просматриваемый (view) слоты.
+// Агрегированные данные структуры отдаются через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
+message MarketingSlotV2 {
+    // Агрегированное состояние одного уровня глубины структуры (из level_agg слота).
+    message LevelState {
+        uint32 level = 1;                 // Уровень глубины (1..MARKETING_LEVEL_LIMIT)
+        uint32 structure_quantity = 2;    // Количество слотов на уровне
+        // Эталонная ёмкость уровня при идеально равномерном дереве: D в степени уровня,
+        // где D = MARKETING_SLOT_DEFAULT_CHILDREN_CAPACITY.
+        uint64 structure_capacity_default = 3;
+        // Потенциальная ёмкость уровня: сколько мест было бы на уровне, если бы все свободные
+        // ответвления вышестоящих заполнялись слотами стандартной ширины
+        // MARKETING_SLOT_DEFAULT_CHILDREN_CAPACITY (D), с учётом уже расширивших себе ёмкость.
+        // level 1 = structure_capacity_reserved; level k≥2 = (potential[k-1] − quantity[k-1])*D + reserved[k].
+        uint64 structure_capacity_potential = 4;
+        uint64 structure_capacity_reserved = 5; // Зарезервированная (фактическая) ёмкость мест на уровне от вышестоящих
+        biconom.types.Price structure_income = 6; // Доход (USDT) структуры на уровне
+    }
+
+    uint32 executor_slot_id = 1;          // Авторизованный слот
+    uint32 view_slot_id = 2;              // Просматриваемый слот
+    uint32 tree_id = 3;                   // Дерево, к которому относятся слоты
+    repeated MarketingSlot.State slot_states = 4;              // Состояния только executor и view
+    repeated biconom.types.Slot slots = 5;                    // Только executor и view
+    repeated biconom.types.Distributor distributors = 6;      // Дистрибьюторы этих слотов
+    repeated biconom.types.Account accounts = 7;              // Аккаунты этих дистрибьюторов
+    repeated MarketingSlot.DistributorState distributor_states = 8; // Состояния дистрибьюторов
+    repeated LevelState levels_state = 9; // Агрегаты по уровням глубины структуры view-слота
+}

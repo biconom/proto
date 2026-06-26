@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package biconom.client.win_time;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/win_time.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/slot.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/account.proto";
+
+// WinTimeService — клиентский сервис игрового токен-баланса WinTime.
+//
+// Предоставляет авторизованному пользователю доступ к его балансу WinTime и истории транзакций.
+// Владелец определяется по сессии (distributor_id из executor); явный идентификатор не передаётся.
+//
+// Авторизация: требуется активная сессия.
+service WinTimeService {
+
+    // Получить баланс и последние транзакции (по умолчанию 10 свежих, от новых к старым).
+    rpc GetBalance(google.protobuf.Empty) returns (BalanceResponse);
+
+    // Список транзакций (cursor-based выборка, до 1000 за запрос; пагинация — на стороне клиента).
+    rpc ListTransactions(ListTransactionsRequest) returns (BalanceResponse);
+}
+
+// Единая модель ответа: текущий баланс + список транзакций.
+// Используется как в GetBalance, так и в ListTransactions.
+//
+// Справочники slots/distributors/accounts (BFF-паттерн) содержат дедуплицированные полные модели
+// сущностей, упомянутых в деталях транзакций по id — фронт сопоставляет их локально без N+1 запросов.
+message BalanceResponse {
+    biconom.types.WinTime.Balance balance = 1; // Текущий баланс
+    repeated biconom.types.WinTime.Transaction items = 2; // Транзакции (новые → старые)
+    repeated biconom.types.Slot slots = 3; // Дедуплицированные слоты, упомянутые в транзакциях
+    repeated biconom.types.Distributor distributors = 4; // Дедуплицированные дистрибьюторы
+    repeated biconom.types.Account accounts = 5; // Дедуплицированные аккаунты
+}
+
+// Запрос списка транзакций.
+message ListTransactionsRequest {
+    optional uint32 cursor = 1; // Курсор выборки (seq последней полученной транзакции, exclusive)
+    optional biconom.types.Sort sort = 2; // Направление и лимит (limit ≤ 1000)
+}

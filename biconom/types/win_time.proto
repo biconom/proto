@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Переиспользуемые модели данных подсистемы WinTime (игровой токен-баланс).
+//
+// Типы вынесены отдельно от сервиса, чтобы их можно было использовать в разных API-методах
+// (клиентских и админских).
+
+// WinTime — пространство имён для моделей токен-баланса WinTime.
+message WinTime {
+    // Транзакция баланса WinTime.
+    message Transaction {
+        uint32 seq = 1; // Порядковый номер транзакции (курсор пагинации)
+        int64 amount = 2; // Сумма (знаковая: + начисление, − списание)
+        google.protobuf.Timestamp created_at = 3; // Время начисления
+
+        // Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
+        // Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
+        // (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
+        oneof details {
+            AdminAdjustDetails admin_adjust = 4; // Ручная корректировка администратором
+            PassiveBonusDetails passive_bonus = 5; // Поминутное пассивное начисление
+            ReferralBonusDetails referral_bonus = 6; // Реферальный бонус за личника
+            SlotDepthFilledBonusDetails slot_depth_filled_bonus = 7; // Бонус за закрытие уровня в дереве
+        }
+
+        // Детали ручной корректировки администратором (без дополнительных данных).
+        message AdminAdjustDetails {}
+
+        // Детали поминутного пассивного начисления.
+        message PassiveBonusDetails {
+            uint32 multiplier = 1; // Множитель начисления (зависит от статуса/подписок)
+        }
+
+        // Детали реферального бонуса за личника.
+        message ReferralBonusDetails {
+            uint32 child_distributor_id = 1; // Личник, за которого начислен бонус (см. справочник distributors/accounts)
+            uint32 multiplier = 2; // Множитель начисления
+        }
+
+        // Детали бонуса за закрытие уровня в маркетинговом дереве.
+        message SlotDepthFilledBonusDetails {
+            uint32 slot_id = 1; // Слот, чей уровень закрылся (см. справочник slots/distributors/accounts)
+            uint32 depth = 2; // Глубина закрытого уровня
+        }
+    }
+
+    // Баланс WinTime владельца.
+    message Balance {
+        int64 amount = 1; // Текущий баланс токенов
+        uint32 seq = 2; // Последний порядковый номер транзакции
+    }
+}

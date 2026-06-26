@@ -6501,6 +6501,70 @@ pub mod marketing_slot {
         pub count: u32,
     }
 }
+/// MarketingSlotV2 — облегчённая модель просмотра слота.
+///
+/// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains; в slots/distributors/
+/// accounts/states присутствуют только авторизованный (executor) и просматриваемый (view) слоты.
+/// Агрегированные данные структуры отдаются через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MarketingSlotV2 {
+    /// Авторизованный слот
+    #[prost(uint32, tag = "1")]
+    pub executor_slot_id: u32,
+    /// Просматриваемый слот
+    #[prost(uint32, tag = "2")]
+    pub view_slot_id: u32,
+    /// Дерево, к которому относятся слоты
+    #[prost(uint32, tag = "3")]
+    pub tree_id: u32,
+    /// Состояния только executor и view
+    #[prost(message, repeated, tag = "4")]
+    pub slot_states: ::prost::alloc::vec::Vec<marketing_slot::State>,
+    /// Только executor и view
+    #[prost(message, repeated, tag = "5")]
+    pub slots: ::prost::alloc::vec::Vec<Slot>,
+    /// Дистрибьюторы этих слотов
+    #[prost(message, repeated, tag = "6")]
+    pub distributors: ::prost::alloc::vec::Vec<Distributor>,
+    /// Аккаунты этих дистрибьюторов
+    #[prost(message, repeated, tag = "7")]
+    pub accounts: ::prost::alloc::vec::Vec<Account>,
+    /// Состояния дистрибьюторов
+    #[prost(message, repeated, tag = "8")]
+    pub distributor_states: ::prost::alloc::vec::Vec<marketing_slot::DistributorState>,
+    /// Агрегаты по уровням глубины структуры view-слота
+    #[prost(message, repeated, tag = "9")]
+    pub levels_state: ::prost::alloc::vec::Vec<marketing_slot_v2::LevelState>,
+}
+/// Nested message and enum types in `MarketingSlotV2`.
+pub mod marketing_slot_v2 {
+    /// Агрегированное состояние одного уровня глубины структуры (из level_agg слота).
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct LevelState {
+        /// Уровень глубины (1..MARKETING_LEVEL_LIMIT)
+        #[prost(uint32, tag = "1")]
+        pub level: u32,
+        /// Количество слотов на уровне
+        #[prost(uint32, tag = "2")]
+        pub structure_quantity: u32,
+        /// Эталонная ёмкость уровня при идеально равномерном дереве: D в степени уровня,
+        /// где D = MARKETING_SLOT_DEFAULT_CHILDREN_CAPACITY.
+        #[prost(uint64, tag = "3")]
+        pub structure_capacity_default: u64,
+        /// Потенциальная ёмкость уровня: сколько мест было бы на уровне, если бы все свободные
+        /// ответвления вышестоящих заполнялись слотами стандартной ширины
+        /// MARKETING_SLOT_DEFAULT_CHILDREN_CAPACITY (D), с учётом уже расширивших себе ёмкость.
+        /// level 1 = structure_capacity_reserved; level k≥2 = (potential\[k-1\] − quantity\[k-1\])\*D + reserved\[k\].
+        #[prost(uint64, tag = "4")]
+        pub structure_capacity_potential: u64,
+        /// Зарезервированная (фактическая) ёмкость мест на уровне от вышестоящих
+        #[prost(uint64, tag = "5")]
+        pub structure_capacity_reserved: u64,
+        /// Доход (USDT) структуры на уровне
+        #[prost(message, optional, tag = "6")]
+        pub structure_income: ::core::option::Option<super::Price>,
+    }
+}
 /// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SessionPolicy {
@@ -7892,6 +7956,91 @@ pub mod arena {
             #[prost(string, tag = "3")]
             pub amount_usdt: ::prost::alloc::string::String,
         }
+    }
+}
+/// WinTime — пространство имён для моделей токен-баланса WinTime.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WinTime {}
+/// Nested message and enum types in `WinTime`.
+pub mod win_time {
+    /// Транзакция баланса WinTime.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Transaction {
+        /// Порядковый номер транзакции (курсор пагинации)
+        #[prost(uint32, tag = "1")]
+        pub seq: u32,
+        /// Сумма (знаковая: + начисление, − списание)
+        #[prost(int64, tag = "2")]
+        pub amount: i64,
+        /// Время начисления
+        #[prost(message, optional, tag = "3")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
+        /// Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
+        /// (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
+        #[prost(oneof = "transaction::Details", tags = "4, 5, 6, 7")]
+        pub details: ::core::option::Option<transaction::Details>,
+    }
+    /// Nested message and enum types in `Transaction`.
+    pub mod transaction {
+        /// Детали ручной корректировки администратором (без дополнительных данных).
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct AdminAdjustDetails {}
+        /// Детали поминутного пассивного начисления.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct PassiveBonusDetails {
+            /// Множитель начисления (зависит от статуса/подписок)
+            #[prost(uint32, tag = "1")]
+            pub multiplier: u32,
+        }
+        /// Детали реферального бонуса за личника.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ReferralBonusDetails {
+            /// Личник, за которого начислен бонус (см. справочник distributors/accounts)
+            #[prost(uint32, tag = "1")]
+            pub child_distributor_id: u32,
+            /// Множитель начисления
+            #[prost(uint32, tag = "2")]
+            pub multiplier: u32,
+        }
+        /// Детали бонуса за закрытие уровня в маркетинговом дереве.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct SlotDepthFilledBonusDetails {
+            /// Слот, чей уровень закрылся (см. справочник slots/distributors/accounts)
+            #[prost(uint32, tag = "1")]
+            pub slot_id: u32,
+            /// Глубина закрытого уровня
+            #[prost(uint32, tag = "2")]
+            pub depth: u32,
+        }
+        /// Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
+        /// Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
+        /// (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Details {
+            /// Ручная корректировка администратором
+            #[prost(message, tag = "4")]
+            AdminAdjust(AdminAdjustDetails),
+            /// Поминутное пассивное начисление
+            #[prost(message, tag = "5")]
+            PassiveBonus(PassiveBonusDetails),
+            /// Реферальный бонус за личника
+            #[prost(message, tag = "6")]
+            ReferralBonus(ReferralBonusDetails),
+            /// Бонус за закрытие уровня в дереве
+            #[prost(message, tag = "7")]
+            SlotDepthFilledBonus(SlotDepthFilledBonusDetails),
+        }
+    }
+    /// Баланс WinTime владельца.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Balance {
+        /// Текущий баланс токенов
+        #[prost(int64, tag = "1")]
+        pub amount: i64,
+        /// Последний порядковый номер транзакции
+        #[prost(uint32, tag = "2")]
+        pub seq: u32,
     }
 }
 /// MarketingSlotPlacement описывает систему квот и историю расстановок слота.

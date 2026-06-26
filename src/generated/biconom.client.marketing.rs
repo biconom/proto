@@ -358,6 +358,15 @@ pub mod marketing_service_server {
             tonic::Response<super::super::super::types::MarketingSlot>,
             tonic::Status,
         >;
+        /// Облегчённый просмотр слота (V2): без breadcrumbs и view_chains; в slots/states только
+        /// executor и view; агрегаты структуры — через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
+        async fn get_slot_v2(
+            &self,
+            request: tonic::Request<super::super::super::types::slot::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::MarketingSlotV2>,
+            tonic::Status,
+        >;
         /// Деактивировать автопродление подписки для текущего слота.
         async fn deactivate_auto_renewal(
             &self,
@@ -860,6 +869,51 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetSlotSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/GetSlotV2" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSlotV2Svc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
+                    for GetSlotV2Svc<T> {
+                        type Response = super::super::super::types::MarketingSlotV2;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::super::super::types::slot::Id>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_slot_v2(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSlotV2Svc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

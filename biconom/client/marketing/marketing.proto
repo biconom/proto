@@ -56,6 +56,10 @@ service MarketingService {
     // Получить детальную информацию о выбранном слоте.
     rpc GetSlot(biconom.types.Slot.Id) returns (biconom.types.MarketingSlot);
 
+    // Облегчённый просмотр слота (V2): без breadcrumbs и view_chains; в slots/states только
+    // executor и view; агрегаты структуры — через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
+    rpc GetSlotV2(biconom.types.Slot.Id) returns (biconom.types.MarketingSlotV2);
+
     // Деактивировать автопродление подписки для текущего слота.
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
     // Восстановить автопродление подписки для текущего слота.

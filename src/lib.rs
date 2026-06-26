@@ -126,6 +126,9 @@ pub mod biconom {
         pub mod transaction {
             include!("generated/biconom.client.transaction.rs");
         }
+        pub mod win_time {
+            include!("generated/biconom.client.win_time.rs");
+        }
     }
     pub mod types {
         include!("generated/biconom.types.rs");
