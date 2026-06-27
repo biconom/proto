@@ -6535,6 +6535,9 @@ pub struct MarketingSlotV2 {
     /// Агрегаты по уровням глубины структуры view-слота
     #[prost(message, repeated, tag = "9")]
     pub levels_state: ::prost::alloc::vec::Vec<marketing_slot_v2::LevelState>,
+    /// Состояния всех квестов для просматриваемого слота
+    #[prost(message, repeated, tag = "10")]
+    pub quests: ::prost::alloc::vec::Vec<marketing_slot_v2::Quest>,
 }
 /// Nested message and enum types in `MarketingSlotV2`.
 pub mod marketing_slot_v2 {
@@ -6563,6 +6566,92 @@ pub mod marketing_slot_v2 {
         /// Доход (USDT) структуры на уровне
         #[prost(message, optional, tag = "6")]
         pub structure_income: ::core::option::Option<super::Price>,
+    }
+    /// Состояние одного квеста слота.
+    ///
+    /// Квесты слота нумеруются (quest_id): 1 = «заполнение первой (5) и второй (25) линии за 72ч»;
+    /// 2..6 — закрытие уровней глубины 3..7 (добавляются позже). Условия квеста описаны списком
+    /// requirements; приз — списком rewards (валюта + сумма). Награды зависят от дерева (tree_id).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Quest {
+        /// Идентификатор квеста (1..6)
+        #[prost(uint32, tag = "1")]
+        pub quest_id: u32,
+        /// Статус: пройден / доступен / недоступен
+        #[prost(enumeration = "quest::Status", tag = "2")]
+        pub status: i32,
+        /// Дедлайн выполнения (created_at слота + окно квеста). Опционально: если у квеста нет
+        /// временного окна — поле отсутствует.
+        #[prost(message, optional, tag = "3")]
+        pub deadline_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Список требований (для квеста 1 — два: L1 и L2)
+        #[prost(message, repeated, tag = "4")]
+        pub requirements: ::prost::alloc::vec::Vec<quest::Requirement>,
+        /// Список валютных вознаграждений: каждое — Price (currency_id + сумма). WinTime — тоже валюта.
+        #[prost(message, repeated, tag = "5")]
+        pub amount_rewards: ::prost::alloc::vec::Vec<super::Price>,
+    }
+    /// Nested message and enum types in `Quest`.
+    pub mod quest {
+        /// Одно требование квеста: на уровне глубины `level` нужно `required` слотов, сейчас `filled`.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Requirement {
+            /// Уровень глубины структуры (1..MARKETING_LEVEL_LIMIT)
+            #[prost(uint32, tag = "1")]
+            pub level: u32,
+            /// Сейчас заполнено (structure_quantity\[level\])
+            #[prost(uint32, tag = "2")]
+            pub filled: u32,
+            /// Требуется для прохождения
+            #[prost(uint32, tag = "3")]
+            pub required: u32,
+        }
+        /// Статус квеста для просматриваемого слота.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Доступен: окно открыто, условие ещё не достигнуто
+            InProgress = 1,
+            /// Пройден: условие выполнено (приз выдан/будет выдан воркером)
+            Completed = 2,
+            /// Недоступен: окно истекло без выполнения
+            Expired = 3,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::InProgress => "IN_PROGRESS",
+                    Self::Completed => "COMPLETED",
+                    Self::Expired => "EXPIRED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "IN_PROGRESS" => Some(Self::InProgress),
+                    "COMPLETED" => Some(Self::Completed),
+                    "EXPIRED" => Some(Self::Expired),
+                    _ => None,
+                }
+            }
+        }
     }
 }
 /// SessionPolicy определяет набор правил безопасности и времени жизни для группы сессий.
@@ -7975,10 +8064,7 @@ pub mod win_time {
         /// Время начисления
         #[prost(message, optional, tag = "3")]
         pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
-        /// Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
-        /// (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
-        #[prost(oneof = "transaction::Details", tags = "4, 5, 6, 7")]
+        #[prost(oneof = "transaction::Details", tags = "4, 5, 6, 8")]
         pub details: ::core::option::Option<transaction::Details>,
     }
     /// Nested message and enum types in `Transaction`.
@@ -8003,19 +8089,16 @@ pub mod win_time {
             #[prost(uint32, tag = "2")]
             pub multiplier: u32,
         }
-        /// Детали бонуса за закрытие уровня в маркетинговом дереве.
+        /// Детали призовой части квеста слота.
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct SlotDepthFilledBonusDetails {
-            /// Слот, чей уровень закрылся (см. справочник slots/distributors/accounts)
+        pub struct QuestRewardDetails {
+            /// Слот, выполнивший условие квеста (см. справочник slots/distributors/accounts)
             #[prost(uint32, tag = "1")]
             pub slot_id: u32,
-            /// Глубина закрытого уровня
+            /// Какой именно квест (1 = первая+вторая линия; 2..6 — уровни 3..7)
             #[prost(uint32, tag = "2")]
-            pub depth: u32,
+            pub quest_id: u32,
         }
-        /// Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
-        /// Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
-        /// (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Details {
             /// Ручная корректировка администратором
@@ -8027,9 +8110,9 @@ pub mod win_time {
             /// Реферальный бонус за личника
             #[prost(message, tag = "6")]
             ReferralBonus(ReferralBonusDetails),
-            /// Бонус за закрытие уровня в дереве
-            #[prost(message, tag = "7")]
-            SlotDepthFilledBonus(SlotDepthFilledBonusDetails),
+            /// Призовая часть квеста слота
+            #[prost(message, tag = "8")]
+            QuestReward(QuestRewardDetails),
         }
     }
     /// Баланс WinTime владельца.

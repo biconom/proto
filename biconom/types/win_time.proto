@@ -20,11 +20,12 @@ message WinTime {
         // Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
         // Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
         // (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
+        reserved 7; // бывш. slot_depth_filled_bonus (удалён, заменён quest_reward)
         oneof details {
             AdminAdjustDetails admin_adjust = 4; // Ручная корректировка администратором
             PassiveBonusDetails passive_bonus = 5; // Поминутное пассивное начисление
             ReferralBonusDetails referral_bonus = 6; // Реферальный бонус за личника
-            SlotDepthFilledBonusDetails slot_depth_filled_bonus = 7; // Бонус за закрытие уровня в дереве
+            QuestRewardDetails quest_reward = 8; // Призовая часть квеста слота
         }
 
         // Детали ручной корректировки администратором (без дополнительных данных).
@@ -41,10 +42,10 @@ message WinTime {
             uint32 multiplier = 2; // Множитель начисления
         }
 
-        // Детали бонуса за закрытие уровня в маркетинговом дереве.
-        message SlotDepthFilledBonusDetails {
-            uint32 slot_id = 1; // Слот, чей уровень закрылся (см. справочник slots/distributors/accounts)
-            uint32 depth = 2; // Глубина закрытого уровня
+        // Детали призовой части квеста слота.
+        message QuestRewardDetails {
+            uint32 slot_id = 1; // Слот, выполнивший условие квеста (см. справочник slots/distributors/accounts)
+            uint32 quest_id = 2; // Какой именно квест (1 = первая+вторая линия; 2..6 — уровни 3..7)
         }
     }
 

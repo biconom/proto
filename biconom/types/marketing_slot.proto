@@ -112,6 +112,37 @@ message MarketingSlotV2 {
         biconom.types.Price structure_income = 6; // Доход (USDT) структуры на уровне
     }
 
+    // Состояние одного квеста слота.
+    //
+    // Квесты слота нумеруются (quest_id): 1 = «заполнение первой (5) и второй (25) линии за 72ч»;
+    // 2..6 — закрытие уровней глубины 3..7 (добавляются позже). Условия квеста описаны списком
+    // requirements; приз — списком rewards (валюта + сумма). Награды зависят от дерева (tree_id).
+    message Quest {
+        // Статус квеста для просматриваемого слота.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            IN_PROGRESS = 1; // Доступен: окно открыто, условие ещё не достигнуто
+            COMPLETED = 2;   // Пройден: условие выполнено (приз выдан/будет выдан воркером)
+            EXPIRED = 3;     // Недоступен: окно истекло без выполнения
+        }
+
+        // Одно требование квеста: на уровне глубины `level` нужно `required` слотов, сейчас `filled`.
+        message Requirement {
+            uint32 level = 1;    // Уровень глубины структуры (1..MARKETING_LEVEL_LIMIT)
+            uint32 filled = 2;   // Сейчас заполнено (structure_quantity[level])
+            uint32 required = 3; // Требуется для прохождения
+        }
+
+        uint32 quest_id = 1;                       // Идентификатор квеста (1..6)
+        Status status = 2;                         // Статус: пройден / доступен / недоступен
+        // Дедлайн выполнения (created_at слота + окно квеста). Опционально: если у квеста нет
+        // временного окна — поле отсутствует.
+        optional google.protobuf.Timestamp deadline_at = 3;
+        repeated Requirement requirements = 4;     // Список требований (для квеста 1 — два: L1 и L2)
+        // Список валютных вознаграждений: каждое — Price (currency_id + сумма). WinTime — тоже валюта.
+        repeated biconom.types.Price amount_rewards = 5;
+    }
+
     uint32 executor_slot_id = 1;          // Авторизованный слот
     uint32 view_slot_id = 2;              // Просматриваемый слот
     uint32 tree_id = 3;                   // Дерево, к которому относятся слоты
@@ -121,4 +152,5 @@ message MarketingSlotV2 {
     repeated biconom.types.Account accounts = 7;              // Аккаунты этих дистрибьюторов
     repeated MarketingSlot.DistributorState distributor_states = 8; // Состояния дистрибьюторов
     repeated LevelState levels_state = 9; // Агрегаты по уровням глубины структуры view-слота
+    repeated Quest quests = 10;           // Состояния всех квестов для просматриваемого слота
 }
