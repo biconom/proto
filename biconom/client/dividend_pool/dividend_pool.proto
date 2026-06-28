@@ -85,6 +85,10 @@ message GetDividendPoolResponse {
 
     // Текущее состояние авто-реинвеста (если когда-либо выбирался).
     optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 9;
+
+    // Суммарный WIN, полученный как дисконт-бонус за установку авто-реинвеста (формат mantissa).
+    // Эмиссия WIN сверх купленного при каждом авто-claim; в earned_win НЕ входит.
+    string earned_discount_win = 10;
 }
 
 // Ответ после клейма бонуса.

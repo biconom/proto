@@ -37,6 +37,10 @@ pub struct GetDividendPoolResponse {
     pub auto_reinvest: ::core::option::Option<
         super::super::types::dividend_pool::AutoReinvestState,
     >,
+    /// Суммарный WIN, полученный как дисконт-бонус за установку авто-реинвеста (формат mantissa).
+    /// Эмиссия WIN сверх купленного при каждом авто-claim; в earned_win НЕ входит.
+    #[prost(string, tag = "10")]
+    pub earned_discount_win: ::prost::alloc::string::String,
 }
 /// Ответ после клейма бонуса.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
