@@ -7686,6 +7686,85 @@ pub mod wallet {
         }
     }
 }
+/// WinTime — пространство имён для моделей токен-баланса WinTime.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WinTime {}
+/// Nested message and enum types in `WinTime`.
+pub mod win_time {
+    /// Транзакция баланса WinTime.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Transaction {
+        /// Порядковый номер транзакции (курсор пагинации)
+        #[prost(uint32, tag = "1")]
+        pub seq: u32,
+        /// Сумма (знаковая: + начисление, − списание)
+        #[prost(int64, tag = "2")]
+        pub amount: i64,
+        /// Время начисления
+        #[prost(message, optional, tag = "3")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(oneof = "transaction::Details", tags = "4, 5, 6, 8")]
+        pub details: ::core::option::Option<transaction::Details>,
+    }
+    /// Nested message and enum types in `Transaction`.
+    pub mod transaction {
+        /// Детали ручной корректировки администратором (без дополнительных данных).
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct AdminAdjustDetails {}
+        /// Детали поминутного пассивного начисления.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct PassiveBonusDetails {
+            /// Множитель начисления (зависит от статуса/подписок)
+            #[prost(uint32, tag = "1")]
+            pub multiplier: u32,
+        }
+        /// Детали реферального бонуса за личника.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ReferralBonusDetails {
+            /// Личник, за которого начислен бонус (см. справочник distributors/accounts)
+            #[prost(uint32, tag = "1")]
+            pub child_distributor_id: u32,
+            /// Множитель начисления
+            #[prost(uint32, tag = "2")]
+            pub multiplier: u32,
+        }
+        /// Детали призовой части квеста слота.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct QuestRewardDetails {
+            /// Слот, выполнивший условие квеста (см. справочник slots/distributors/accounts)
+            #[prost(uint32, tag = "1")]
+            pub slot_id: u32,
+            /// Какой именно квест (1 = первая+вторая линия; 2..6 — уровни 3..7)
+            #[prost(uint32, tag = "2")]
+            pub quest_id: u32,
+        }
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Details {
+            /// Ручная корректировка администратором
+            #[prost(message, tag = "4")]
+            AdminAdjust(AdminAdjustDetails),
+            /// Поминутное пассивное начисление
+            #[prost(message, tag = "5")]
+            PassiveBonus(PassiveBonusDetails),
+            /// Реферальный бонус за личника
+            #[prost(message, tag = "6")]
+            ReferralBonus(ReferralBonusDetails),
+            /// Призовая часть квеста слота
+            #[prost(message, tag = "8")]
+            QuestReward(QuestRewardDetails),
+        }
+    }
+    /// Баланс WinTime владельца.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Balance {
+        /// Текущий баланс токенов
+        #[prost(int64, tag = "1")]
+        pub amount: i64,
+        /// Последний порядковый номер транзакции
+        #[prost(uint32, tag = "2")]
+        pub seq: u32,
+    }
+}
 /// WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.
 /// Оно объединяет подтвержденный баланс с агрегированными данными о транзакциях в ожидании.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -7725,6 +7804,10 @@ pub mod wallet_currency {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::WalletCurrency>,
+        /// Баланс игрового токена WinTime владельца (отдельная подсистема, не валюта кошелька).
+        /// Привязан к distributor_id из контекста авторизации; отсутствует, если distributor_id == 0.
+        #[prost(message, optional, tag = "2")]
+        pub win_time: ::core::option::Option<super::win_time::Balance>,
     }
 }
 /// Leaderboard — типы для работы с лидерскими досками (Leaderboard Engine).
@@ -8045,85 +8128,6 @@ pub mod arena {
             #[prost(string, tag = "3")]
             pub amount_usdt: ::prost::alloc::string::String,
         }
-    }
-}
-/// WinTime — пространство имён для моделей токен-баланса WinTime.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WinTime {}
-/// Nested message and enum types in `WinTime`.
-pub mod win_time {
-    /// Транзакция баланса WinTime.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Transaction {
-        /// Порядковый номер транзакции (курсор пагинации)
-        #[prost(uint32, tag = "1")]
-        pub seq: u32,
-        /// Сумма (знаковая: + начисление, − списание)
-        #[prost(int64, tag = "2")]
-        pub amount: i64,
-        /// Время начисления
-        #[prost(message, optional, tag = "3")]
-        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(oneof = "transaction::Details", tags = "4, 5, 6, 8")]
-        pub details: ::core::option::Option<transaction::Details>,
-    }
-    /// Nested message and enum types in `Transaction`.
-    pub mod transaction {
-        /// Детали ручной корректировки администратором (без дополнительных данных).
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct AdminAdjustDetails {}
-        /// Детали поминутного пассивного начисления.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct PassiveBonusDetails {
-            /// Множитель начисления (зависит от статуса/подписок)
-            #[prost(uint32, tag = "1")]
-            pub multiplier: u32,
-        }
-        /// Детали реферального бонуса за личника.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct ReferralBonusDetails {
-            /// Личник, за которого начислен бонус (см. справочник distributors/accounts)
-            #[prost(uint32, tag = "1")]
-            pub child_distributor_id: u32,
-            /// Множитель начисления
-            #[prost(uint32, tag = "2")]
-            pub multiplier: u32,
-        }
-        /// Детали призовой части квеста слота.
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-        pub struct QuestRewardDetails {
-            /// Слот, выполнивший условие квеста (см. справочник slots/distributors/accounts)
-            #[prost(uint32, tag = "1")]
-            pub slot_id: u32,
-            /// Какой именно квест (1 = первая+вторая линия; 2..6 — уровни 3..7)
-            #[prost(uint32, tag = "2")]
-            pub quest_id: u32,
-        }
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
-        pub enum Details {
-            /// Ручная корректировка администратором
-            #[prost(message, tag = "4")]
-            AdminAdjust(AdminAdjustDetails),
-            /// Поминутное пассивное начисление
-            #[prost(message, tag = "5")]
-            PassiveBonus(PassiveBonusDetails),
-            /// Реферальный бонус за личника
-            #[prost(message, tag = "6")]
-            ReferralBonus(ReferralBonusDetails),
-            /// Призовая часть квеста слота
-            #[prost(message, tag = "8")]
-            QuestReward(QuestRewardDetails),
-        }
-    }
-    /// Баланс WinTime владельца.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-    pub struct Balance {
-        /// Текущий баланс токенов
-        #[prost(int64, tag = "1")]
-        pub amount: i64,
-        /// Последний порядковый номер транзакции
-        #[prost(uint32, tag = "2")]
-        pub seq: u32,
     }
 }
 /// MarketingSlotPlacement описывает систему квот и историю расстановок слота.

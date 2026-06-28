@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.types;
 
 import "biconom/types/ledger.proto";
+import "biconom/types/win_time.proto";
 import "google/protobuf/timestamp.proto";
 
 // WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.
@@ -15,6 +16,9 @@ message WalletCurrency {
     
     message List {
         repeated WalletCurrency items = 1;
+        // Баланс игрового токена WinTime владельца (отдельная подсистема, не валюта кошелька).
+        // Привязан к distributor_id из контекста авторизации; отсутствует, если distributor_id == 0.
+        optional WinTime.Balance win_time = 2;
     }
 
     Id id = 1;
