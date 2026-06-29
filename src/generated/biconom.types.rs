@@ -7709,6 +7709,47 @@ pub mod wallet {
 pub struct WinTime {}
 /// Nested message and enum types in `WinTime`.
 pub mod win_time {
+    /// Суммарная статистика по одному типу транзакций за всё время.
+    /// sum знаковый: начисления +, списания −.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct TypeStat {
+        /// Тип транзакций
+        #[prost(enumeration = "TxType", tag = "1")]
+        pub r#type: i32,
+        /// Количество транзакций этого типа
+        #[prost(uint64, tag = "2")]
+        pub count: u64,
+        /// Суммарная (знаковая) сумма этого типа
+        #[prost(int64, tag = "3")]
+        pub sum: i64,
+    }
+    /// Группа подряд идущих однотипных транзакций (схлопнутый отрезок выборки).
+    /// Границы seq_from..seq_to и created_from..created_to идут в порядке выборки
+    /// (forward — возрастание seq, backward — убывание).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct TransactionGroup {
+        /// Тип транзакций группы
+        #[prost(enumeration = "TxType", tag = "1")]
+        pub r#type: i32,
+        /// Количество транзакций в группе
+        #[prost(uint64, tag = "2")]
+        pub count: u64,
+        /// Суммарная (знаковая) сумма группы
+        #[prost(int64, tag = "3")]
+        pub sum: i64,
+        /// seq первой транзакции группы (в порядке выборки)
+        #[prost(uint32, tag = "4")]
+        pub seq_from: u32,
+        /// seq последней транзакции группы (в порядке выборки)
+        #[prost(uint32, tag = "5")]
+        pub seq_to: u32,
+        /// Время первой транзакции группы
+        #[prost(message, optional, tag = "6")]
+        pub created_from: ::core::option::Option<::prost_types::Timestamp>,
+        /// Время последней транзакции группы
+        #[prost(message, optional, tag = "7")]
+        pub created_to: ::core::option::Option<::prost_types::Timestamp>,
+    }
     /// Транзакция баланса WinTime.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Transaction {
@@ -7781,6 +7822,59 @@ pub mod win_time {
         /// Последний порядковый номер транзакции
         #[prost(uint32, tag = "2")]
         pub seq: u32,
+    }
+    /// Тип транзакции WinTime — стабильный дискриминант (метаданные не влияют на тип).
+    /// Используется для фильтра выборки, суммарной статистики и группировки.
+    /// Значения append-only: новый вид начисления добавляет новый тип в конец.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum TxType {
+        /// Не указан
+        Unspecified = 0,
+        /// Ручная корректировка администратором
+        AdminAdjust = 1,
+        /// Поминутное пассивное начисление
+        PassiveBonus = 2,
+        /// Реферальный бонус за личника
+        ReferralBonus = 3,
+        /// Призовая часть квеста слота
+        SlotQuestReward = 4,
+    }
+    impl TxType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "TX_TYPE_UNSPECIFIED",
+                Self::AdminAdjust => "TX_TYPE_ADMIN_ADJUST",
+                Self::PassiveBonus => "TX_TYPE_PASSIVE_BONUS",
+                Self::ReferralBonus => "TX_TYPE_REFERRAL_BONUS",
+                Self::SlotQuestReward => "TX_TYPE_SLOT_QUEST_REWARD",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "TX_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+                "TX_TYPE_ADMIN_ADJUST" => Some(Self::AdminAdjust),
+                "TX_TYPE_PASSIVE_BONUS" => Some(Self::PassiveBonus),
+                "TX_TYPE_REFERRAL_BONUS" => Some(Self::ReferralBonus),
+                "TX_TYPE_SLOT_QUEST_REWARD" => Some(Self::SlotQuestReward),
+                _ => None,
+            }
+        }
     }
 }
 /// WalletCurrency - это подробное представление баланса одной валюты в кошельке пользователя.

@@ -1,8 +1,10 @@
 # CHANGELOG: 30 Июня 2026
 
-Сводка изменений API. Один блок:
+Сводка изменений API. Два блока:
 **(1)** деталь транзакции **`SlotQuestRewardDetails`** — приз за выполнение слот-квеста
-теперь несёт `slot_id` + `quest_id` в истории транзакций.
+теперь несёт `slot_id` + `quest_id` в истории транзакций;
+**(2)** **WinTime**: статистика по типам, фильтр транзакций по типам, группировка подряд
+однотипных (новый RPC `ListTransactionGroups`).
 
 ---
 
@@ -35,6 +37,75 @@ message SlotQuestRewardDetails {
 
 ---
 
+## 2. 🪙 WinTime: статистика по типам, фильтр и группировка
+
+Три механизма поверх истории WinTime. Тип транзакции — стабильный дискриминант
+(метаданные не влияют): `ADMIN_ADJUST`, `PASSIVE_BONUS`, `REFERRAL_BONUS`,
+`SLOT_QUEST_REWARD`.
+
+### `biconom/types/win_time.proto`
+
+```protobuf
+message WinTime {
+    enum TxType {
+        TX_TYPE_UNSPECIFIED = 0;
+        TX_TYPE_ADMIN_ADJUST = 1;
+        TX_TYPE_PASSIVE_BONUS = 2;
+        TX_TYPE_REFERRAL_BONUS = 3;
+        TX_TYPE_SLOT_QUEST_REWARD = 4;
+    }
+
+    // Суммарная статистика по типу за всё время (sum знаковый: + начисления, − списания).
+    message TypeStat { TxType type = 1; uint64 count = 2; int64 sum = 3; }
+
+    // Группа подряд идущих однотипных транзакций.
+    message TransactionGroup {
+        TxType type = 1;
+        uint64 count = 2;
+        int64 sum = 3;
+        uint32 seq_from = 4;
+        uint32 seq_to = 5;
+        google.protobuf.Timestamp created_from = 6;
+        google.protobuf.Timestamp created_to = 7;
+    }
+}
+```
+
+### `biconom/client/win_time/win_time.proto`
+
+**(1) Статистика** — `repeated TypeStat stats` добавлено в `BalanceResponse` (поле 6).
+Отдаётся в `GetBalance` и `ListTransactions`; агрегат за всю историю, не зависит от
+фильтра/пагинации. Возвращаются только типы с `count > 0`.
+
+**(2) Фильтр по типам** — в `ListTransactionsRequest` добавлено `repeated TxType types`
+(поле 3). Пусто → все типы. Несколько типов → объединение (merge по времени).
+
+**(3) Группировка** — новый RPC:
+
+```protobuf
+rpc ListTransactionGroups(ListTransactionGroupsRequest) returns (TransactionGroupsResponse);
+
+message ListTransactionGroupsRequest {
+    optional uint32 cursor = 1;
+    optional biconom.types.Sort sort = 2;          // limit = скан-окно транзакций
+    repeated biconom.types.WinTime.TxType types = 3; // фильтр (пусто → все)
+}
+
+message TransactionGroupsResponse {
+    biconom.types.WinTime.Balance balance = 1;
+    repeated biconom.types.WinTime.TransactionGroup groups = 2;
+    optional uint32 next_cursor = 3;               // курсор следующей страницы
+    repeated biconom.types.WinTime.TypeStat stats = 4;
+}
+```
+
+> Подряд идущие транзакции одного типа схлопываются в одну группу; смена типа в
+> последовательности открывает новую. `limit` считает **транзакции** (скан-окно), не
+> группы — курсорная пагинация прежняя. При фильтре по одному типу «чужие» записи между
+> однотипными исчезают из выборки, поэтому однотипные становятся подряд → одна группа.
+
+---
+
 ## 💻 Как использовать на Frontend
 
 ### Карточка приза за слот-квест в истории транзакций
@@ -61,6 +132,32 @@ for (const group of history.items) {
 > каждую валюту приза). Группируйте по `(slotId, questId)`, если хотите показать
 > «приз за квест» единой карточкой с перечнем валют.
 
+### WinTime: статистика, фильтр, группы
+
+```javascript
+// Статистика по типам (в любом ответе баланса/списка).
+const bal = await WinTimeServiceClient.GetBalance({});
+for (const s of bal.stats) {
+    renderTypeStat(s.type, s.count, s.sum); // sum знаковый
+}
+
+// Фильтр: только реферальные + квестовые транзакции.
+const filtered = await WinTimeServiceClient.ListTransactions({
+    sort: { direction: 'BACKWARD', limit: 1000 },
+    types: ['TX_TYPE_REFERRAL_BONUS', 'TX_TYPE_SLOT_QUEST_REWARD'],
+});
+
+// Группы подряд однотипных (пагинация по next_cursor).
+const grouped = await WinTimeServiceClient.ListTransactionGroups({
+    sort: { direction: 'BACKWARD', limit: 1000 },
+    types: [], // все типы
+});
+for (const g of grouped.groups) {
+    renderGroup(g.type, g.count, g.sum, g.seqFrom, g.seqTo);
+}
+if (grouped.nextCursor != null) loadNextPage(grouped.nextCursor);
+```
+
 ---
 
 ## 📋 Сводка изменений
@@ -68,3 +165,7 @@ for (const group of history.items) {
 | Что изменилось | Где |
 |---|---|
 | Деталь транзакции `SlotQuestRewardDetails` (slot_id + quest_id) | `transaction` (`slot_quest_reward = 23`) |
+| `TxType` enum + `TypeStat` + `TransactionGroup` | `types/win_time.proto` |
+| Статистика по типам `repeated TypeStat stats` | `BalanceResponse` (field 6) |
+| Фильтр по типам `repeated TxType types` | `ListTransactionsRequest` (field 3) |
+| Новый RPC `ListTransactionGroups` (+ Request/Response) | `client/win_time/win_time.proto` |

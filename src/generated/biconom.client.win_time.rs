@@ -21,9 +21,13 @@ pub struct BalanceResponse {
     /// Дедуплицированные аккаунты
     #[prost(message, repeated, tag = "5")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+    /// Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
+    /// Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
+    #[prost(message, repeated, tag = "6")]
+    pub stats: ::prost::alloc::vec::Vec<super::super::types::win_time::TypeStat>,
 }
 /// Запрос списка транзакций.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListTransactionsRequest {
     /// Курсор выборки (seq последней полученной транзакции, exclusive)
     #[prost(uint32, optional, tag = "1")]
@@ -31,6 +35,40 @@ pub struct ListTransactionsRequest {
     /// Направление и лимит (limit ≤ 1000)
     #[prost(message, optional, tag = "2")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
+    /// Фильтр по типам: вернуть только транзакции указанных типов. ПУСТО → все типы.
+    #[prost(enumeration = "super::super::types::win_time::TxType", repeated, tag = "3")]
+    pub types: ::prost::alloc::vec::Vec<i32>,
+}
+/// Запрос сгруппированного списка транзакций.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListTransactionGroupsRequest {
+    /// Курсор выборки (seq последней транзакции, exclusive)
+    #[prost(uint32, optional, tag = "1")]
+    pub cursor: ::core::option::Option<u32>,
+    /// Направление и лимит транзакций (скан-окно, ≤ 1000)
+    #[prost(message, optional, tag = "2")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
+    /// Фильтр по типам: учитывать только указанные типы. ПУСТО → все типы.
+    #[prost(enumeration = "super::super::types::win_time::TxType", repeated, tag = "3")]
+    pub types: ::prost::alloc::vec::Vec<i32>,
+}
+/// Ответ со сгруппированными транзакциями.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionGroupsResponse {
+    /// Текущий баланс
+    #[prost(message, optional, tag = "1")]
+    pub balance: ::core::option::Option<super::super::types::win_time::Balance>,
+    /// Группы подряд однотипных
+    #[prost(message, repeated, tag = "2")]
+    pub groups: ::prost::alloc::vec::Vec<
+        super::super::types::win_time::TransactionGroup,
+    >,
+    /// Курсор для следующей страницы — seq последней прочитанной транзакции (null, если пусто).
+    #[prost(uint32, optional, tag = "3")]
+    pub next_cursor: ::core::option::Option<u32>,
+    /// Суммарная статистика по типам за всё время (как в BalanceResponse).
+    #[prost(message, repeated, tag = "4")]
+    pub stats: ::prost::alloc::vec::Vec<super::super::types::win_time::TypeStat>,
 }
 /// Generated server implementations.
 pub mod win_time_service_server {
@@ -51,10 +89,20 @@ pub mod win_time_service_server {
             request: tonic::Request<()>,
         ) -> std::result::Result<tonic::Response<super::BalanceResponse>, tonic::Status>;
         /// Список транзакций (cursor-based выборка, до 1000 за запрос; пагинация — на стороне клиента).
+        /// Опционально фильтруется по набору типов (см. ListTransactionsRequest.types).
         async fn list_transactions(
             &self,
             request: tonic::Request<super::ListTransactionsRequest>,
         ) -> std::result::Result<tonic::Response<super::BalanceResponse>, tonic::Status>;
+        /// Сгруппированный список: подряд идущие однотипные транзакции схлопнуты в группы.
+        /// Та же выборка и фильтр, что у ListTransactions; группы считаются на лету.
+        async fn list_transaction_groups(
+            &self,
+            request: tonic::Request<super::ListTransactionGroupsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TransactionGroupsResponse>,
+            tonic::Status,
+        >;
     }
     /// WinTimeService — клиентский сервис игрового токен-баланса WinTime.
     ///
@@ -209,6 +257,55 @@ pub mod win_time_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTransactionsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.win_time.WinTimeService/ListTransactionGroups" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListTransactionGroupsSvc<T: WinTimeService>(pub Arc<T>);
+                    impl<
+                        T: WinTimeService,
+                    > tonic::server::UnaryService<super::ListTransactionGroupsRequest>
+                    for ListTransactionGroupsSvc<T> {
+                        type Response = super::TransactionGroupsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListTransactionGroupsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WinTimeService>::list_transaction_groups(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListTransactionGroupsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

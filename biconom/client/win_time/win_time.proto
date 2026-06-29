@@ -21,7 +21,12 @@ service WinTimeService {
     rpc GetBalance(google.protobuf.Empty) returns (BalanceResponse);
 
     // Список транзакций (cursor-based выборка, до 1000 за запрос; пагинация — на стороне клиента).
+    // Опционально фильтруется по набору типов (см. ListTransactionsRequest.types).
     rpc ListTransactions(ListTransactionsRequest) returns (BalanceResponse);
+
+    // Сгруппированный список: подряд идущие однотипные транзакции схлопнуты в группы.
+    // Та же выборка и фильтр, что у ListTransactions; группы считаются на лету.
+    rpc ListTransactionGroups(ListTransactionGroupsRequest) returns (TransactionGroupsResponse);
 }
 
 // Единая модель ответа: текущий баланс + список транзакций.
@@ -35,10 +40,33 @@ message BalanceResponse {
     repeated biconom.types.Slot slots = 3; // Дедуплицированные слоты, упомянутые в транзакциях
     repeated biconom.types.Distributor distributors = 4; // Дедуплицированные дистрибьюторы
     repeated biconom.types.Account accounts = 5; // Дедуплицированные аккаунты
+    // Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
+    // Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
+    repeated biconom.types.WinTime.TypeStat stats = 6;
 }
 
 // Запрос списка транзакций.
 message ListTransactionsRequest {
     optional uint32 cursor = 1; // Курсор выборки (seq последней полученной транзакции, exclusive)
     optional biconom.types.Sort sort = 2; // Направление и лимит (limit ≤ 1000)
+    // Фильтр по типам: вернуть только транзакции указанных типов. ПУСТО → все типы.
+    repeated biconom.types.WinTime.TxType types = 3;
+}
+
+// Запрос сгруппированного списка транзакций.
+message ListTransactionGroupsRequest {
+    optional uint32 cursor = 1; // Курсор выборки (seq последней транзакции, exclusive)
+    optional biconom.types.Sort sort = 2; // Направление и лимит транзакций (скан-окно, ≤ 1000)
+    // Фильтр по типам: учитывать только указанные типы. ПУСТО → все типы.
+    repeated biconom.types.WinTime.TxType types = 3;
+}
+
+// Ответ со сгруппированными транзакциями.
+message TransactionGroupsResponse {
+    biconom.types.WinTime.Balance balance = 1; // Текущий баланс
+    repeated biconom.types.WinTime.TransactionGroup groups = 2; // Группы подряд однотипных
+    // Курсор для следующей страницы — seq последней прочитанной транзакции (null, если пусто).
+    optional uint32 next_cursor = 3;
+    // Суммарная статистика по типам за всё время (как в BalanceResponse).
+    repeated biconom.types.WinTime.TypeStat stats = 4;
 }
