@@ -973,7 +973,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1249,6 +1249,22 @@ pub mod transaction {
                 #[prost(string, tag = "2")]
                 pub source_win: ::prost::alloc::string::String,
             }
+            /// Метаданные для карточки приза за выполнение квеста слота.
+            ///
+            /// Начисляется при выполнении условий слот-квеста (например, квест №1 —
+            /// заполнение первой и второй линии слота за 72 часа). Призы зависят
+            /// от дерева; в одной механике может быть несколько валют (USDT,
+            /// WIN_COINS, USDT_GAMING) — каждая приходит отдельной проводкой, но
+            /// все несут одинаковые `slot_id` + `quest_id`.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct SlotQuestRewardDetails {
+                /// Слот, выполнивший условие квеста (получатель приза).
+                #[prost(uint32, tag = "1")]
+                pub slot_id: u32,
+                /// Идентификатор квеста (1..6).
+                #[prost(uint32, tag = "2")]
+                pub quest_id: u32,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1289,6 +1305,8 @@ pub mod transaction {
                 SplitMatchingBonus(SplitMatchingBonusDetails),
                 #[prost(message, tag = "22")]
                 ReinvestDiscount(ReinvestDiscountDetails),
+                #[prost(message, tag = "23")]
+                SlotQuestReward(SlotQuestRewardDetails),
             }
         }
     }

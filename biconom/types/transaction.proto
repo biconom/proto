@@ -46,6 +46,7 @@ message Transaction {
                 LicenseDirectBonusDetails license_direct_bonus = 20;
                 SplitMatchingBonusDetails split_matching_bonus = 21;
                 ReinvestDiscountDetails reinvest_discount = 22;
+                SlotQuestRewardDetails slot_quest_reward = 23;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -269,6 +270,21 @@ message Transaction {
                 // дисконт (`amount = source_win × discount_percent / 100`).
                 // Строка в десятичном виде с учётом точности WIN.
                 string source_win = 2;
+            }
+
+            // Метаданные для карточки приза за выполнение квеста слота.
+            //
+            // Начисляется при выполнении условий слот-квеста (например, квест №1 —
+            // заполнение первой и второй линии слота за 72 часа). Призы зависят
+            // от дерева; в одной механике может быть несколько валют (USDT,
+            // WIN_COINS, USDT_GAMING) — каждая приходит отдельной проводкой, но
+            // все несут одинаковые `slot_id` + `quest_id`.
+            message SlotQuestRewardDetails {
+                // Слот, выполнивший условие квеста (получатель приза).
+                uint32 slot_id = 1;
+
+                // Идентификатор квеста (1..6).
+                uint32 quest_id = 2;
             }
         }
     }
