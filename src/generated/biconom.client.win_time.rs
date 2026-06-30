@@ -40,17 +40,19 @@ pub struct ListTransactionsRequest {
     pub types: ::prost::alloc::vec::Vec<i32>,
 }
 /// Запрос сгруппированного списка транзакций.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+///
+/// Группы МАТЕРИАЛИЗОВАНЫ в БД (строятся при записи каждой транзакции), поэтому
+/// читаются как готовый индекс. Курсор и лимит — по ГРУППАМ, не по транзакциям.
+/// Фильтра по типам нет: группы формируются по всей истории подряд (смена типа =
+/// новая группа), фильтрация ломала бы «подряд»-семантику.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListTransactionGroupsRequest {
-    /// Курсор выборки (seq последней транзакции, exclusive)
+    /// Курсор выборки (group_seq последней группы, exclusive)
     #[prost(uint32, optional, tag = "1")]
     pub cursor: ::core::option::Option<u32>,
-    /// Направление и лимит транзакций (скан-окно, ≤ 1000)
+    /// Направление и лимит ГРУПП (≤ 1000)
     #[prost(message, optional, tag = "2")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
-    /// Фильтр по типам: учитывать только указанные типы. ПУСТО → все типы.
-    #[prost(enumeration = "super::super::types::win_time::TxType", repeated, tag = "3")]
-    pub types: ::prost::alloc::vec::Vec<i32>,
 }
 /// Ответ со сгруппированными транзакциями.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -63,7 +65,7 @@ pub struct TransactionGroupsResponse {
     pub groups: ::prost::alloc::vec::Vec<
         super::super::types::win_time::TransactionGroup,
     >,
-    /// Курсор для следующей страницы — seq последней прочитанной транзакции (null, если пусто).
+    /// Курсор для следующей страницы — group_seq последней группы (null, если пусто).
     #[prost(uint32, optional, tag = "3")]
     pub next_cursor: ::core::option::Option<u32>,
     /// Суммарная статистика по типам за всё время (как в BalanceResponse).

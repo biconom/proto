@@ -86,23 +86,24 @@ message WinTime {
 rpc ListTransactionGroups(ListTransactionGroupsRequest) returns (TransactionGroupsResponse);
 
 message ListTransactionGroupsRequest {
-    optional uint32 cursor = 1;
-    optional biconom.types.Sort sort = 2;          // limit = скан-окно транзакций
-    repeated biconom.types.WinTime.TxType types = 3; // фильтр (пусто → все)
+    optional uint32 cursor = 1;            // group_seq последней группы (exclusive)
+    optional biconom.types.Sort sort = 2;  // direction + limit ГРУПП (≤ 1000)
 }
 
 message TransactionGroupsResponse {
     biconom.types.WinTime.Balance balance = 1;
     repeated biconom.types.WinTime.TransactionGroup groups = 2;
-    optional uint32 next_cursor = 3;               // курсор следующей страницы
+    optional uint32 next_cursor = 3;       // group_seq следующей страницы
     repeated biconom.types.WinTime.TypeStat stats = 4;
 }
 ```
 
-> Подряд идущие транзакции одного типа схлопываются в одну группу; смена типа в
-> последовательности открывает новую. `limit` считает **транзакции** (скан-окно), не
-> группы — курсорная пагинация прежняя. При фильтре по одному типу «чужие» записи между
-> однотипными исчезают из выборки, поэтому однотипные становятся подряд → одна группа.
+> Группы **материализованы** в БД (CF `wt_groups`): строятся при записи каждой транзакции —
+> если тип совпал с последней группой дистрибьютора, она дополняется (count/sum/границы),
+> иначе открывается новая. API читает их как готовый индекс, **без агрегации на лету**.
+> Курсор и `limit` — по **группам** (`group_seq`), не по транзакциям. Фильтра по типам нет:
+> группы идут по всей истории подряд (фильтр ломал бы «подряд»-семантику).
+> Существующая история бэкфиллится один раз пост-миграцией.
 
 ---
 
@@ -147,15 +148,14 @@ const filtered = await WinTimeServiceClient.ListTransactions({
     types: ['TX_TYPE_REFERRAL_BONUS', 'TX_TYPE_SLOT_QUEST_REWARD'],
 });
 
-// Группы подряд однотипных (пагинация по next_cursor).
+// Группы подряд однотипных — материализованы в БД, пагинация по группам (next_cursor).
 const grouped = await WinTimeServiceClient.ListTransactionGroups({
-    sort: { direction: 'BACKWARD', limit: 1000 },
-    types: [], // все типы
+    sort: { direction: 'BACKWARD', limit: 1000 }, // limit = число ГРУПП
 });
 for (const g of grouped.groups) {
-    renderGroup(g.type, g.count, g.sum, g.seqFrom, g.seqTo);
+    renderGroup(g.type, g.count, g.sum, g.seqFrom, g.seqTo); // готовые агрегаты из БД
 }
-if (grouped.nextCursor != null) loadNextPage(grouped.nextCursor);
+if (grouped.nextCursor != null) loadNextPage(grouped.nextCursor); // курсор = group_seq
 ```
 
 ---

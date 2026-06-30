@@ -54,18 +54,21 @@ message ListTransactionsRequest {
 }
 
 // Запрос сгруппированного списка транзакций.
+//
+// Группы МАТЕРИАЛИЗОВАНЫ в БД (строятся при записи каждой транзакции), поэтому
+// читаются как готовый индекс. Курсор и лимит — по ГРУППАМ, не по транзакциям.
+// Фильтра по типам нет: группы формируются по всей истории подряд (смена типа =
+// новая группа), фильтрация ломала бы «подряд»-семантику.
 message ListTransactionGroupsRequest {
-    optional uint32 cursor = 1; // Курсор выборки (seq последней транзакции, exclusive)
-    optional biconom.types.Sort sort = 2; // Направление и лимит транзакций (скан-окно, ≤ 1000)
-    // Фильтр по типам: учитывать только указанные типы. ПУСТО → все типы.
-    repeated biconom.types.WinTime.TxType types = 3;
+    optional uint32 cursor = 1; // Курсор выборки (group_seq последней группы, exclusive)
+    optional biconom.types.Sort sort = 2; // Направление и лимит ГРУПП (≤ 1000)
 }
 
 // Ответ со сгруппированными транзакциями.
 message TransactionGroupsResponse {
     biconom.types.WinTime.Balance balance = 1; // Текущий баланс
     repeated biconom.types.WinTime.TransactionGroup groups = 2; // Группы подряд однотипных
-    // Курсор для следующей страницы — seq последней прочитанной транзакции (null, если пусто).
+    // Курсор для следующей страницы — group_seq последней группы (null, если пусто).
     optional uint32 next_cursor = 3;
     // Суммарная статистика по типам за всё время (как в BalanceResponse).
     repeated biconom.types.WinTime.TypeStat stats = 4;
