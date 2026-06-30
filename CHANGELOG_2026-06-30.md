@@ -69,8 +69,18 @@ message WinTime {
         google.protobuf.Timestamp created_to = 7;
         uint32 group_seq = 8; // идентификатор группы = курсор пагинации
     }
+
+    message Balance {
+        int64 amount = 1;
+        uint32 seq = 2;       // последний seqno транзакции (курсор для ListTransactions)
+        uint32 group_seq = 3; // НОВОЕ: последний group_seq владельца (курсор для ListTransactionGroups)
+    }
 }
 ```
+
+> `Balance.group_seq` (поле 3) — «верхушка» материализованных групп: номер последней
+> группы владельца, рядом с `seq`. Удобный стартовый курсор для `ListTransactionGroups`
+> (backward). `0`, если групп ещё нет. Отдаётся в любом ответе с балансом.
 
 ### `biconom/client/win_time/win_time.proto`
 
@@ -149,12 +159,13 @@ const filtered = await WinTimeServiceClient.ListTransactions({
     types: ['TX_TYPE_REFERRAL_BONUS', 'TX_TYPE_SLOT_QUEST_REWARD'],
 });
 
-// Группы подряд однотипных — материализованы в БД, пагинация по группам (next_cursor).
+// Группы подряд однотипных — материализованы в БД, пагинация по группам (group_seq).
+// balance.groupSeq — «верхушка» групп, удобно как стартовый курсор (backward).
 const grouped = await WinTimeServiceClient.ListTransactionGroups({
     sort: { direction: 'BACKWARD', limit: 1000 }, // limit = число ГРУПП
 });
 for (const g of grouped.groups) {
-    renderGroup(g.type, g.count, g.sum, g.seqFrom, g.seqTo); // готовые агрегаты из БД
+    renderGroup(g.groupSeq, g.type, g.count, g.sum, g.seqFrom, g.seqTo); // готовые агрегаты + id группы
 }
 if (grouped.nextCursor != null) loadNextPage(grouped.nextCursor); // курсор = group_seq
 ```
