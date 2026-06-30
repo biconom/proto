@@ -41,6 +41,9 @@ message WinTime {
         uint32 seq_to = 5; // seq последней транзакции группы (в порядке выборки)
         google.protobuf.Timestamp created_from = 6; // Время первой транзакции группы
         google.protobuf.Timestamp created_to = 7; // Время последней транзакции группы
+        // Идентификатор группы (монотонный номер у дистрибьютора). Это и есть курсор
+        // пагинации: передайте group_seq в ListTransactionGroupsRequest.cursor.
+        uint32 group_seq = 8;
     }
 
     // Транзакция баланса WinTime.

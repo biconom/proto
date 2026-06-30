@@ -7749,6 +7749,10 @@ pub mod win_time {
         /// Время последней транзакции группы
         #[prost(message, optional, tag = "7")]
         pub created_to: ::core::option::Option<::prost_types::Timestamp>,
+        /// Идентификатор группы (монотонный номер у дистрибьютора). Это и есть курсор
+        /// пагинации: передайте group_seq в ListTransactionGroupsRequest.cursor.
+        #[prost(uint32, tag = "8")]
+        pub group_seq: u32,
     }
     /// Транзакция баланса WinTime.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

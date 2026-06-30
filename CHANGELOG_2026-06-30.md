@@ -67,6 +67,7 @@ message WinTime {
         uint32 seq_to = 5;
         google.protobuf.Timestamp created_from = 6;
         google.protobuf.Timestamp created_to = 7;
+        uint32 group_seq = 8; // идентификатор группы = курсор пагинации
     }
 }
 ```
