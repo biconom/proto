@@ -7818,7 +7818,7 @@ pub mod win_time {
         }
     }
     /// Баланс WinTime владельца.
-    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Balance {
         /// Текущий баланс токенов
         #[prost(int64, tag = "1")]
@@ -7831,6 +7831,11 @@ pub mod win_time {
         /// 0, если групп ещё нет.
         #[prost(uint32, tag = "3")]
         pub group_seq: u32,
+        /// Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
+        /// Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
+        /// Едет в любом ответе с балансом (WinTimeService и WalletCurrencyService/List).
+        #[prost(message, repeated, tag = "4")]
+        pub stats: ::prost::alloc::vec::Vec<TypeStat>,
     }
     /// Тип транзакции WinTime — стабильный дискриминант (метаданные не влияют на тип).
     /// Используется для фильтра выборки, суммарной статистики и группировки.

@@ -92,5 +92,9 @@ message WinTime {
         // групп. Удобно как стартовый курсор для ListTransactionGroups (backward).
         // 0, если групп ещё нет.
         uint32 group_seq = 3;
+        // Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
+        // Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
+        // Едет в любом ответе с балансом (WinTimeService и WalletCurrencyService/List).
+        repeated TypeStat stats = 4;
     }
 }

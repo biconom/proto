@@ -40,9 +40,7 @@ message BalanceResponse {
     repeated biconom.types.Slot slots = 3; // Дедуплицированные слоты, упомянутые в транзакциях
     repeated biconom.types.Distributor distributors = 4; // Дедуплицированные дистрибьюторы
     repeated biconom.types.Account accounts = 5; // Дедуплицированные аккаунты
-    // Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
-    // Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
-    repeated biconom.types.WinTime.TypeStat stats = 6;
+    reserved 6; // бывш. stats — переехало в balance.stats (biconom.types.WinTime.Balance)
 }
 
 // Запрос списка транзакций.
@@ -70,6 +68,5 @@ message TransactionGroupsResponse {
     repeated biconom.types.WinTime.TransactionGroup groups = 2; // Группы подряд однотипных
     // Курсор для следующей страницы — group_seq последней группы (null, если пусто).
     optional uint32 next_cursor = 3;
-    // Суммарная статистика по типам за всё время (как в BalanceResponse).
-    repeated biconom.types.WinTime.TypeStat stats = 4;
+    reserved 4; // бывш. stats — переехало в balance.stats (biconom.types.WinTime.Balance)
 }

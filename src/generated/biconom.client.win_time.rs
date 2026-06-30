@@ -21,10 +21,6 @@ pub struct BalanceResponse {
     /// Дедуплицированные аккаунты
     #[prost(message, repeated, tag = "5")]
     pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
-    /// Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
-    /// Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
-    #[prost(message, repeated, tag = "6")]
-    pub stats: ::prost::alloc::vec::Vec<super::super::types::win_time::TypeStat>,
 }
 /// Запрос списка транзакций.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -68,9 +64,6 @@ pub struct TransactionGroupsResponse {
     /// Курсор для следующей страницы — group_seq последней группы (null, если пусто).
     #[prost(uint32, optional, tag = "3")]
     pub next_cursor: ::core::option::Option<u32>,
-    /// Суммарная статистика по типам за всё время (как в BalanceResponse).
-    #[prost(message, repeated, tag = "4")]
-    pub stats: ::prost::alloc::vec::Vec<super::super::types::win_time::TypeStat>,
 }
 /// Generated server implementations.
 pub mod win_time_service_server {
