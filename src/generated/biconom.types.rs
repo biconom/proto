@@ -7866,21 +7866,21 @@ pub mod win_time {
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         pub fn as_str_name(&self) -> &'static str {
             match self {
-                Self::Unspecified => "TX_TYPE_UNSPECIFIED",
-                Self::AdminAdjust => "TX_TYPE_ADMIN_ADJUST",
-                Self::PassiveBonus => "TX_TYPE_PASSIVE_BONUS",
-                Self::ReferralBonus => "TX_TYPE_REFERRAL_BONUS",
-                Self::SlotQuestReward => "TX_TYPE_SLOT_QUEST_REWARD",
+                Self::Unspecified => "UNSPECIFIED",
+                Self::AdminAdjust => "ADMIN_ADJUST",
+                Self::PassiveBonus => "PASSIVE_BONUS",
+                Self::ReferralBonus => "REFERRAL_BONUS",
+                Self::SlotQuestReward => "SLOT_QUEST_REWARD",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
         pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
             match value {
-                "TX_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-                "TX_TYPE_ADMIN_ADJUST" => Some(Self::AdminAdjust),
-                "TX_TYPE_PASSIVE_BONUS" => Some(Self::PassiveBonus),
-                "TX_TYPE_REFERRAL_BONUS" => Some(Self::ReferralBonus),
-                "TX_TYPE_SLOT_QUEST_REWARD" => Some(Self::SlotQuestReward),
+                "UNSPECIFIED" => Some(Self::Unspecified),
+                "ADMIN_ADJUST" => Some(Self::AdminAdjust),
+                "PASSIVE_BONUS" => Some(Self::PassiveBonus),
+                "REFERRAL_BONUS" => Some(Self::ReferralBonus),
+                "SLOT_QUEST_REWARD" => Some(Self::SlotQuestReward),
                 _ => None,
             }
         }

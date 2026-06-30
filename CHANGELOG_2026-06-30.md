@@ -48,11 +48,11 @@ message SlotQuestRewardDetails {
 ```protobuf
 message WinTime {
     enum TxType {
-        TX_TYPE_UNSPECIFIED = 0;
-        TX_TYPE_ADMIN_ADJUST = 1;
-        TX_TYPE_PASSIVE_BONUS = 2;
-        TX_TYPE_REFERRAL_BONUS = 3;
-        TX_TYPE_SLOT_QUEST_REWARD = 4;
+        UNSPECIFIED = 0;
+        ADMIN_ADJUST = 1;
+        PASSIVE_BONUS = 2;
+        REFERRAL_BONUS = 3;
+        SLOT_QUEST_REWARD = 4;
     }
 
     // Суммарная статистика по типу за всё время (sum знаковый: + начисления, − списания).
@@ -156,7 +156,7 @@ for (const s of bal.stats) {
 // Фильтр: только реферальные + квестовые транзакции.
 const filtered = await WinTimeServiceClient.ListTransactions({
     sort: { direction: 'BACKWARD', limit: 1000 },
-    types: ['TX_TYPE_REFERRAL_BONUS', 'TX_TYPE_SLOT_QUEST_REWARD'],
+    types: ['REFERRAL_BONUS', 'SLOT_QUEST_REWARD'],
 });
 
 // Группы подряд однотипных — материализованы в БД, пагинация по группам (group_seq).
