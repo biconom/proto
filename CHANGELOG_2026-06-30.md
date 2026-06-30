@@ -154,9 +154,11 @@ for (const s of bal.stats) {
 }
 
 // Фильтр: только реферальные + квестовые транзакции.
+// types — enum-значения WinTime.TxType (числовые), НЕ строки.
+const TxType = biconom.types.WinTime.TxType;
 const filtered = await WinTimeServiceClient.ListTransactions({
     sort: { direction: 'BACKWARD', limit: 1000 },
-    types: ['REFERRAL_BONUS', 'SLOT_QUEST_REWARD'],
+    types: [TxType.REFERRAL_BONUS, TxType.SLOT_QUEST_REWARD], // = [3, 4]
 });
 
 // Группы подряд однотипных — материализованы в БД, пагинация по группам (group_seq).
