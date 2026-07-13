@@ -94,6 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/types/leaderboard.proto",
                 "biconom/types/arena.proto",
                 "biconom/types/win_time.proto",
+                "biconom/types/geo.proto",
                 "biconom/admin/marketing/marketing.proto",
                 "biconom/admin/quest/quest.proto",
                 "biconom/admin/dividend_pool/dividend_pool.proto",
@@ -135,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/client/wallet_currency/wallet_currency.proto",
                 "biconom/client/arena/arena.proto",
                 "biconom/client/transaction/transaction.proto",
-                "biconom/client/win_time/win_time.proto",
+                "biconom/client/geo/geo.proto",
             ],
             &["proto"],
         )

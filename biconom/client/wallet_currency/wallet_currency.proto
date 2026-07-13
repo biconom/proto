@@ -12,6 +12,7 @@ import "biconom/types/wallet_type.proto";
 import "biconom/types/payment_destination.proto";
 import "biconom/types/wallet_currency.proto";
 import "biconom/types/payment_network_currency_withdrawal.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 // Сервис для получения информации о балансах (валютах) в кошельках пользователя и управления выводом средств.
@@ -20,9 +21,19 @@ service WalletCurrencyService {
     // ID аккаунта берется из контекста авторизации.
     rpc Get(biconom.types.WalletCurrency.Id) returns (biconom.types.WalletCurrency);
 
+    // V2-версия `Get`: упрощённое представление баланса (`WalletCurrencyV2` — баланс строкой
+    // вместо полного `Ledger`). ID аккаунта берётся из контекста авторизации.
+    rpc GetV2(biconom.types.WalletCurrencyV2.Id) returns (biconom.types.WalletCurrencyV2);
+
     // Получить список балансов пользователя с фильтрацией и пагинацией.
     // ID аккаунта берется из контекста авторизации.
     rpc List(ListRequest) returns (biconom.types.WalletCurrency.List);
+
+    // V2-версия `List`: все балансы пользователя одним ответом (без пагинации/фильтров).
+    // Каждая позиция — `WalletCurrencyV2` (тип кошелька + валюта + баланс-строка). WinTime
+    // отдаётся как обычная валюта (символ WIN_TIME), баланс — актуальный агрегат подсистемы
+    // (пассив+реферал+ledger). ID аккаунта берётся из контекста авторизации.
+    rpc ListV2(google.protobuf.Empty) returns (biconom.types.WalletCurrencyV2.List);
 
     // --- Методы для управления внутренними переводами ---
 

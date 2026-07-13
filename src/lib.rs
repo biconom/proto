@@ -126,8 +126,8 @@ pub mod biconom {
         pub mod transaction {
             include!("generated/biconom.client.transaction.rs");
         }
-        pub mod win_time {
-            include!("generated/biconom.client.win_time.rs");
+        pub mod geo {
+            include!("generated/biconom.client.geo.rs");
         }
     }
     pub mod types {

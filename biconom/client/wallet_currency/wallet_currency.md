@@ -15,6 +15,13 @@
 - **Ответ**: Возвращает модель `biconom.types.WalletCurrency` с подтвержденным балансом и сводкой по операциям в ожидании.
 - **Авторизация**: Требуется.
 
+### `rpc GetV2(biconom.types.WalletCurrencyV2.Id) returns (biconom.types.WalletCurrencyV2)` 🆕
+- **Назначение**: V2-версия `Get` — упрощённое представление баланса одной валюты.
+- **Использование**: Когда UI нужен только итоговый баланс, без полного объекта `Ledger`.
+- **Параметры**: Принимает `biconom.types.WalletCurrencyV2.Id` (тот же составной ключ `wallet_type_id` + `currency_id`).
+- **Ответ**: Возвращает `biconom.types.WalletCurrencyV2` — вместо `Ledger` несёт готовый итоговый баланс строкой (`balance` = posted `debit − credit`) и `currency_precision`. Флаги `disabled`/`disabled_operations_flags` — как в V1.
+- **Авторизация**: Требуется.
+
 ### `rpc List(ListRequest) returns (biconom.types.WalletCurrency.List)`
 - **Назначение**: Получить список балансов пользователя с возможностью фильтрации.
 - **Использование**:
@@ -23,8 +30,15 @@
 - **Параметры `ListRequest`**:
   - `repeated filter_wallet_type_ids`: Фильтр по одному или нескольким типам кошельков.
   - `repeated filter_currency_ids`: Фильтр по одной или нескольким валютам.
-- **Ответ**: Возвращает `biconom.types.WalletCurrency.List`, содержащий отфильтрованный список балансов.
+- **Ответ**: Возвращает `biconom.types.WalletCurrency.List`, содержащий отфильтрованный список балансов. Отдельным полем `win_time` едет баланс игрового токена WinTime владельца (актуальный агрегат подсистемы: пассив + реферал + ledger).
 - **Авторизаци**: Требуется.
+
+### `rpc ListV2(google.protobuf.Empty) returns (biconom.types.WalletCurrencyV2.List)` 🆕
+- **Назначение**: V2-версия `List` — все балансы пользователя одним ответом, без фильтров и пагинации.
+- **Использование**: Быстро получить полный плоский список балансов для главного экрана кошелька.
+- **Параметры**: Отсутствуют (`google.protobuf.Empty`) — владелец определяется по авторизации.
+- **Ответ**: Возвращает `biconom.types.WalletCurrencyV2.List` — список позиций `WalletCurrencyV2` (тип кошелька + валюта + `currency_precision` + `balance` строкой). WinTime отдаётся **обычной позицией списка** (валюта `WIN_TIME`, `balance` = актуальный агрегат: пассив + реферал + ledger), а не отдельным полем — в отличие от V1-`List`.
+- **Авторизация**: Требуется.
 
 ### Методы для управления внутренними переводами
 

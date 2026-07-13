@@ -7936,6 +7936,52 @@ pub mod wallet_currency {
         pub win_time: ::core::option::Option<super::win_time::Balance>,
     }
 }
+/// WalletCurrencyV2 — упрощённое представление баланса одной валюты в кошельке. Идентично
+/// `WalletCurrency`, но вместо полного объекта `Ledger` несёт единственный итоговый баланс
+/// строкой (`balance`). WinTime отдаётся обычной позицией списка (валюта WIN_TIME), поэтому
+/// отдельного поля `win_time` в `List`, в отличие от `WalletCurrency.List`, нет.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WalletCurrencyV2 {
+    /// ID типа кошелька.
+    #[prost(uint32, tag = "1")]
+    pub wallet_type_id: u32,
+    /// ID валюты.
+    #[prost(uint32, tag = "2")]
+    pub currency_id: u32,
+    /// Точность (кол-во знаков после запятой) валюты — то, с каким scale отформатирован `balance`.
+    #[prost(uint32, tag = "3")]
+    pub currency_precision: u32,
+    /// Итоговый подтверждённый баланс (posted debit − credit) с учётом точности валюты,
+    /// десятичной строкой. Знаковый: "123.45" / "-1.20" / "0.00000000".
+    #[prost(string, tag = "4")]
+    pub balance: ::prost::alloc::string::String,
+    /// "Мастер-выключатель". Если true, валюта полностью отключена для этой валюты в этом кошельке.
+    #[prost(bool, tag = "5")]
+    pub disabled: bool,
+    /// Битовая маска флагов операций, принудительно запрещенных для этой валюты в данном кошельке.
+    /// Позиции битов определяются в `WalletOperation.Id`.
+    #[prost(uint32, tag = "6")]
+    pub disabled_operations_flags: u32,
+}
+/// Nested message and enum types in `WalletCurrencyV2`.
+pub mod wallet_currency_v2 {
+    /// Составной ключ (тип кошелька + валюта). Переиспользуемый тип: запрос `GetV2`.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Id {
+        /// ID типа кошелька.
+        #[prost(uint32, tag = "1")]
+        pub wallet_type_id: u32,
+        /// ID валюты.
+        #[prost(uint32, tag = "2")]
+        pub currency_id: u32,
+    }
+    /// Список балансов (все позиции пользователя одним ответом, включая WinTime как валюту).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::WalletCurrencyV2>,
+    }
+}
 /// Leaderboard — типы для работы с лидерскими досками (Leaderboard Engine).
 ///
 /// Борды создаются автоматически при старте Arena.Cycle и привязаны к нему.
@@ -8254,6 +8300,110 @@ pub mod arena {
             #[prost(string, tag = "3")]
             pub amount_usdt: ::prost::alloc::string::String,
         }
+    }
+}
+/// Geo — пространство имён для моделей карты геометок.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Geo {}
+/// Nested message and enum types in `Geo`.
+pub mod geo {
+    /// Область видимости точек на карте по иерархии смотрящего (единообразно с
+    /// analytics.ScopeOptions). Сам смотрящий в основной список pins попадает только при
+    /// include_personal = true; его личная метка всегда отдаётся отдельно (my_pin).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ScopeOptions {
+        /// Выбранная область видимости.
+        #[prost(enumeration = "scope_options::Id", tag = "1")]
+        pub id: i32,
+        /// Максимальная глубина поддерева от смотрящего (только для TEAM). depth = 0 → команда
+        /// не обходится (только сам, если include_personal); depth = 1 → первая линия; и т.д.
+        /// Не указано → вся доступная глубина.
+        #[prost(uint32, optional, tag = "2")]
+        pub team_depth_limit: ::core::option::Option<u32>,
+        /// Включать ли самого смотрящего в основной список pins (в дополнение к my_pin).
+        /// Для COMPANY_WIDE не применяется (смотрящий и так может попасть в проект-выборку).
+        #[prost(bool, tag = "3")]
+        pub include_personal: bool,
+    }
+    /// Nested message and enum types in `ScopeOptions`.
+    pub mod scope_options {
+        /// Область видимости.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            /// Не задано → ошибка.
+            Unspecified = 0,
+            /// Только сам смотрящий.
+            Personal = 1,
+            /// Поддерево смотрящего (с ограничением глубины team_depth_limit).
+            Team = 2,
+            /// Вся компания (весь проект), без учёта иерархии.
+            CompanyWide = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Personal => "PERSONAL",
+                    Self::Team => "TEAM",
+                    Self::CompanyWide => "COMPANY_WIDE",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "PERSONAL" => Some(Self::Personal),
+                    "TEAM" => Some(Self::Team),
+                    "COMPANY_WIDE" => Some(Self::CompanyWide),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Географические координаты (градусы). Переиспользуемый тип: широта −90..90,
+    /// долгота −180..180. Сервер валидирует и приводит к внутреннему fixed-point.
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Coordinates {
+        /// Широта (градусы, −90..90)
+        #[prost(double, tag = "1")]
+        pub latitude: f64,
+        /// Долгота (градусы, −180..180)
+        #[prost(double, tag = "2")]
+        pub longitude: f64,
+    }
+    /// Геометка дистрибьютора на карте.
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct Pin {
+        /// Владелец метки
+        #[prost(uint32, tag = "1")]
+        pub distributor_id: u32,
+        /// Широта (градусы, −90..90)
+        #[prost(double, tag = "2")]
+        pub latitude: f64,
+        /// Долгота (градусы, −180..180)
+        #[prost(double, tag = "3")]
+        pub longitude: f64,
+        /// Баланс WinTime владельца на момент ответа (знаковый)
+        #[prost(int64, tag = "4")]
+        pub win_time_balance: i64,
+        /// Время последнего обновления метки
+        #[prost(message, optional, tag = "5")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     }
 }
 /// MarketingSlotPlacement описывает систему квот и историю расстановок слота.

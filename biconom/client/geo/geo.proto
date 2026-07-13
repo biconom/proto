@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package biconom.client.geo;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/geo.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/account.proto";
+
+// GeoService — клиентский сервис карты геометок дистрибьюторов.
+//
+// Позволяет дистрибьютору поставить/снять свою геометку (opt-in), получить ЛЁГКИЙ список
+// чужих меток по зоне/балансу (только id + координаты + баланс, без тяжёлых профилей) и
+// отдельно догрузить полные профили (distributor + account + user с аватаром) по списку id.
+// Разделение сделано ради карты на ~1 млн точек: список отдаёт минимум, детали
+// подтягиваются только для видимых/топовых. Владелец определяется по сессии.
+//
+// Авторизация: активная сессия + право DISTRIBUTOR_MAP_VIEW.
+service GeoService {
+
+    // Поставить или обновить собственную геометку (координаты новой точки).
+    rpc SetPin(biconom.types.Geo.Coordinates) returns (biconom.types.Geo.Pin);
+
+    // Снять собственную геометку (идемпотентно: нет метки → ok).
+    rpc RemovePin(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    // ЛЁГКИЙ список геометок в зоне/по балансу с фильтрами. Возвращает только точки
+    // (id + координаты + баланс WinTime), а личную метку смотрящего — в отдельном поле
+    // my_pin. Полные профили НЕ включаются — их догружают через GetDistributorsInfo.
+    rpc ListPins(ListPinsRequest) returns (PinsResponse);
+
+    // Догрузить полные профили дистрибьюторов по списку id (BFF): distributor + account
+    // (с вложенным user и аватаром) + геометка (opt) + баланс WinTime. Для ленивой
+    // подгрузки деталей только по видимым/выбранным точкам карты.
+    rpc GetDistributorsInfo(DistributorsInfoRequest) returns (DistributorsInfoResponse);
+}
+
+// Запрос ЛЁГКОГО списка геометок по прямоугольной зоне с фильтрами. Всегда возвращаются
+// ТОЛЬКО те, у кого есть геометка. Лимита на количество нет — отдаются все подходящие точки.
+//
+// Пространственный индекс зоны отдаёт кандидатов с меткой, затем применяются фильтр
+// иерархии (scope) и фильтр баланса (≥ min_win_time). Все четыре границы зоны ОБЯЗАТЕЛЬНЫ:
+// поля объявлены `optional` не ради необязательности, а чтобы отличить «граница не задана»
+// от валидного `0.0` (экватор/нулевой меридиан) — отсутствие любой границы → ошибка.
+message ListPinsRequest {
+    optional double min_lat = 1; // Нижняя граница широты зоны (обязательна)
+    optional double max_lat = 2; // Верхняя граница широты зоны (обязательна)
+    optional double min_lon = 3; // Левая граница долготы зоны (обязательна)
+    optional double max_lon = 4; // Правая граница долготы зоны (обязательна)
+    int64 min_win_time = 5; // Минимальный баланс WinTime владельца (включительно)
+    biconom.types.Geo.ScopeOptions scope = 6; // Область видимости по иерархии (проект/команда+глубина)
+}
+
+// ЛЁГКИЙ ответ со списком геометок (только точки, без профилей).
+message PinsResponse {
+    repeated biconom.types.Geo.Pin pins = 1;   // Чужие точки, прошедшие зону + фильтры (без смотрящего)
+    optional biconom.types.Geo.Pin my_pin = 2; // Личная метка смотрящего (если есть), всегда
+}
+
+// Запрос догрузки профилей по списку id. Дубликаты дедуплицируются, несуществующие id
+// отбрасываются; число УНИКАЛЬНЫХ существующих ограничено LIST_LIMIT_MAX (сверх → ошибка).
+message DistributorsInfoRequest {
+    repeated uint32 distributor_ids = 1; // Идентификаторы дистрибьюторов для догрузки
+}
+
+// Ответ с полными профилями по запрошенным id (BFF-паттерн).
+//
+// Справочники distributors/accounts — дедуплицированные профили (account несёт вложенного
+// user с аватаром); pins — геометка (opt, координаты 0 и updated_at отсутствует, если метки
+// нет) + баланс WinTime по каждому найденному id. Фронт сопоставляет их локально по id.
+message DistributorsInfoResponse {
+    repeated biconom.types.Geo.Pin pins = 1;             // Геометка (opt) + баланс WinTime по id
+    repeated biconom.types.Distributor distributors = 2; // Дедуплицированные профили дистрибьюторов
+    repeated biconom.types.Account accounts = 3;         // Дедуплицированные аккаунты (с user+аватаром)
+}

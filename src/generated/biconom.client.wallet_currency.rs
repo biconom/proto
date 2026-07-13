@@ -145,6 +145,15 @@ pub mod wallet_currency_service_server {
             tonic::Response<super::super::super::types::WalletCurrency>,
             tonic::Status,
         >;
+        /// V2-версия `Get`: упрощённое представление баланса (`WalletCurrencyV2` — баланс строкой
+        /// вместо полного `Ledger`). ID аккаунта берётся из контекста авторизации.
+        async fn get_v2(
+            &self,
+            request: tonic::Request<super::super::super::types::wallet_currency_v2::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::WalletCurrencyV2>,
+            tonic::Status,
+        >;
         /// Получить список балансов пользователя с фильтрацией и пагинацией.
         /// ID аккаунта берется из контекста авторизации.
         async fn list(
@@ -152,6 +161,17 @@ pub mod wallet_currency_service_server {
             request: tonic::Request<super::ListRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::wallet_currency::List>,
+            tonic::Status,
+        >;
+        /// V2-версия `List`: все балансы пользователя одним ответом (без пагинации/фильтров).
+        /// Каждая позиция — `WalletCurrencyV2` (тип кошелька + валюта + баланс-строка). WinTime
+        /// отдаётся как обычная валюта (символ WIN_TIME), баланс — актуальный агрегат подсистемы
+        /// (пассив+реферал+ledger). ID аккаунта берётся из контекста авторизации.
+        async fn list_v2(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::wallet_currency_v2::List>,
             tonic::Status,
         >;
         /// Выполнить внутренний перевод средств другому пользователю.
@@ -308,6 +328,54 @@ pub mod wallet_currency_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/biconom.client.wallet_currency.WalletCurrencyService/GetV2" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetV2Svc<T: WalletCurrencyService>(pub Arc<T>);
+                    impl<
+                        T: WalletCurrencyService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::wallet_currency_v2::Id,
+                    > for GetV2Svc<T> {
+                        type Response = super::super::super::types::WalletCurrencyV2;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::wallet_currency_v2::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WalletCurrencyService>::get_v2(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetV2Svc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/biconom.client.wallet_currency.WalletCurrencyService/List" => {
                     #[allow(non_camel_case_types)]
                     struct ListSvc<T: WalletCurrencyService>(pub Arc<T>);
@@ -337,6 +405,46 @@ pub mod wallet_currency_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.wallet_currency.WalletCurrencyService/ListV2" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListV2Svc<T: WalletCurrencyService>(pub Arc<T>);
+                    impl<T: WalletCurrencyService> tonic::server::UnaryService<()>
+                    for ListV2Svc<T> {
+                        type Response = super::super::super::types::wallet_currency_v2::List;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WalletCurrencyService>::list_v2(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListV2Svc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

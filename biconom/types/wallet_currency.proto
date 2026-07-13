@@ -36,3 +36,33 @@ message WalletCurrency {
     google.protobuf.Timestamp created_at = 6;
     google.protobuf.Timestamp updated_at = 7;
 }
+
+// WalletCurrencyV2 — упрощённое представление баланса одной валюты в кошельке. Идентично
+// `WalletCurrency`, но вместо полного объекта `Ledger` несёт единственный итоговый баланс
+// строкой (`balance`). WinTime отдаётся обычной позицией списка (валюта WIN_TIME), поэтому
+// отдельного поля `win_time` в `List`, в отличие от `WalletCurrency.List`, нет.
+message WalletCurrencyV2 {
+    // Составной ключ (тип кошелька + валюта). Переиспользуемый тип: запрос `GetV2`.
+    message Id {
+        uint32 wallet_type_id = 1; // ID типа кошелька.
+        uint32 currency_id = 2;    // ID валюты.
+    }
+
+    // Список балансов (все позиции пользователя одним ответом, включая WinTime как валюту).
+    message List {
+        repeated WalletCurrencyV2 items = 1;
+    }
+
+    uint32 wallet_type_id = 1;     // ID типа кошелька.
+    uint32 currency_id = 2;        // ID валюты.
+    // Точность (кол-во знаков после запятой) валюты — то, с каким scale отформатирован `balance`.
+    uint32 currency_precision = 3;
+    // Итоговый подтверждённый баланс (posted debit − credit) с учётом точности валюты,
+    // десятичной строкой. Знаковый: "123.45" / "-1.20" / "0.00000000".
+    string balance = 4;
+    // "Мастер-выключатель". Если true, валюта полностью отключена для этой валюты в этом кошельке.
+    bool disabled = 5;
+    // Битовая маска флагов операций, принудительно запрещенных для этой валюты в данном кошельке.
+    // Позиции битов определяются в `WalletOperation.Id`.
+    uint32 disabled_operations_flags = 6;
+}
