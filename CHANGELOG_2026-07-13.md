@@ -72,8 +72,8 @@ service GeoService {
   (`min/max_lat`, `min/max_lon`) **обязательны** (`optional` — чтобы отличить «не задано»
   от валидного `0.0`; отсутствие → ошибка). Границы клампятся к ±90/±180, перепутанные
   `min`/`max` нормализуются. Фильтры: баланс `≥ min_win_time` + иерархия `scope`. Только точки
-  С меткой, без лимита. Ответ `PinsResponse { pins, my_pin }` — лёгкий (id + координаты +
-  баланс), личная метка отдельным полем.
+  С меткой, без лимита (плотность сжимается кластеризацией — см. ниже). Ответ
+  `PinsResponse { pins, clusters, my_pin }` — лёгкий (id + координаты + баланс).
 - **`GetDistributorsInfo`** — догрузка полных профилей по списку id (BFF): distributor +
   account (с user и аватаром) + метка + баланс. Дубликаты дедуплицируются, несуществующие
   id отбрасываются, число уникальных ≤ `LIST_LIMIT_MAX` (1000, сверх → ошибка). Порядок —
@@ -82,6 +82,41 @@ service GeoService {
 Авторизация: активная сессия + право `DISTRIBUTOR_MAP_VIEW`. Владелец — по сессии.
 
 > Полное описание — `client/geo/geo.md` и `types/geo.md`.
+
+### Автозум-кластеризация `ListPins`
+
+Чтобы `ListPins` оставался компактным на карте с ~1 млн точек, добавлена **кластеризация по
+плотности**. Сервер бьёт зону на адаптивную сетку (размер ячейки — под площадь зоны и число
+прошедших фильтр меток); плотные ячейки схлопываются в кластеры, разрежённые отдают метки
+точками. Ни один подходящий дистрибьютор не отбрасывается — «без лимита» сохраняется, но
+плотность сжимается.
+
+Новая модель `Geo.Cluster` (`types/geo.proto`):
+
+```protobuf
+message Cluster {
+    double latitude = 1;           // центр ЯЧЕЙКИ сетки (не среднее координат меток)
+    double longitude = 2;
+    uint32 distributors_count = 3; // всего дистрибьюторов в кластере
+    int64 win_time_balance = 4;    // суммарный баланс WinTime кластера (знаковый)
+    repeated Pin top = 5;          // топ-K по балансу (превью группы)
+    // радиус НЕ передаётся: фронт рисует область сам (по балансу/количеству/своей логике)
+}
+```
+
+`PinsResponse` расширен третьим полем (`pins`/`my_pin` без изменений):
+
+```protobuf
+message PinsResponse {
+    repeated Geo.Pin pins = 1;         // автономные точки (ячейка ниже порога плотности)
+    optional Geo.Pin my_pin = 2;       // личная метка смотрящего
+    repeated Geo.Cluster clusters = 3; // НОВОЕ: плотные группы (агрегаты + топ-K)
+}
+```
+
+> `pins` и `clusters` — непересекающиеся: точка либо автономна, либо учтена в кластере
+> (в `distributors_count`/`win_time_balance`, топ-K показан). Центр кластера — геометрический
+> центр ячейки сетки.
 
 ---
 
@@ -206,6 +241,7 @@ if (v1.winTime) renderWinTime(v1.winTime.amount);
 |---|---|
 | Новая подсистема Geo: `ScopeOptions` / `Coordinates` / `Pin` | `types/geo.proto` 🆕 |
 | Новый `GeoService` (SetPin / RemovePin / ListPins / GetDistributorsInfo) | `client/geo/geo.proto` 🆕 |
+| Автозум-кластеризация: модель `Geo.Cluster` + `PinsResponse.clusters` | `types/geo.proto`, `client/geo/geo.proto` |
 | Право доступа `DISTRIBUTOR_MAP_VIEW` | сервер (access control) |
 | Новая модель `WalletCurrencyV2` (баланс строкой, без `Ledger`) | `types/wallet_currency.proto` |
 | Новые RPC `GetV2` / `ListV2` | `client/wallet_currency/wallet_currency.proto` |

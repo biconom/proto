@@ -28,14 +28,21 @@ pub struct ListPinsRequest {
     pub scope: ::core::option::Option<super::super::types::geo::ScopeOptions>,
 }
 /// ЛЁГКИЙ ответ со списком геометок (только точки, без профилей).
+///
+/// Плотные области схлопываются в кластеры (`clusters`), разрежённые отдаются отдельными
+/// точками (`pins`) — два непересекающихся списка. Автозум: сервер сам подбирает размер ячейки
+/// сетки под площадь зоны и число прошедших фильтр меток, стремясь к компактному ответу.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PinsResponse {
-    /// Чужие точки, прошедшие зону + фильтры (без смотрящего)
+    /// Автономные точки (ячейка ниже порога плотности), без смотрящего
     #[prost(message, repeated, tag = "1")]
     pub pins: ::prost::alloc::vec::Vec<super::super::types::geo::Pin>,
     /// Личная метка смотрящего (если есть), всегда
     #[prost(message, optional, tag = "2")]
     pub my_pin: ::core::option::Option<super::super::types::geo::Pin>,
+    /// Плотные группы (ячейка выше порога): агрегаты + топ-K
+    #[prost(message, repeated, tag = "3")]
+    pub clusters: ::prost::alloc::vec::Vec<super::super::types::geo::Cluster>,
 }
 /// Запрос догрузки профилей по списку id. Дубликаты дедуплицируются, несуществующие id
 /// отбрасываются; число УНИКАЛЬНЫХ существующих ограничено LIST_LIMIT_MAX (сверх → ошибка).
