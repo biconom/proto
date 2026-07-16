@@ -973,7 +973,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1265,6 +1265,21 @@ pub mod transaction {
                 #[prost(uint32, tag = "2")]
                 pub quest_id: u32,
             }
+            /// Метаданные для карточки бонуса токена WinTime за приглашение личника.
+            ///
+            /// Единоразовое начисление WinTime спонсору за зарегистрированного личника,
+            /// вошедшего в лимит квоты приглашений (по маске спонсора). Сумма бонуса
+            /// (1440 × множитель спонсора) — в `amount` проводки (валюта WIN_TIME);
+            /// здесь — за какого личника начислено.
+            ///
+            /// Примечание: WinTime-часть приза за КВЕСТ слота использует общую карточку
+            /// `SlotQuestRewardDetails` (slot_id + quest_id), отдельного варианта не имеет.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct WinTimeReferralDetails {
+                /// Личник, за приглашение которого начислен бонус спонсору.
+                #[prost(uint32, tag = "1")]
+                pub child_distributor_id: u32,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1307,6 +1322,8 @@ pub mod transaction {
                 ReinvestDiscount(ReinvestDiscountDetails),
                 #[prost(message, tag = "23")]
                 SlotQuestReward(SlotQuestRewardDetails),
+                #[prost(message, tag = "24")]
+                WinTimeReferral(WinTimeReferralDetails),
             }
         }
     }

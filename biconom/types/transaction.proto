@@ -47,6 +47,7 @@ message Transaction {
                 SplitMatchingBonusDetails split_matching_bonus = 21;
                 ReinvestDiscountDetails reinvest_discount = 22;
                 SlotQuestRewardDetails slot_quest_reward = 23;
+                WinTimeReferralDetails win_time_referral = 24;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -285,6 +286,20 @@ message Transaction {
 
                 // Идентификатор квеста (1..6).
                 uint32 quest_id = 2;
+            }
+
+            // Метаданные для карточки бонуса токена WinTime за приглашение личника.
+            //
+            // Единоразовое начисление WinTime спонсору за зарегистрированного личника,
+            // вошедшего в лимит квоты приглашений (по маске спонсора). Сумма бонуса
+            // (1440 × множитель спонсора) — в `amount` проводки (валюта WIN_TIME);
+            // здесь — за какого личника начислено.
+            //
+            // Примечание: WinTime-часть приза за КВЕСТ слота использует общую карточку
+            // `SlotQuestRewardDetails` (slot_id + quest_id), отдельного варианта не имеет.
+            message WinTimeReferralDetails {
+                // Личник, за приглашение которого начислен бонус спонсору.
+                uint32 child_distributor_id = 1;
             }
         }
     }
