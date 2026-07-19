@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package biconom.admin.wallet_currency;
+
+import "biconom/types/transaction.proto";
+
+// WalletCurrencyService — админское начисление подарка на леджер
+// дистрибьютора в указанной валюте.
+//
+// Механика — пополнение от платёжной сети cashdesk (тот же паттерн, что и
+// `account_balance_refill`): cashdesk — Credit, кошелёк получателя — Debit.
+// Кошелёк, wallet_currency-слот и леджер создаются при отсутствии.
+//
+// Доступ — только под Permission::ROOT.
+service WalletCurrencyService {
+    // Подарить дистрибьютору средства в указанной валюте.
+    // Кошелёк получателя определяется связкой
+    // (distributor_id, wallet_type_id, currency_id).
+    //
+    // Возвращает созданную транзакцию в том же виде, что и элемент истории
+    // (biconom.client.transaction.TransactionService/History), но всегда
+    // с одной entry типа `gift` и без метаданных о дистрибьюторах/слотах/аккаунтах.
+    rpc Gift(GiftRequest) returns (biconom.types.Transaction.Group);
+}
+
+message GiftRequest {
+    // Получатель подарка.
+    uint32 distributor_id = 1;
+
+    // Тип кошелька получателя (например, "spot").
+    // Должен существовать, иначе — WALLET_TYPE_NOT_FOUND.
+    uint32 wallet_type_id = 2;
+
+    // Валюта начисления. Пара (wallet_type_id, currency_id) должна быть
+    // разрешена в wallet_type_currency, иначе — WALLET_TYPE_CURRENCY_NOT_FOUND.
+    uint32 currency_id = 3;
+
+    // Сумма подарка — decimal-строка (например "150.759").
+    // Лишние знаки после запятой сверх precision валюты отбрасываются.
+    // Результат после усечения должен быть строго > 0.
+    string amount = 4;
+
+    // Причина начисления — попадает в comment карточки подарка.
+    optional string reason = 5;
+}

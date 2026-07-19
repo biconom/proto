@@ -28,6 +28,9 @@ pub mod biconom {
         pub mod system {
             include!("generated/biconom.admin.system.rs");
         }
+        pub mod wallet_currency {
+            include!("generated/biconom.admin.wallet_currency.rs");
+        }
     }
     pub mod client {
         pub mod account {
