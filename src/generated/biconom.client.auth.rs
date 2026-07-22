@@ -48,6 +48,29 @@ pub mod register_request {
         pub distributor_username: ::prost::alloc::string::String,
     }
 }
+/// Запрос на авторизацию / регистрацию через Telegram Login Widget.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TelegramWidgetAuthRequest {
+    /// Данные от виджета (query string вида "id=123&first_name=...&hash=..." или JSON).
+    #[prost(string, tag = "1")]
+    pub data: ::prost::alloc::string::String,
+    /// Локаль, выбранная пользователем (используется только при регистрации).
+    #[prost(message, optional, tag = "2")]
+    pub locale: ::core::option::Option<super::super::types::locale::Id>,
+    /// Желаемый логин + код спонсора (применяются при регистрации; при входе — только если нет спонсора и логина).
+    #[prost(message, optional, tag = "3")]
+    pub distributor_request: ::core::option::Option<
+        register_request::DistributorRequest,
+    >,
+}
+/// Ответ на авторизацию через Telegram-виджет: готовый токен доступа на сессию.
+/// Виджет не требует подтверждения кодом, поэтому Confirmation не создаётся.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TelegramAuthResponse {
+    /// Токен доступа на созданную/восстановленную сессию.
+    #[prost(string, tag = "1")]
+    pub authorization_bearer: ::prost::alloc::string::String,
+}
 /// Generated server implementations.
 pub mod auth_service_server {
     #![allow(
@@ -77,6 +100,16 @@ pub mod auth_service_server {
             request: tonic::Request<super::Contact>,
         ) -> std::result::Result<
             tonic::Response<super::ConfirmationResponse>,
+            tonic::Status,
+        >;
+        /// Вход или автоматическая регистрация через Telegram Login Widget.
+        /// Виджет уже подтвердил личность (подпись HMAC), поэтому форма подтверждения
+        /// не создаётся — при успехе сразу возвращается токен доступа на сессию.
+        async fn authorize_telegram(
+            &self,
+            request: tonic::Request<super::TelegramWidgetAuthRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TelegramAuthResponse>,
             tonic::Status,
         >;
         /// Инициирует процесс регистрации нового пользователя.
@@ -296,6 +329,52 @@ pub mod auth_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = AuthorizeSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.auth.AuthService/AuthorizeTelegram" => {
+                    #[allow(non_camel_case_types)]
+                    struct AuthorizeTelegramSvc<T: AuthService>(pub Arc<T>);
+                    impl<
+                        T: AuthService,
+                    > tonic::server::UnaryService<super::TelegramWidgetAuthRequest>
+                    for AuthorizeTelegramSvc<T> {
+                        type Response = super::TelegramAuthResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TelegramWidgetAuthRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AuthService>::authorize_telegram(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = AuthorizeTelegramSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

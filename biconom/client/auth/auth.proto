@@ -20,6 +20,11 @@ service AuthService {
     // Инициирует процесс входа в систему.
     rpc Authorize(Contact) returns (ConfirmationResponse);
 
+    // Вход или автоматическая регистрация через Telegram Login Widget.
+    // Виджет уже подтвердил личность (подпись HMAC), поэтому форма подтверждения
+    // не создаётся — при успехе сразу возвращается токен доступа на сессию.
+    rpc AuthorizeTelegram(TelegramWidgetAuthRequest) returns (TelegramAuthResponse);
+
     // Инициирует процесс регистрации нового пользователя.
     rpc Register(RegisterRequest) returns (ConfirmationResponse);
 
@@ -51,4 +56,17 @@ message RegisterRequest {
     Contact contact = 1; // Контакт для регистрации нового пользователя.
     biconom.types.Locale.Id locale = 2; // Локаль, выбранная пользователем при регистрации.
     optional DistributorRequest distributor_request = 3; // Данные для регистрации нового дистрибьютора, если это необходимо.
+}
+
+// Запрос на авторизацию / регистрацию через Telegram Login Widget.
+message TelegramWidgetAuthRequest {
+    string data = 1; // Данные от виджета (query string вида "id=123&first_name=...&hash=..." или JSON).
+    biconom.types.Locale.Id locale = 2; // Локаль, выбранная пользователем (используется только при регистрации).
+    optional RegisterRequest.DistributorRequest distributor_request = 3; // Желаемый логин + код спонсора (применяются при регистрации; при входе — только если нет спонсора и логина).
+}
+
+// Ответ на авторизацию через Telegram-виджет: готовый токен доступа на сессию.
+// Виджет не требует подтверждения кодом, поэтому Confirmation не создаётся.
+message TelegramAuthResponse {
+    string authorization_bearer = 1; // Токен доступа на созданную/восстановленную сессию.
 }
