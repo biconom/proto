@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package biconom.admin.broadcast;
+
+import "biconom/types/distributor.proto";
+
+// Admin Broadcast API — массовая рассылка сообщений в Telegram-бот всем
+// пользователям, у кого в профиле привязан активный Telegram.
+// Доступно только держателям Permission::ROOT (см.
+// core/src/infra/access_control.rs).
+//
+// Охват: пользователи, у которых user.user_telegram_id > 0, соответствующая
+// запись user_telegram активна (exists && active) и пользователь НЕ забанен.
+//
+// Режим форматирования текста задаётся полем `parse_mode`. Скорость отправки
+// ограничивается конфигурным лимитом telegram.rate_limit_count /
+// rate_limit_period.
+
+service BroadcastService {
+  // Отправить один и тот же текст всем получателям (без учёта языка).
+  rpc SendTelegramToAll(SendToAllRequest) returns (BroadcastResponse);
+
+  // Отправить текст с учётом языка профиля получателя.
+  rpc SendTelegramLocalized(SendLocalizedRequest) returns (BroadcastResponse);
+
+  // Точечно отправить текст конкретному дистрибьютору (по id или логину).
+  // Без локализации — текст отправляется как есть. Забанен ли владелец —
+  // не проверяется (адресная админская отправка).
+  rpc SendTelegramToDistributor(SendToDistributorRequest) returns (BroadcastResponse);
+}
+
+// Режим форматирования текста рассылки.
+enum ParseMode {
+  // Обычный текст: спецсимволы (< > &) экранируются сервером, разметка не
+  // интерпретируется. Безопасно для любого ввода. Значение по умолчанию.
+  PARSE_MODE_PLAIN = 0;
+  // HTML: текст отправляется как есть, поддерживается разметка Telegram
+  // (<b>, <i>, <code>, <a> и т.д.). За корректность HTML отвечает вызывающий —
+  // невалидная разметка приведёт к отклонению отправки конкретному получателю.
+  PARSE_MODE_HTML = 1;
+}
+
+// Запрос на рассылку одинакового текста всем.
+message SendToAllRequest {
+  // Режим форматирования текста. По умолчанию PARSE_MODE_PLAIN.
+  ParseMode parse_mode = 1;
+  // Текст сообщения. Не должен быть пустым (после trim) — иначе
+  // InvalidArgument.
+  string text = 2;
+}
+
+// Запрос на рассылку с учётом языка получателя.
+//
+// Для каждого получателя:
+//   - если для его локали (user.user_locale_id) есть вариант в `messages` —
+//     отправляем его;
+//   - иначе, если задан `default_locale_id` (!= 0) и для него есть вариант —
+//     отправляем текст на default-локали;
+//   - иначе получатель пропускается (учитывается в skipped_no_locale).
+message SendLocalizedRequest {
+  // Режим форматирования текста (общий для всех локалей). По умолчанию
+  // PARSE_MODE_PLAIN.
+  ParseMode parse_mode = 1;
+
+  // Локаль по умолчанию. Должна быть либо 0 (нет fallback — таких получателей
+  // пропускаем), либо совпадать с одним из locale_id в `messages` — иначе
+  // InvalidArgument.
+  uint32 default_locale_id = 2;
+
+  // Один вариант текста на конкретную локаль.
+  message LocalizedText {
+    uint32 locale_id = 1;
+    // Текст на этой локали. Не должен быть пустым (после trim) — иначе
+    // InvalidArgument.
+    string text = 2;
+  }
+
+  // Варианты текста по локалям. Не должен быть пустым.
+  repeated LocalizedText messages = 3;
+}
+
+// Запрос на точечную отправку конкретному дистрибьютору.
+message SendToDistributorRequest {
+  // Идентификатор дистрибьютора: поддерживаются варианты `id` и `username`
+  // (а также составные из biconom.types.Distributor.Id).
+  biconom.types.Distributor.Id distributor = 1;
+  // Режим форматирования текста. По умолчанию PARSE_MODE_PLAIN.
+  ParseMode parse_mode = 2;
+  // Текст сообщения. Не должен быть пустым (после trim) — иначе InvalidArgument.
+  string text = 3;
+}
+
+// Сводка результатов рассылки.
+message BroadcastResponse {
+  // Сколько получателей потенциально подготовлено к публикации, т.е. сколько
+  // сообщений реально поставлено в очередь отправки боту. Для
+  // SendTelegramLocalized получатели без подходящей локали и без default сюда
+  // НЕ входят.
+  uint64 recipients_prepared = 1;
+}

@@ -105,6 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "biconom/admin/token_grant/token_grant.proto",
                 "biconom/admin/system/system.proto",
                 "biconom/admin/wallet_currency/wallet_currency.proto",
+                "biconom/admin/broadcast/broadcast.proto",
                 "biconom/client/account/account.proto",
                 "biconom/client/analytics/analytics.proto",
                 "biconom/client/auth/auth.proto",
