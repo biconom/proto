@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package biconom.client.wintime_shop;
+
+import "biconom/types/wintime_shop.proto";
+
+// WintimeShopService — клиентская витрина WinTime-магазина.
+//
+// Пользователь просматривает доступные товары и покупает их за WinTime-токены.
+// Списание WinTime идёт с дистрибьютора, под которым авторизован пользователь
+// (id берётся из контекста авторизации, НЕ из запроса).
+//
+// Все методы требуют Session-токен обычного пользователя.
+service WintimeShopService {
+    // Список товаров витрины. По умолчанию — только доступные к покупке
+    // (`available == true`). Флаг `include_unavailable` показывает и скрытые
+    // (для превью «coming soon»).
+    rpc ListProducts(ListProductsRequest) returns (biconom.types.WintimeShop.Product.List);
+
+    // Получить один товар по идентификатору — числовому id или строковому code
+    // (в т.ч. недоступный — для карточки товара).
+    rpc GetProduct(biconom.types.WintimeShop.Product.Id) returns (biconom.types.WintimeShop.Product);
+
+    // Купить товар за WinTime-токены (адресация — Product.Id: числовой id или
+    // строковый code). Дистрибьютор-покупатель определяется контекстом
+    // авторизации. Списывается `price_wintime` (при нехватке — FailedPrecondition).
+    // Возвращается результат выдачи (лицензия ИЛИ купон) в зависимости от семейства
+    // товара.
+    rpc Purchase(biconom.types.WintimeShop.Product.Id) returns (PurchaseResponse);
+}
+
+// Запрос списка товаров.
+message ListProductsRequest {
+    // Включать ли недоступные к покупке товары (available == false).
+    // По умолчанию false — отдаются только доступные.
+    bool include_unavailable = 1;
+}
+
+// Ответ на покупку — что получил покупатель.
+message PurchaseResponse {
+    // Купленный товар (в актуальном состоянии — с уменьшенным остатком).
+    biconom.types.WintimeShop.Product product = 1;
+    // Результат выдачи: лицензия дерева ИЛИ текстовый купон.
+    biconom.types.WintimeShop.Delivery delivery = 2;
+    // Списано WinTime-токенов за покупку.
+    uint64 spent_wintime = 3;
+}

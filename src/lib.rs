@@ -34,6 +34,9 @@ pub mod biconom {
         pub mod broadcast {
             include!("generated/biconom.admin.broadcast.rs");
         }
+        pub mod wintime_shop {
+            include!("generated/biconom.admin.wintime_shop.rs");
+        }
     }
     pub mod client {
         pub mod account {
@@ -134,6 +137,9 @@ pub mod biconom {
         }
         pub mod geo {
             include!("generated/biconom.client.geo.rs");
+        }
+        pub mod wintime_shop {
+            include!("generated/biconom.client.wintime_shop.rs");
         }
     }
     pub mod types {

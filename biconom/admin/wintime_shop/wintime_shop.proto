@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package biconom.admin.wintime_shop;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/wintime_shop.proto";
+
+// WintimeShopAdminService — админское управление WinTime-магазином.
+//
+// Три зоны ответственности:
+//   1. Каталог: создать/обновить определение товара (название, цена в WinTime,
+//      семейство, привязка к дереву для лицензий), включить/выключить продажу.
+//   2. Тираж:
+//        * TREE_LICENSE — целочисленная квота остатка: добавить N / отнять N /
+//          установить значение.
+//        * TEXT_COUPON — пул текстовых кодов: массовая загрузка новых кодов с
+//          проверкой уникальности В ПРЕДЕЛАХ ТОВАРА (дубли внутри товара
+//          отклоняются; одинаковый код у разных товаров — допустим).
+//   3. Статистика: остаток и сколько всего продано.
+//
+// Доступ — только под Permission::ROOT.
+service WintimeShopAdminService {
+    // ─── Каталог ──────────────────────────────────────────────────────
+
+    // Создать или обновить определение товара. Если `id == 0` — создаётся новый
+    // товар (id назначается сервером и возвращается); при создании обязателен
+    // уникальный `code`. Если `id != 0` — товар с этим id обновляется; семейство
+    // `kind` и строковый `code` менять нельзя (иначе InvalidArgument).
+    rpc UpsertProduct(UpsertProductRequest) returns (biconom.types.WintimeShop.Product);
+
+    // Список всех товаров (включая недоступные) — для админ-панели.
+    rpc ListProducts(google.protobuf.Empty) returns (biconom.types.WintimeShop.Product.List);
+
+    // Включить/выключить доступность товара к покупке.
+    rpc SetAvailability(SetAvailabilityRequest) returns (biconom.types.WintimeShop.Product);
+
+    // ─── Тираж: лицензии дерева (TREE_LICENSE) ────────────────────────
+
+    // Изменить квоту остатка товара-лицензии. Операция задаётся `op` (ADD /
+    // SUBTRACT / SET). Для товаров семейства TEXT_COUPON — InvalidArgument
+    // (у купонов тираж управляется загрузкой кодов, а не счётчиком).
+    rpc AdjustLicenseStock(AdjustLicenseStockRequest) returns (biconom.types.WintimeShop.Product);
+
+    // ─── Тираж: купоны (TEXT_COUPON) ──────────────────────────────────
+
+    // Массово загрузить новые текстовые коды в пул товара. Проверяется
+    // уникальность в пределах товара: коды, уже присутствующие в пуле этого
+    // товара (в т.ч. уже выданные), отклоняются. Дубли ВНУТРИ запроса также
+    // схлопываются/отклоняются. Возвращается сводка загрузки. Для товаров
+    // семейства TREE_LICENSE — InvalidArgument.
+    rpc LoadCoupons(LoadCouponsRequest) returns (LoadCouponsResponse);
+
+    // ─── Статистика ───────────────────────────────────────────────────
+
+    // Сводная статистика по товару (остаток, всего продано, доступность).
+    rpc GetStats(biconom.types.WintimeShop.Product.Id) returns (biconom.types.WintimeShop.Stats);
+}
+
+// Запрос создания/обновления товара.
+message UpsertProductRequest {
+    // 0 — создать новый товар; иначе — обновить существующий (адресация по id).
+    uint32 id = 1;
+    // Строковый slug товара. ОБЯЗАТЕЛЕН при создании (`id == 0`): уникальный,
+    // нормализуется сервером (trim по краям, нижний регистр) и обязан соответствовать
+    // `[a-z0-9_]+` — иначе InvalidArgument. При обновлении (`id != 0`) игнорируется
+    // (code неизменяем).
+    string code = 2;
+    // Семейство товара. При обновлении должно совпадать с текущим.
+    biconom.types.WintimeShop.Product.Kind kind = 3;
+    // Человекочитаемое название.
+    string title = 4;
+    // Цена в WinTime-токенах (целое; WIN_TIME precision 0). Должна быть > 0.
+    uint64 price_wintime = 5;
+    // Доступность к покупке сразу после создания/обновления.
+    bool available = 6;
+
+    // Специфика семейства (обязана соответствовать `kind`).
+    oneof spec {
+        biconom.types.WintimeShop.Product.TreeLicenseSpec tree_license = 7;
+        biconom.types.WintimeShop.Product.TextCouponSpec text_coupon = 8;
+    }
+}
+
+// Запрос переключения доступности.
+message SetAvailabilityRequest {
+    // Товар — по числовому id или строковому code.
+    biconom.types.WintimeShop.Product.Id product = 1;
+    bool available = 2;
+}
+
+// Запрос изменения квоты остатка лицензии.
+message AdjustLicenseStockRequest {
+    // Товар — по числовому id или строковому code.
+    biconom.types.WintimeShop.Product.Id product = 1;
+
+    // Вид операции над квотой остатка.
+    enum Op {
+        OP_UNSPECIFIED = 0;
+        OP_ADD = 1;      // Добавить `amount` к остатку.
+        OP_SUBTRACT = 2; // Отнять `amount` от остатка (не ниже 0 — иначе InvalidArgument).
+        OP_SET = 3;      // Установить остаток равным `amount`.
+    }
+    Op op = 2;
+
+    // Аргумент операции (интерпретация зависит от `op`).
+    uint64 amount = 3;
+}
+
+// Запрос массовой загрузки купонов.
+message LoadCouponsRequest {
+    // Товар — по числовому id или строковому code.
+    biconom.types.WintimeShop.Product.Id product = 1;
+    // Новые текстовые коды. Пустой список — InvalidArgument. Каждый код после
+    // trim должен быть непустым.
+    repeated string codes = 2;
+}
+
+// Сводка массовой загрузки купонов.
+message LoadCouponsResponse {
+    // Сколько кодов реально добавлено в пул.
+    uint64 added = 1;
+    // Сколько отклонено как дубли (уже есть в пуле товара или повтор внутри запроса).
+    uint64 skipped_duplicates = 2;
+    // Остаток пула (неиспользованных кодов) после загрузки.
+    uint64 stock_remaining = 3;
+}

@@ -8319,6 +8319,210 @@ pub mod arena {
         }
     }
 }
+/// WintimeShop — пространство имён моделей магазина.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WintimeShop {}
+/// Nested message and enum types in `WintimeShop`.
+pub mod wintime_shop {
+    /// Товар магазина. Единая модель витрины для обоих семейств; специфика вида —
+    /// в `spec` (oneof). Поля тиража (`stock_remaining` / `sold_total`) актуальны
+    /// для обоих видов: для TREE_LICENSE это квота, для TEXT_COUPON — размер пула.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Product {
+        /// Стабильный числовой ID товара.
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        /// Стабильный строковый slug товара (уникальный, `\[a-z0-9_\]`, нижний регистр).
+        /// Задаётся при создании и неизменяем. Фронт опирается на него.
+        #[prost(string, tag = "2")]
+        pub code: ::prost::alloc::string::String,
+        /// Семейство товара.
+        #[prost(enumeration = "product::Kind", tag = "3")]
+        pub kind: i32,
+        /// Человекочитаемое название (например «Win Lite», «Безлимитный VPN»).
+        #[prost(string, tag = "4")]
+        pub title: ::prost::alloc::string::String,
+        /// Цена в WinTime-токенах (целое, WIN_TIME имеет precision 0).
+        #[prost(uint64, tag = "5")]
+        pub price_wintime: u64,
+        /// Доступен ли товар к покупке прямо сейчас (админ-переключатель).
+        /// false — товар скрыт с витрины / покупка отклоняется, независимо от остатка.
+        #[prost(bool, tag = "6")]
+        pub available: bool,
+        /// Остаток к продаже: для TREE_LICENSE — квота, для TEXT_COUPON — число
+        /// неиспользованных кодов. 0 — распродано (покупка отклоняется).
+        #[prost(uint64, tag = "7")]
+        pub stock_remaining: u64,
+        /// Сколько всего продано за всё время (монотонный счётчик).
+        #[prost(uint64, tag = "8")]
+        pub sold_total: u64,
+        #[prost(message, optional, tag = "9")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "10")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Специфика семейства товара.
+        #[prost(oneof = "product::Spec", tags = "11, 12")]
+        pub spec: ::core::option::Option<product::Spec>,
+    }
+    /// Nested message and enum types in `Product`.
+    pub mod product {
+        /// Идентификатор товара — один из двух способов адресации:
+        ///
+        /// * `id`   — стабильный числовой ключ (как currency_id / tree_id);
+        /// * `code` — стабильный строковый slug (для фронта: понять, что это за
+        ///   товар). Уникален, всегда в нижнем регистре, только латиница +
+        ///   цифры + подчёркивание (`\[a-z0-9_\]`); пробелы по краям срезаются.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(oneof = "id::Identifier", tags = "1, 2")]
+            pub identifier: ::core::option::Option<id::Identifier>,
+        }
+        /// Nested message and enum types in `Id`.
+        pub mod id {
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum Identifier {
+                #[prost(uint32, tag = "1")]
+                Id(u32),
+                #[prost(string, tag = "2")]
+                Code(::prost::alloc::string::String),
+            }
+        }
+        /// Специфика лицензии дерева.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct TreeLicenseSpec {
+            /// Дерево, в котором выдаётся лицензия/слот (1 = Lite, 2 = Pro, …).
+            #[prost(uint32, tag = "1")]
+            pub tree_id: u32,
+        }
+        /// Специфика текстового купона. Пул кодов и уникальность управляются на
+        /// стороне сервера по `product_id`.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct TextCouponSpec {
+            /// Свободное текстовое описание деталей купона (инструкция по активации,
+            /// условия, что даёт код и т.п.) — задаётся админом, показывается на
+            /// витрине/в карточке. Не участвует в выдаче кода. Может быть пустым.
+            #[prost(string, tag = "1")]
+            pub details: ::prost::alloc::string::String,
+        }
+        /// Список товаров витрины.
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Product>,
+        }
+        /// Семейство товара — определяет механику покупки и способ выдачи.
+        /// Значения append-only: новый вид добавляется в конец.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Kind {
+            Unspecified = 0,
+            /// Лицензия-ваучер на слот в дереве. Выдача — грант слота/лицензии в MLM.
+            /// Остаток — целочисленная квота (сколько ещё можно продать).
+            TreeLicense = 1,
+            /// Текстовый купон из пула загруженных кодов. Выдача — один уникальный код.
+            /// Остаток — количество неиспользованных кодов в пуле товара.
+            TextCoupon = 2,
+        }
+        impl Kind {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "KIND_UNSPECIFIED",
+                    Self::TreeLicense => "KIND_TREE_LICENSE",
+                    Self::TextCoupon => "KIND_TEXT_COUPON",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "KIND_UNSPECIFIED" => Some(Self::Unspecified),
+                    "KIND_TREE_LICENSE" => Some(Self::TreeLicense),
+                    "KIND_TEXT_COUPON" => Some(Self::TextCoupon),
+                    _ => None,
+                }
+            }
+        }
+        /// Специфика семейства товара.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Spec {
+            #[prost(message, tag = "11")]
+            TreeLicense(TreeLicenseSpec),
+            #[prost(message, tag = "12")]
+            TextCoupon(TextCouponSpec),
+        }
+    }
+    /// Результат покупки — что именно получил покупатель. Вид выдачи соответствует
+    /// `Product.Kind` купленного товара.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Delivery {
+        #[prost(oneof = "delivery::Delivery", tags = "1, 2")]
+        pub delivery: ::core::option::Option<delivery::Delivery>,
+    }
+    /// Nested message and enum types in `Delivery`.
+    pub mod delivery {
+        /// Выданная лицензия дерева.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct LicenseGrant {
+            /// Дерево, в котором выдана лицензия.
+            #[prost(uint32, tag = "1")]
+            pub tree_id: u32,
+            /// Созданный/использованный слот.
+            #[prost(uint32, tag = "2")]
+            pub slot_id: u32,
+            /// Созданный ваучер-лицензия.
+            #[prost(uint32, tag = "3")]
+            pub voucher_id: u32,
+        }
+        /// Выданный текстовый купон.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct CouponCode {
+            /// Уникальный текстовый код для копирования во внешний продукт.
+            #[prost(string, tag = "1")]
+            pub code: ::prost::alloc::string::String,
+        }
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Delivery {
+            /// Для TREE_LICENSE — сведения о выданной лицензии/слоте.
+            #[prost(message, tag = "1")]
+            License(LicenseGrant),
+            /// Для TEXT_COUPON — выданный уникальный текстовый код.
+            #[prost(message, tag = "2")]
+            Coupon(CouponCode),
+        }
+    }
+    /// Сводная статистика по товару (для админ-панели).
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Stats {
+        /// Товар.
+        #[prost(uint32, tag = "1")]
+        pub product_id: u32,
+        /// Семейство.
+        #[prost(enumeration = "product::Kind", tag = "2")]
+        pub kind: i32,
+        /// Остаток к продаже (квота / коды в пуле).
+        #[prost(uint64, tag = "3")]
+        pub stock_remaining: u64,
+        /// Всего продано за всё время.
+        #[prost(uint64, tag = "4")]
+        pub sold_total: u64,
+        /// Флаг доступности.
+        #[prost(bool, tag = "5")]
+        pub available: bool,
+    }
+}
 /// Geo — пространство имён для моделей карты геометок.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Geo {}
