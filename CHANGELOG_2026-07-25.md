@@ -1,12 +1,10 @@
 # CHANGELOG: 25 Июля 2026
 
-Сводка изменений API после релиза от 13 июля. Пять блоков:
+Сводка изменений API после релиза от 13 июля. Три блока:
 **(1)** новая подсистема **WinTime Shop** — магазин товаров за WinTime-токены
 (`WintimeShopService` + `WintimeShopAdminService` + модели + карточка в истории транзакций);
 **(2)** **история транзакций** — новая карточка `WinTimeReferralDetails` (реферальный бонус WinTime);
-**(3)** **admin.WalletCurrencyService.Gift** — админ-подарок средств на леджер дистрибьютора;
-**(4)** **AuthorizeTelegram** — вход/регистрация через Telegram Login Widget сразу с токеном сессии;
-**(5)** **admin.BroadcastService** — массовые Telegram-рассылки из админки.
+**(3)** **AuthorizeTelegram** — вход/регистрация через Telegram Login Widget сразу с токеном сессии.
 
 ---
 
@@ -200,31 +198,7 @@ message WinTimeReferralDetails {
 
 ---
 
-## 3. 🎁 `admin.WalletCurrencyService.Gift` 🆕
-
-`biconom/admin/wallet_currency/wallet_currency.proto` — админ-подарок средств на
-леджер дистрибьютора (доступ `Permission::ROOT`):
-
-```protobuf
-service WalletCurrencyService {
-    rpc Gift(GiftRequest) returns (biconom.types.Transaction.Group);
-}
-
-message GiftRequest {
-    uint32 distributor_id = 1; // получатель
-    uint32 wallet_type_id = 2; // тип кошелька (напр. spot)
-    uint32 currency_id = 3;    // валюта (пара с wallet_type должна быть разрешена)
-    string amount = 4;         // decimal-строка ("150.759"); усечение до precision; > 0
-}
-```
-
-Механика — пополнение от платёжной сети cashdesk (cashdesk Credit → кошелёк Debit);
-кошелёк / wallet_currency / леджер создаются при отсутствии. Ответ — группа
-транзакции в том же виде, что элемент `TransactionService/History` (одна entry `gift`).
-
----
-
-## 4. 🔐 `client.AuthService.AuthorizeTelegram` 🆕
+## 3. 🔐 `client.AuthService.AuthorizeTelegram` 🆕
 
 `biconom/client/auth/auth.proto` — вход или автоматическая регистрация через
 Telegram Login Widget **без формы подтверждения** (личность уже подтверждена
@@ -245,22 +219,3 @@ message TelegramAuthResponse {
 ```
 
 `Confirmation` не создаётся — при успехе сразу возвращается токен сессии.
-
----
-
-## 5. 📢 `admin.BroadcastService` 🆕
-
-`biconom/admin/broadcast/broadcast.proto` — массовые Telegram-рассылки из админки:
-
-```protobuf
-service BroadcastService {
-    rpc SendTelegramToAll(SendToAllRequest) returns (BroadcastResponse);
-    rpc SendTelegramLocalized(SendLocalizedRequest) returns (BroadcastResponse);
-    rpc SendTelegramToDistributor(SendToDistributorRequest) returns (BroadcastResponse);
-}
-```
-
-- **`SendTelegramToAll`** — одно сообщение всем пользователям с привязанным Telegram.
-- **`SendTelegramLocalized`** — варианты текста по локалям (каждому — на его языке).
-- **`SendTelegramToDistributor`** — точечная отправка одному дистрибьютору.
-- `BroadcastResponse` — сводка доставки (отправлено/пропущено/ошибки).
