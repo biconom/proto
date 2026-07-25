@@ -84,18 +84,15 @@ message UpsertProductRequest {
     string code = 2;
     // Семейство товара. При обновлении должно совпадать с текущим.
     biconom.types.WintimeShop.Product.Kind kind = 3;
-    // 4 — ранее `title`. Удалён: название локализуется на фронте по `code`.
-    reserved 4;
-    reserved "title";
     // Цена в WinTime-токенах (целое; WIN_TIME precision 0). Должна быть > 0.
-    uint64 price_wintime = 5;
+    uint64 price_wintime = 4;
     // Доступность к покупке сразу после создания/обновления.
-    bool available = 6;
+    bool available = 5;
 
     // Специфика семейства (обязана соответствовать `kind`).
     oneof spec {
-        biconom.types.WintimeShop.Product.TreeLicenseSpec tree_license = 7;
-        biconom.types.WintimeShop.Product.TextCouponSpec text_coupon = 8;
+        biconom.types.WintimeShop.Product.TreeLicenseSpec tree_license = 6;
+        biconom.types.WintimeShop.Product.TextCouponSpec text_coupon = 7;
     }
 }
 

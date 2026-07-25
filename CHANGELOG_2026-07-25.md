@@ -34,16 +34,16 @@ message WintimeShop {
         message List { repeated Product items = 1; }
 
         uint32 id = 1;
-        string code = 2;              // уникальный неизменяемый slug [a-z0-9_]+
+        string code = 2;              // уникальный неизменяемый slug [a-z0-9_]+;
+                                      // название/описание локализует фронт по `code`
         Kind kind = 3;
-        reserved 4; reserved "title"; // название локализует фронт по `code`
-        uint64 price_wintime = 5;
-        bool available = 6;
-        uint64 stock_remaining = 7;   // квота лицензий / новые коды пула
-        uint64 sold_total = 8;
-        google.protobuf.Timestamp created_at = 9;
-        google.protobuf.Timestamp updated_at = 10;
-        oneof spec { TreeLicenseSpec tree_license = 11; TextCouponSpec text_coupon = 12; }
+        uint64 price_wintime = 4;
+        bool available = 5;
+        uint64 stock_remaining = 6;   // квота лицензий / новые коды пула
+        uint64 sold_total = 7;
+        google.protobuf.Timestamp created_at = 8;
+        google.protobuf.Timestamp updated_at = 9;
+        oneof spec { TreeLicenseSpec tree_license = 10; TextCouponSpec text_coupon = 11; }
     }
 
     message Delivery {

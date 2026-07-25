@@ -15,13 +15,13 @@ pub struct UpsertProductRequest {
     #[prost(enumeration = "super::super::types::wintime_shop::product::Kind", tag = "3")]
     pub kind: i32,
     /// Цена в WinTime-токенах (целое; WIN_TIME precision 0). Должна быть > 0.
-    #[prost(uint64, tag = "5")]
+    #[prost(uint64, tag = "4")]
     pub price_wintime: u64,
     /// Доступность к покупке сразу после создания/обновления.
-    #[prost(bool, tag = "6")]
+    #[prost(bool, tag = "5")]
     pub available: bool,
     /// Специфика семейства (обязана соответствовать `kind`).
-    #[prost(oneof = "upsert_product_request::Spec", tags = "7, 8")]
+    #[prost(oneof = "upsert_product_request::Spec", tags = "6, 7")]
     pub spec: ::core::option::Option<upsert_product_request::Spec>,
 }
 /// Nested message and enum types in `UpsertProductRequest`.
@@ -29,9 +29,9 @@ pub mod upsert_product_request {
     /// Специфика семейства (обязана соответствовать `kind`).
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Spec {
-        #[prost(message, tag = "7")]
+        #[prost(message, tag = "6")]
         TreeLicense(super::super::super::types::wintime_shop::product::TreeLicenseSpec),
-        #[prost(message, tag = "8")]
+        #[prost(message, tag = "7")]
         TextCoupon(super::super::super::types::wintime_shop::product::TextCouponSpec),
     }
 }

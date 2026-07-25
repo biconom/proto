@@ -142,7 +142,7 @@ flowchart TD
 | Сущность | Назначение |
 |---|---|
 | `Product.Id` | Идентификатор товара — `oneof { uint32 id \| string code }` (адресация по числовому id или строковому slug). |
-| `Product` | Товар витрины: `id`, `code` (уникальный slug, неизменяем; фронт локализует по нему название/описание — сервер их не хранит), `kind` (вложенный enum `Product.Kind`: `TREE_LICENSE` / `TEXT_COUPON`, append-only), `price_wintime`, `available`, `stock_remaining`, `sold_total`, `spec` (oneof: `TreeLicenseSpec{tree_id}` / `TextCouponSpec{details}`). Поле 4 (`title`) удалено и зарезервировано. |
+| `Product` | Товар витрины: `id`, `code` (уникальный slug, неизменяем; фронт локализует по нему название/описание — сервер их не хранит), `kind` (вложенный enum `Product.Kind`: `TREE_LICENSE` / `TEXT_COUPON`, append-only), `price_wintime`, `available`, `stock_remaining`, `sold_total`, `spec` (oneof: `TreeLicenseSpec{tree_id}` / `TextCouponSpec{details}`). |
 | `Delivery` | Результат выдачи (oneof): `LicenseGrant{tree_id, slot_id, voucher_id}` / `CouponCode{code}`. |
 | `Stats` | Сводная статистика по товару. Для `TEXT_COUPON` дополнительно `coupons` — разбивка пула по статусам (`new` / `dispensed` / `cancelled`). |
 

@@ -79,28 +79,24 @@ message WintimeShop {
         // локализованного названия/описания товара — сервер их не хранит).
         string code = 2;
         Kind kind = 3;                      // Семейство товара.
-        // 4 — ранее `title` (человекочитаемое название). Удалён: название локализуется
-        // на фронте по `code`, сервер его не хранит.
-        reserved 4;
-        reserved "title";
         // Цена в WinTime-токенах (целое, WIN_TIME имеет precision 0).
-        uint64 price_wintime = 5;
+        uint64 price_wintime = 4;
         // Доступен ли товар к покупке прямо сейчас (админ-переключатель).
         // false — товар скрыт с витрины / покупка отклоняется, независимо от остатка.
-        bool available = 6;
+        bool available = 5;
         // Остаток к продаже: для TREE_LICENSE — квота, для TEXT_COUPON — число
         // неиспользованных кодов. 0 — распродано (покупка отклоняется).
-        uint64 stock_remaining = 7;
+        uint64 stock_remaining = 6;
         // Сколько всего продано за всё время (монотонный счётчик).
-        uint64 sold_total = 8;
+        uint64 sold_total = 7;
 
-        google.protobuf.Timestamp created_at = 9;
-        google.protobuf.Timestamp updated_at = 10;
+        google.protobuf.Timestamp created_at = 8;
+        google.protobuf.Timestamp updated_at = 9;
 
         // Специфика семейства товара.
         oneof spec {
-            TreeLicenseSpec tree_license = 11;
-            TextCouponSpec text_coupon = 12;
+            TreeLicenseSpec tree_license = 10;
+            TextCouponSpec text_coupon = 11;
         }
     }
 

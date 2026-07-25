@@ -8369,25 +8369,25 @@ pub mod wintime_shop {
         #[prost(enumeration = "product::Kind", tag = "3")]
         pub kind: i32,
         /// Цена в WinTime-токенах (целое, WIN_TIME имеет precision 0).
-        #[prost(uint64, tag = "5")]
+        #[prost(uint64, tag = "4")]
         pub price_wintime: u64,
         /// Доступен ли товар к покупке прямо сейчас (админ-переключатель).
         /// false — товар скрыт с витрины / покупка отклоняется, независимо от остатка.
-        #[prost(bool, tag = "6")]
+        #[prost(bool, tag = "5")]
         pub available: bool,
         /// Остаток к продаже: для TREE_LICENSE — квота, для TEXT_COUPON — число
         /// неиспользованных кодов. 0 — распродано (покупка отклоняется).
-        #[prost(uint64, tag = "7")]
+        #[prost(uint64, tag = "6")]
         pub stock_remaining: u64,
         /// Сколько всего продано за всё время (монотонный счётчик).
-        #[prost(uint64, tag = "8")]
+        #[prost(uint64, tag = "7")]
         pub sold_total: u64,
-        #[prost(message, optional, tag = "9")]
+        #[prost(message, optional, tag = "8")]
         pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-        #[prost(message, optional, tag = "10")]
+        #[prost(message, optional, tag = "9")]
         pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Специфика семейства товара.
-        #[prost(oneof = "product::Spec", tags = "11, 12")]
+        #[prost(oneof = "product::Spec", tags = "10, 11")]
         pub spec: ::core::option::Option<product::Spec>,
     }
     /// Nested message and enum types in `Product`.
@@ -8484,9 +8484,9 @@ pub mod wintime_shop {
         /// Специфика семейства товара.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Spec {
-            #[prost(message, tag = "11")]
+            #[prost(message, tag = "10")]
             TreeLicense(TreeLicenseSpec),
-            #[prost(message, tag = "12")]
+            #[prost(message, tag = "11")]
             TextCoupon(TextCouponSpec),
         }
     }
