@@ -48,6 +48,7 @@ message Transaction {
                 ReinvestDiscountDetails reinvest_discount = 22;
                 SlotQuestRewardDetails slot_quest_reward = 23;
                 WinTimeReferralDetails win_time_referral = 24;
+                WintimeShopPurchaseDetails wintime_shop_purchase = 25;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -300,6 +301,27 @@ message Transaction {
             message WinTimeReferralDetails {
                 // Личник, за приглашение которого начислен бонус спонсору.
                 uint32 child_distributor_id = 1;
+            }
+
+            // Метаданные карточки покупки в WinTime-магазине (`wintime_shop`).
+            //
+            // Списание WIN_TIME за товар магазина; сумма — в `amount` проводки.
+            // Для товара-КУПОНА в `coupon_code` сохранён выданный текстовый код
+            // (пользователь копирует его прямо из истории), `slot_id`/`voucher_id`/
+            // `tree_id` — нулевые. Для товара-ЛИЦЕНЗИИ — наоборот: `coupon_code`
+            // пуст, а `slot_id`/`voucher_id` — созданный слот и ваучер-лицензия;
+            // `tree_id` — дерево слота (обогащается сервером при извлечении).
+            message WintimeShopPurchaseDetails {
+                // Товар магазина (числовой id каталога wintime_shop).
+                uint32 product_id = 1;
+                // Текст выданного купона (для копирования). Только TEXT_COUPON.
+                string coupon_code = 2;
+                // Созданный слот (только TREE_LICENSE).
+                uint32 slot_id = 3;
+                // Созданный ваучер-лицензия (только TREE_LICENSE).
+                uint32 voucher_id = 4;
+                // Дерево слота (обогащение при извлечении; только TREE_LICENSE).
+                uint32 tree_id = 5;
             }
         }
     }

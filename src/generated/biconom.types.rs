@@ -973,7 +973,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1280,6 +1280,32 @@ pub mod transaction {
                 #[prost(uint32, tag = "1")]
                 pub child_distributor_id: u32,
             }
+            /// Метаданные карточки покупки в WinTime-магазине (`wintime_shop`).
+            ///
+            /// Списание WIN_TIME за товар магазина; сумма — в `amount` проводки.
+            /// Для товара-КУПОНА в `coupon_code` сохранён выданный текстовый код
+            /// (пользователь копирует его прямо из истории), `slot_id`/`voucher_id`/
+            /// `tree_id` — нулевые. Для товара-ЛИЦЕНЗИИ — наоборот: `coupon_code`
+            /// пуст, а `slot_id`/`voucher_id` — созданный слот и ваучер-лицензия;
+            /// `tree_id` — дерево слота (обогащается сервером при извлечении).
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct WintimeShopPurchaseDetails {
+                /// Товар магазина (числовой id каталога wintime_shop).
+                #[prost(uint32, tag = "1")]
+                pub product_id: u32,
+                /// Текст выданного купона (для копирования). Только TEXT_COUPON.
+                #[prost(string, tag = "2")]
+                pub coupon_code: ::prost::alloc::string::String,
+                /// Созданный слот (только TREE_LICENSE).
+                #[prost(uint32, tag = "3")]
+                pub slot_id: u32,
+                /// Созданный ваучер-лицензия (только TREE_LICENSE).
+                #[prost(uint32, tag = "4")]
+                pub voucher_id: u32,
+                /// Дерево слота (обогащение при извлечении; только TREE_LICENSE).
+                #[prost(uint32, tag = "5")]
+                pub tree_id: u32,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1324,6 +1350,8 @@ pub mod transaction {
                 SlotQuestReward(SlotQuestRewardDetails),
                 #[prost(message, tag = "24")]
                 WinTimeReferral(WinTimeReferralDetails),
+                #[prost(message, tag = "25")]
+                WintimeShopPurchase(WintimeShopPurchaseDetails),
             }
         }
     }
@@ -8333,15 +8361,13 @@ pub mod wintime_shop {
         #[prost(uint32, tag = "1")]
         pub id: u32,
         /// Стабильный строковый slug товара (уникальный, `\[a-z0-9_\]`, нижний регистр).
-        /// Задаётся при создании и неизменяем. Фронт опирается на него.
+        /// Задаётся при создании и неизменяем. Фронт опирается на него (в т.ч. для
+        /// локализованного названия/описания товара — сервер их не хранит).
         #[prost(string, tag = "2")]
         pub code: ::prost::alloc::string::String,
         /// Семейство товара.
         #[prost(enumeration = "product::Kind", tag = "3")]
         pub kind: i32,
-        /// Человекочитаемое название (например «Win Lite», «Безлимитный VPN»).
-        #[prost(string, tag = "4")]
-        pub title: ::prost::alloc::string::String,
         /// Цена в WinTime-токенах (целое, WIN_TIME имеет precision 0).
         #[prost(uint64, tag = "5")]
         pub price_wintime: u64,
@@ -8512,7 +8538,7 @@ pub mod wintime_shop {
         /// Семейство.
         #[prost(enumeration = "product::Kind", tag = "2")]
         pub kind: i32,
-        /// Остаток к продаже (квота / коды в пуле).
+        /// Остаток к продаже (квота / новые коды в пуле).
         #[prost(uint64, tag = "3")]
         pub stock_remaining: u64,
         /// Всего продано за всё время.
@@ -8521,6 +8547,26 @@ pub mod wintime_shop {
         /// Флаг доступности.
         #[prost(bool, tag = "5")]
         pub available: bool,
+        /// Пул купонов по статусам (только TEXT_COUPON).
+        #[prost(message, optional, tag = "6")]
+        pub coupons: ::core::option::Option<stats::Coupons>,
+    }
+    /// Nested message and enum types in `Stats`.
+    pub mod stats {
+        /// Разбивка пула купонов по статусам. Заполняется только для
+        /// KIND_TEXT_COUPON; у лицензий поле отсутствует.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Coupons {
+            /// Новые (свободны к выдаче).
+            #[prost(uint64, tag = "1")]
+            pub new: u64,
+            /// Выданы покупателям.
+            #[prost(uint64, tag = "2")]
+            pub dispensed: u64,
+            /// Отменены администратором.
+            #[prost(uint64, tag = "3")]
+            pub cancelled: u64,
+        }
     }
 }
 /// Geo — пространство имён для моделей карты геометок.

@@ -14,9 +14,6 @@ pub struct UpsertProductRequest {
     /// Семейство товара. При обновлении должно совпадать с текущим.
     #[prost(enumeration = "super::super::types::wintime_shop::product::Kind", tag = "3")]
     pub kind: i32,
-    /// Человекочитаемое название.
-    #[prost(string, tag = "4")]
-    pub title: ::prost::alloc::string::String,
     /// Цена в WinTime-токенах (целое; WIN_TIME precision 0). Должна быть > 0.
     #[prost(uint64, tag = "5")]
     pub price_wintime: u64,
@@ -78,7 +75,7 @@ pub mod adjust_license_stock_request {
         Unspecified = 0,
         /// Добавить `amount` к остатку.
         Add = 1,
-        /// Отнять `amount` от остатка (не ниже 0 — иначе InvalidArgument).
+        /// Отнять `amount` от остатка; ниже нуля не уходит — клампится к 0 (5 − 7 = 0).
         Subtract = 2,
         /// Установить остаток равным `amount`.
         Set = 3,
@@ -114,23 +111,143 @@ pub struct LoadCouponsRequest {
     /// Товар — по числовому id или строковому code.
     #[prost(message, optional, tag = "1")]
     pub product: ::core::option::Option<super::super::types::wintime_shop::product::Id>,
-    /// Новые текстовые коды. Пустой список — InvalidArgument. Каждый код после
-    /// trim должен быть непустым.
+    /// Текстовые коды. Каждый код: trim по краям; после trim — непустой и не
+    /// длиннее 64 символов (иначе InvalidArgument, запрос отклоняется ЦЕЛИКОМ —
+    /// ничего не добавляется). Пустой список — InvalidArgument.
     #[prost(string, repeated, tag = "2")]
     pub codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Сводка массовой загрузки купонов.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LoadCouponsResponse {
-    /// Сколько кодов реально добавлено в пул.
+    /// Сколько НОВЫХ кодов добавлено в пул.
     #[prost(uint64, tag = "1")]
     pub added: u64,
-    /// Сколько отклонено как дубли (уже есть в пуле товара или повтор внутри запроса).
+    /// Сколько проигнорировано как дубли (уже в пуле со статусом NEW или повтор
+    /// внутри запроса).
     #[prost(uint64, tag = "2")]
     pub skipped_duplicates: u64,
-    /// Остаток пула (неиспользованных кодов) после загрузки.
+    /// Остаток пула (новых кодов) после загрузки.
     #[prost(uint64, tag = "3")]
     pub stock_remaining: u64,
+    /// Ранее ОТМЕНЁННЫЕ коды, повторно активированные этой загрузкой (Cancelled → New).
+    #[prost(uint64, tag = "4")]
+    pub reactivated: u64,
+    /// Отклонено: код уже АКТИВИРОВАН — выдан другому пользователю (Dispensed).
+    #[prost(uint64, tag = "5")]
+    pub skipped_dispensed: u64,
+}
+/// Запрос отмены кодов пула.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCouponsRequest {
+    /// Товар — по числовому id или строковому code.
+    #[prost(message, optional, tag = "1")]
+    pub product: ::core::option::Option<super::super::types::wintime_shop::product::Id>,
+    /// Коды к отмене (trim по краям; пустые и дубли внутри запроса схлопываются).
+    #[prost(string, repeated, tag = "2")]
+    pub codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// Сводка отмены кодов.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCouponsResponse {
+    /// Отменено этим запросом.
+    #[prost(uint64, tag = "1")]
+    pub cancelled: u64,
+    /// Кода нет в пуле товара.
+    #[prost(uint64, tag = "2")]
+    pub skipped_not_found: u64,
+    /// Уже выдан покупателю — отмена невозможна.
+    #[prost(uint64, tag = "3")]
+    pub skipped_dispensed: u64,
+    /// Уже был отменён ранее.
+    #[prost(uint64, tag = "4")]
+    pub skipped_cancelled: u64,
+    /// Остаток свободных (новых) кодов после отмены.
+    #[prost(uint64, tag = "5")]
+    pub stock_remaining: u64,
+}
+/// Запрос списка кодов пула.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListCouponsRequest {
+    /// Товар — по числовому id или строковому code.
+    #[prost(message, optional, tag = "1")]
+    pub product: ::core::option::Option<super::super::types::wintime_shop::product::Id>,
+    /// Фильтр по статусу; COUPON_STATUS_UNSPECIFIED — все статусы.
+    #[prost(enumeration = "CouponStatus", tag = "2")]
+    pub status: i32,
+    /// Максимум записей в ответе (0 или больше глобального лимита → 1000).
+    #[prost(uint32, tag = "3")]
+    pub limit: u32,
+    /// Смещение от начала (коды отсортированы лексикографически).
+    #[prost(uint32, tag = "4")]
+    pub offset: u32,
+}
+/// Страница кодов пула.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListCouponsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<list_coupons_response::Item>,
+    /// Всего кодов под выбранным фильтром (для пагинации).
+    #[prost(uint64, tag = "2")]
+    pub total: u64,
+}
+/// Nested message and enum types in `ListCouponsResponse`.
+pub mod list_coupons_response {
+    /// Код, его статус, даты жизненного цикла и получатель.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Item {
+        #[prost(string, tag = "1")]
+        pub code: ::prost::alloc::string::String,
+        #[prost(enumeration = "super::CouponStatus", tag = "2")]
+        pub status: i32,
+        /// Когда код загружен в пул (реактивация НЕ меняет).
+        #[prost(message, optional, tag = "3")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Последняя смена статуса (загрузка / реактивация / выдача / отмена).
+        #[prost(message, optional, tag = "4")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Кому выдан код (distributor_id покупателя); 0 — не выдан.
+        /// По выданным кодам восстановима статистика «кто какие купоны купил».
+        #[prost(uint32, tag = "5")]
+        pub distributor_id: u32,
+    }
+}
+/// Статус текстового кода в пуле товара-купона.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CouponStatus {
+    /// Не задан (в фильтре ListCoupons = все статусы).
+    Unspecified = 0,
+    /// Новый: свободен к выдаче.
+    New = 1,
+    /// Выдан покупателю.
+    Dispensed = 2,
+    /// Отменён администратором.
+    Cancelled = 3,
+}
+impl CouponStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COUPON_STATUS_UNSPECIFIED",
+            Self::New => "COUPON_STATUS_NEW",
+            Self::Dispensed => "COUPON_STATUS_DISPENSED",
+            Self::Cancelled => "COUPON_STATUS_CANCELLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COUPON_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "COUPON_STATUS_NEW" => Some(Self::New),
+            "COUPON_STATUS_DISPENSED" => Some(Self::Dispensed),
+            "COUPON_STATUS_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod wintime_shop_admin_service_server {
@@ -182,16 +299,43 @@ pub mod wintime_shop_admin_service_server {
             tonic::Response<super::super::super::types::wintime_shop::Product>,
             tonic::Status,
         >;
-        /// Массово загрузить новые текстовые коды в пул товара. Проверяется
-        /// уникальность в пределах товара: коды, уже присутствующие в пуле этого
-        /// товара (в т.ч. уже выданные), отклоняются. Дубли ВНУТРИ запроса также
-        /// схлопываются/отклоняются. Возвращается сводка загрузки. Для товаров
-        /// семейства TREE_LICENSE — InvalidArgument.
+        /// Массово загрузить текстовые коды в пул товара. Каждый код: trim по краям,
+        /// дубли внутри запроса схлопываются (уникальность). Далее по текущему
+        /// статусу кода в пуле товара:
+        ///
+        /// * отсутствует        → добавляется как НОВЫЙ (added);
+        /// * НОВЫЙ              → игнорируется (skipped_duplicates);
+        /// * ОТМЕНЁННЫЙ         → повторно активируется: Cancelled → New
+        ///  (reactivated, статистика статусов обновляется);
+        /// * ВЫДАННЫЙ           → отклоняется — код уже активирован/выдан
+        ///  пользователю (skipped_dispensed).
+        ///  Для TREE_LICENSE — InvalidArgument.
         async fn load_coupons(
             &self,
             request: tonic::Request<super::LoadCouponsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::LoadCouponsResponse>,
+            tonic::Status,
+        >;
+        /// Отменить коды в пуле товара-купона. Отменить можно только НОВЫЙ
+        /// (невыданный) код; выданные и уже отменённые пропускаются (см. счётчики
+        /// ответа). Отменённый код можно вернуть в продажу повторной загрузкой через
+        /// LoadCoupons (Cancelled → New). Для TREE_LICENSE — InvalidArgument.
+        async fn cancel_coupons(
+            &self,
+            request: tonic::Request<super::CancelCouponsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelCouponsResponse>,
+            tonic::Status,
+        >;
+        /// Постраничный список кодов пула товара-купона с их статусами (для
+        /// админ-панели: видно, какие коды новые / выданные / отменённые).
+        /// Для TREE_LICENSE — InvalidArgument.
+        async fn list_coupons(
+            &self,
+            request: tonic::Request<super::ListCouponsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListCouponsResponse>,
             tonic::Status,
         >;
         /// Сводная статистика по товару (остаток, всего продано, доступность).
@@ -522,6 +666,104 @@ pub mod wintime_shop_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = LoadCouponsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.wintime_shop.WintimeShopAdminService/CancelCoupons" => {
+                    #[allow(non_camel_case_types)]
+                    struct CancelCouponsSvc<T: WintimeShopAdminService>(pub Arc<T>);
+                    impl<
+                        T: WintimeShopAdminService,
+                    > tonic::server::UnaryService<super::CancelCouponsRequest>
+                    for CancelCouponsSvc<T> {
+                        type Response = super::CancelCouponsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CancelCouponsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WintimeShopAdminService>::cancel_coupons(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CancelCouponsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.wintime_shop.WintimeShopAdminService/ListCoupons" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListCouponsSvc<T: WintimeShopAdminService>(pub Arc<T>);
+                    impl<
+                        T: WintimeShopAdminService,
+                    > tonic::server::UnaryService<super::ListCouponsRequest>
+                    for ListCouponsSvc<T> {
+                        type Response = super::ListCouponsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListCouponsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WintimeShopAdminService>::list_coupons(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListCouponsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

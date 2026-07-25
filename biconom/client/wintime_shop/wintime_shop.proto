@@ -14,12 +14,14 @@ import "biconom/types/wintime_shop.proto";
 service WintimeShopService {
     // Список товаров витрины. По умолчанию — только доступные к покупке
     // (`available == true`). Флаг `include_unavailable` показывает и скрытые
-    // (для превью «coming soon»).
-    rpc ListProducts(ListProductsRequest) returns (biconom.types.WintimeShop.Product.List);
+    // (для превью «coming soon»). Каждый элемент обогащён персональными для
+    // покупателя полями (`ClientProduct`).
+    rpc ListProducts(ListProductsRequest) returns (ClientProduct.List);
 
     // Получить один товар по идентификатору — числовому id или строковому code
-    // (в т.ч. недоступный — для карточки товара).
-    rpc GetProduct(biconom.types.WintimeShop.Product.Id) returns (biconom.types.WintimeShop.Product);
+    // (в т.ч. недоступный — для карточки товара). Возвращается обогащённая
+    // персональными для покупателя полями карточка (`ClientProduct`).
+    rpc GetProduct(biconom.types.WintimeShop.Product.Id) returns (ClientProduct);
 
     // Купить товар за WinTime-токены (адресация — Product.Id: числовой id или
     // строковый code). Дистрибьютор-покупатель определяется контекстом
@@ -34,6 +36,30 @@ message ListProductsRequest {
     // Включать ли недоступные к покупке товары (available == false).
     // По умолчанию false — отдаются только доступные.
     bool include_unavailable = 1;
+}
+
+// Карточка товара витрины, обогащённая персональными для покупателя полями.
+// Базовый каталог (`biconom.types.WintimeShop.Product`) один для всех; поля ниже
+// вычисляются под конкретного авторизованного дистрибьютора.
+message ClientProduct {
+    // Список карточек витрины (клиентский аналог `Product.List`).
+    message List {
+        repeated ClientProduct items = 1;
+    }
+
+    // Базовая карточка товара (общий каталог магазина).
+    biconom.types.WintimeShop.Product product = 1;
+
+    // Сколько единиц этого товара покупатель приобрёл ЛИЧНО (по своему
+    // distributor_id) за всё время. Для TREE_LICENSE — 0 или 1 (лицензия
+    // покупается один раз на дерево).
+    uint64 purchased_by_me = 2;
+
+    // Доступен ли товар к покупке ИМЕННО этому покупателю прямо сейчас:
+    //   `available` && `stock_remaining > 0` && (для TREE_LICENSE — у покупателя
+    //   НИКОГДА не было слота в соответствующем дереве).
+    // Для TEXT_COUPON совпадает с (`available` && остаток > 0).
+    bool purchasable_by_me = 3;
 }
 
 // Ответ на покупку — что получил покупатель.

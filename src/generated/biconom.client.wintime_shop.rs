@@ -7,6 +7,35 @@ pub struct ListProductsRequest {
     #[prost(bool, tag = "1")]
     pub include_unavailable: bool,
 }
+/// Карточка товара витрины, обогащённая персональными для покупателя полями.
+/// Базовый каталог (`biconom.types.WintimeShop.Product`) один для всех; поля ниже
+/// вычисляются под конкретного авторизованного дистрибьютора.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClientProduct {
+    /// Базовая карточка товара (общий каталог магазина).
+    #[prost(message, optional, tag = "1")]
+    pub product: ::core::option::Option<super::super::types::wintime_shop::Product>,
+    /// Сколько единиц этого товара покупатель приобрёл ЛИЧНО (по своему
+    /// distributor_id) за всё время. Для TREE_LICENSE — 0 или 1 (лицензия
+    /// покупается один раз на дерево).
+    #[prost(uint64, tag = "2")]
+    pub purchased_by_me: u64,
+    /// Доступен ли товар к покупке ИМЕННО этому покупателю прямо сейчас:
+    /// `available` && `stock_remaining > 0` && (для TREE_LICENSE — у покупателя
+    /// НИКОГДА не было слота в соответствующем дереве).
+    /// Для TEXT_COUPON совпадает с (`available` && остаток > 0).
+    #[prost(bool, tag = "3")]
+    pub purchasable_by_me: bool,
+}
+/// Nested message and enum types in `ClientProduct`.
+pub mod client_product {
+    /// Список карточек витрины (клиентский аналог `Product.List`).
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct List {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<super::ClientProduct>,
+    }
+}
 /// Ответ на покупку — что получил покупатель.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PurchaseResponse {
@@ -35,25 +64,24 @@ pub mod wintime_shop_service_server {
     pub trait WintimeShopService: std::marker::Send + std::marker::Sync + 'static {
         /// Список товаров витрины. По умолчанию — только доступные к покупке
         /// (`available == true`). Флаг `include_unavailable` показывает и скрытые
-        /// (для превью «coming soon»).
+        /// (для превью «coming soon»). Каждый элемент обогащён персональными для
+        /// покупателя полями (`ClientProduct`).
         async fn list_products(
             &self,
             request: tonic::Request<super::ListProductsRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::super::super::types::wintime_shop::product::List>,
+            tonic::Response<super::client_product::List>,
             tonic::Status,
         >;
         /// Получить один товар по идентификатору — числовому id или строковому code
-        /// (в т.ч. недоступный — для карточки товара).
+        /// (в т.ч. недоступный — для карточки товара). Возвращается обогащённая
+        /// персональными для покупателя полями карточка (`ClientProduct`).
         async fn get_product(
             &self,
             request: tonic::Request<
                 super::super::super::types::wintime_shop::product::Id,
             >,
-        ) -> std::result::Result<
-            tonic::Response<super::super::super::types::wintime_shop::Product>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::ClientProduct>, tonic::Status>;
         /// Купить товар за WinTime-токены (адресация — Product.Id: числовой id или
         /// строковый code). Дистрибьютор-покупатель определяется контекстом
         /// авторизации. Списывается `price_wintime` (при нехватке — FailedPrecondition).
@@ -159,7 +187,7 @@ pub mod wintime_shop_service_server {
                         T: WintimeShopService,
                     > tonic::server::UnaryService<super::ListProductsRequest>
                     for ListProductsSvc<T> {
-                        type Response = super::super::super::types::wintime_shop::product::List;
+                        type Response = super::client_product::List;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -206,7 +234,7 @@ pub mod wintime_shop_service_server {
                     > tonic::server::UnaryService<
                         super::super::super::types::wintime_shop::product::Id,
                     > for GetProductSvc<T> {
-                        type Response = super::super::super::types::wintime_shop::Product;
+                        type Response = super::ClientProduct;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,

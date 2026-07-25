@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.admin.wintime_shop;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "biconom/types/wintime_shop.proto";
 
 // WintimeShopAdminService — админское управление WinTime-магазином.
@@ -43,12 +44,28 @@ service WintimeShopAdminService {
 
     // ─── Тираж: купоны (TEXT_COUPON) ──────────────────────────────────
 
-    // Массово загрузить новые текстовые коды в пул товара. Проверяется
-    // уникальность в пределах товара: коды, уже присутствующие в пуле этого
-    // товара (в т.ч. уже выданные), отклоняются. Дубли ВНУТРИ запроса также
-    // схлопываются/отклоняются. Возвращается сводка загрузки. Для товаров
-    // семейства TREE_LICENSE — InvalidArgument.
+    // Массово загрузить текстовые коды в пул товара. Каждый код: trim по краям,
+    // дубли внутри запроса схлопываются (уникальность). Далее по текущему
+    // статусу кода в пуле товара:
+    //   * отсутствует        → добавляется как НОВЫЙ (added);
+    //   * НОВЫЙ              → игнорируется (skipped_duplicates);
+    //   * ОТМЕНЁННЫЙ         → повторно активируется: Cancelled → New
+    //                          (reactivated, статистика статусов обновляется);
+    //   * ВЫДАННЫЙ           → отклоняется — код уже активирован/выдан
+    //                          пользователю (skipped_dispensed).
+    // Для TREE_LICENSE — InvalidArgument.
     rpc LoadCoupons(LoadCouponsRequest) returns (LoadCouponsResponse);
+
+    // Отменить коды в пуле товара-купона. Отменить можно только НОВЫЙ
+    // (невыданный) код; выданные и уже отменённые пропускаются (см. счётчики
+    // ответа). Отменённый код можно вернуть в продажу повторной загрузкой через
+    // LoadCoupons (Cancelled → New). Для TREE_LICENSE — InvalidArgument.
+    rpc CancelCoupons(CancelCouponsRequest) returns (CancelCouponsResponse);
+
+    // Постраничный список кодов пула товара-купона с их статусами (для
+    // админ-панели: видно, какие коды новые / выданные / отменённые).
+    // Для TREE_LICENSE — InvalidArgument.
+    rpc ListCoupons(ListCouponsRequest) returns (ListCouponsResponse);
 
     // ─── Статистика ───────────────────────────────────────────────────
 
@@ -67,8 +84,9 @@ message UpsertProductRequest {
     string code = 2;
     // Семейство товара. При обновлении должно совпадать с текущим.
     biconom.types.WintimeShop.Product.Kind kind = 3;
-    // Человекочитаемое название.
-    string title = 4;
+    // 4 — ранее `title`. Удалён: название локализуется на фронте по `code`.
+    reserved 4;
+    reserved "title";
     // Цена в WinTime-токенах (целое; WIN_TIME precision 0). Должна быть > 0.
     uint64 price_wintime = 5;
     // Доступность к покупке сразу после создания/обновления.
@@ -97,7 +115,7 @@ message AdjustLicenseStockRequest {
     enum Op {
         OP_UNSPECIFIED = 0;
         OP_ADD = 1;      // Добавить `amount` к остатку.
-        OP_SUBTRACT = 2; // Отнять `amount` от остатка (не ниже 0 — иначе InvalidArgument).
+        OP_SUBTRACT = 2; // Отнять `amount` от остатка; ниже нуля не уходит — клампится к 0 (5 − 7 = 0).
         OP_SET = 3;      // Установить остаток равным `amount`.
     }
     Op op = 2;
@@ -110,17 +128,80 @@ message AdjustLicenseStockRequest {
 message LoadCouponsRequest {
     // Товар — по числовому id или строковому code.
     biconom.types.WintimeShop.Product.Id product = 1;
-    // Новые текстовые коды. Пустой список — InvalidArgument. Каждый код после
-    // trim должен быть непустым.
+    // Текстовые коды. Каждый код: trim по краям; после trim — непустой и не
+    // длиннее 64 символов (иначе InvalidArgument, запрос отклоняется ЦЕЛИКОМ —
+    // ничего не добавляется). Пустой список — InvalidArgument.
     repeated string codes = 2;
 }
 
 // Сводка массовой загрузки купонов.
 message LoadCouponsResponse {
-    // Сколько кодов реально добавлено в пул.
+    // Сколько НОВЫХ кодов добавлено в пул.
     uint64 added = 1;
-    // Сколько отклонено как дубли (уже есть в пуле товара или повтор внутри запроса).
+    // Сколько проигнорировано как дубли (уже в пуле со статусом NEW или повтор
+    // внутри запроса).
     uint64 skipped_duplicates = 2;
-    // Остаток пула (неиспользованных кодов) после загрузки.
+    // Остаток пула (новых кодов) после загрузки.
     uint64 stock_remaining = 3;
+    // Ранее ОТМЕНЁННЫЕ коды, повторно активированные этой загрузкой (Cancelled → New).
+    uint64 reactivated = 4;
+    // Отклонено: код уже АКТИВИРОВАН — выдан другому пользователю (Dispensed).
+    uint64 skipped_dispensed = 5;
+}
+
+// Статус текстового кода в пуле товара-купона.
+enum CouponStatus {
+    COUPON_STATUS_UNSPECIFIED = 0; // Не задан (в фильтре ListCoupons = все статусы).
+    COUPON_STATUS_NEW = 1;         // Новый: свободен к выдаче.
+    COUPON_STATUS_DISPENSED = 2;   // Выдан покупателю.
+    COUPON_STATUS_CANCELLED = 3;   // Отменён администратором.
+}
+
+// Запрос отмены кодов пула.
+message CancelCouponsRequest {
+    // Товар — по числовому id или строковому code.
+    biconom.types.WintimeShop.Product.Id product = 1;
+    // Коды к отмене (trim по краям; пустые и дубли внутри запроса схлопываются).
+    repeated string codes = 2;
+}
+
+// Сводка отмены кодов.
+message CancelCouponsResponse {
+    uint64 cancelled = 1;          // Отменено этим запросом.
+    uint64 skipped_not_found = 2;  // Кода нет в пуле товара.
+    uint64 skipped_dispensed = 3;  // Уже выдан покупателю — отмена невозможна.
+    uint64 skipped_cancelled = 4;  // Уже был отменён ранее.
+    uint64 stock_remaining = 5;    // Остаток свободных (новых) кодов после отмены.
+}
+
+// Запрос списка кодов пула.
+message ListCouponsRequest {
+    // Товар — по числовому id или строковому code.
+    biconom.types.WintimeShop.Product.Id product = 1;
+    // Фильтр по статусу; COUPON_STATUS_UNSPECIFIED — все статусы.
+    CouponStatus status = 2;
+    // Максимум записей в ответе (0 или больше глобального лимита → 1000).
+    uint32 limit = 3;
+    // Смещение от начала (коды отсортированы лексикографически).
+    uint32 offset = 4;
+}
+
+// Страница кодов пула.
+message ListCouponsResponse {
+    // Код, его статус, даты жизненного цикла и получатель.
+    message Item {
+        string code = 1;
+        CouponStatus status = 2;
+        // Когда код загружен в пул (реактивация НЕ меняет).
+        google.protobuf.Timestamp created_at = 3;
+        // Последняя смена статуса (загрузка / реактивация / выдача / отмена).
+        google.protobuf.Timestamp updated_at = 4;
+        // Кому выдан код (distributor_id покупателя); 0 — не выдан.
+        // По выданным кодам восстановима статистика «кто какие купоны купил».
+        uint32 distributor_id = 5;
+    }
+
+    repeated Item items = 1;
+    // Всего кодов под выбранным фильтром (для пагинации).
+    uint64 total = 2;
 }
