@@ -83,4 +83,8 @@ message UserProfile {
 	repeated biconom.types.PaymentDestination payment_destinations = 5; // Активные платежные реквизиты.
 	uint32 locale_id = 6; // Текущая локаль.
 	optional Telegram telegram = 7; // Информация о telegram.
+	// Пользовательская битовая маска флагов (интро, обучение и т.д.).
+	// Семантику битов определяет фронтенд; бэкенд не интерпретирует.
+	// Управление — UserService.GetCustomFlags / UserService.UpdateCustomFlags.
+	uint32 custom_flags_bit_mask = 8;
 }

@@ -21,6 +21,33 @@ service UserService {
 
     // Сбрасывает (удаляет) текущую аватарку пользователя.
     rpc ResetAvatar(google.protobuf.Empty) returns (google.protobuf.Empty);
+
+    // Получает пользовательскую битовую маску флагов (custom_flags) текущего пользователя.
+    // Семантика битов принадлежит фронтенду (интро пройдено, обучение завершено и т.д.);
+    // бэкенд хранит маску непрозрачно и не интерпретирует её.
+    rpc GetCustomFlags(google.protobuf.Empty) returns (GetCustomFlagsResponse);
+
+    // Атомарно обновляет пользовательскую битовую маску флагов:
+    // new_mask = (old_mask | set_bit_mask) & ~clear_bit_mask.
+    // Позволяет включать/выключать отдельные биты без гонки полной перезаписи
+    // (две вкладки не затирают изменения друг друга).
+    rpc UpdateCustomFlags(UpdateCustomFlagsRequest) returns (GetCustomFlagsResponse);
+}
+
+// Ответ, содержащий текущую пользовательскую битовую маску флагов.
+message GetCustomFlagsResponse {
+    // Пользовательская битовая маска флагов. Значения битов определяет фронтенд.
+    uint32 custom_flags_bit_mask = 1;
+}
+
+// Запрос на атомарное обновление пользовательской битовой маски флагов.
+message UpdateCustomFlagsRequest {
+    // Биты, которые нужно установить (OR).
+    uint32 set_bit_mask = 1;
+
+    // Биты, которые нужно снять (AND NOT). Применяется после set_bit_mask:
+    // бит, указанный в обеих масках, будет снят.
+    uint32 clear_bit_mask = 2;
 }
 
 // Ответ, содержащий битовые маски прав доступа.

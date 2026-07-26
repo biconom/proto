@@ -97,6 +97,11 @@ pub struct UserProfile {
     /// Информация о telegram.
     #[prost(message, optional, tag = "7")]
     pub telegram: ::core::option::Option<user_profile::Telegram>,
+    /// Пользовательская битовая маска флагов (интро, обучение и т.д.).
+    /// Семантику битов определяет фронтенд; бэкенд не интерпретирует.
+    /// Управление — UserService.GetCustomFlags / UserService.UpdateCustomFlags.
+    #[prost(uint32, tag = "8")]
+    pub custom_flags_bit_mask: u32,
 }
 /// Nested message and enum types in `UserProfile`.
 pub mod user_profile {
