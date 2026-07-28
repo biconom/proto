@@ -186,3 +186,20 @@
 > **Примечание об именовании ошибок**: коды `WINTIME_SHOP_*` — предполагаемые
 > строковые константы уровня `service::mod.rs`, добавляются на этапе реализации
 > механики (см. `types/wintime_shop.md`, раздел «Реализация»).
+
+## 5. История покупок (`ListPurchases`)
+
+ВСЯ история покупок дистрибьютора, новые сверху, **без пагинации, фильтров и
+total** — одним ответом: `ListPurchasesRequest { distributor_id (обязателен,
+0 → InvalidArgument WINTIME_SHOP_DISTRIBUTOR_REQUIRED) }` →
+`ListPurchasesResponse { items: biconom.types.Transaction.Group[], accounts,
+distributors, slots }`.
+
+Ответ — **формат клиентского `TransactionService.History`**: сервер по своей
+истории покупок находит группы транзакций списания WinTime в леджере и
+упаковывает их глазами аккаунта просматриваемого дистрибьютора — саппорт видит
+ровно те же «отфильтрованные транзакции» магазина, что и сам пользователь.
+Одна покупка = одна группа. Детали покупки — в `entry.details`
+(`WintimeShopPurchaseDetails`: `product_id`, `coupon_code`, `slot_id`,
+`voucher_id`, `tree_id`). История прошлых покупок дозаполнена миграцией
+core v01_09_92 из леджера (reason `WinTimeShopPurchase`).

@@ -2,6 +2,11 @@ syntax = "proto3";
 
 package biconom.client.wintime_shop;
 
+import "google/protobuf/empty.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/slot.proto";
+import "biconom/types/transaction.proto";
 import "biconom/types/wintime_shop.proto";
 
 // WintimeShopService — клиентская витрина WinTime-магазина.
@@ -29,6 +34,29 @@ service WintimeShopService {
     // Возвращается результат выдачи (лицензия ИЛИ купон) в зависимости от семейства
     // товара.
     rpc Purchase(biconom.types.WintimeShop.Product.Id) returns (PurchaseResponse);
+
+    // ВСЯ история СВОИХ покупок (новые сверху) — БЕЗ пагинации и фильтров:
+    // одним ответом возвращаются все покупки, когда-либо совершённые в
+    // магазине. Покупатель — из контекста авторизации. Возвращаются те же
+    // визуальные блоки транзакций, что и в `TransactionService.History` —
+    // аккаунт видит ОТФИЛЬТРОВАННЫЕ транзакции магазина: сервер по своей
+    // истории покупок находит транзакции списания WinTime в леджере, собирает
+    // их группы и упаковывает под просматривающий аккаунт. Детали покупки — в
+    // entry.details (`WintimeShopPurchaseDetails`: product_id, coupon_code,
+    // slot/voucher/tree).
+    rpc ListMyPurchases(google.protobuf.Empty) returns (ListMyPurchasesResponse);
+}
+
+// ПОЛНАЯ история своих покупок — формат `TransactionService.History`.
+message ListMyPurchasesResponse {
+    // Блоки транзакций ВСЕХ покупок, новые сверху (одна покупка = одна группа).
+    repeated biconom.types.Transaction.Group items = 1;
+    // Дедуплицированный список аккаунтов, упомянутых в транзакциях.
+    repeated biconom.types.Account accounts = 2;
+    // Дедуплицированный список дистрибьюторов, упомянутых в транзакциях.
+    repeated biconom.types.Distributor distributors = 3;
+    // Дедуплицированный список маркетинговых слотов, упомянутых в транзакциях.
+    repeated biconom.types.Slot slots = 4;
 }
 
 // Запрос списка товаров.
@@ -68,6 +96,9 @@ message PurchaseResponse {
     biconom.types.WintimeShop.Product product = 1;
     // Результат выдачи: лицензия дерева ИЛИ текстовый купон.
     biconom.types.WintimeShop.Delivery delivery = 2;
-    // Списано WinTime-токенов за покупку.
-    uint64 spent_wintime = 3;
+    // Финансовая транзакция этой покупки — тот же визуальный блок, что элемент
+    // `items` в `ListMyPurchases` / `TransactionService.History`, но ровно одна
+    // и без справочников (accounts/distributors/slots). Сумма списания — в
+    // entry.amount; детали — в entry.details (`WintimeShopPurchaseDetails`).
+    biconom.types.Transaction.Group transaction = 3;
 }

@@ -95,7 +95,8 @@ flowchart TD
 ### `rpc Purchase(WintimeShop.Product.Id) returns (PurchaseResponse)`
 - Купить товар за WinTime (адресация — `Product.Id`, `id` или `code`).
   Списывается `price_wintime`, возвращается выдача (`Delivery`: лицензия ИЛИ купон)
-  и `spent_wintime`.
+  и `transaction` — финансовая транзакция покупки (`biconom.types.Transaction.Group`,
+  блок формата `TransactionService.History`, без справочников).
 - **Ошибки**:
     - `NotFound` — товар не найден.
     - `FailedPrecondition` — товар недоступен (`available == false`).
@@ -145,6 +146,13 @@ flowchart TD
 | `Product` | Товар витрины: `id`, `code` (уникальный slug, неизменяем; фронт локализует по нему название/описание — сервер их не хранит), `kind` (вложенный enum `Product.Kind`: `TREE_LICENSE` / `TEXT_COUPON`, append-only), `price_wintime`, `available`, `stock_remaining`, `sold_total`, `spec` (oneof: `TreeLicenseSpec{tree_id}` / `TextCouponSpec{details}`). |
 | `Delivery` | Результат выдачи (oneof): `LicenseGrant{tree_id, slot_id, voucher_id}` / `CouponCode{code}`. |
 | `Stats` | Сводная статистика по товару. Для `TEXT_COUPON` дополнительно `coupons` — разбивка пула по статусам (`new` / `dispensed` / `cancelled`). |
+
+> **История покупок** собственной модели в types не имеет: `ListMyPurchases`
+> (client) и `ListPurchases` (admin) возвращают те же блоки
+> `biconom.types.Transaction.Group`, что и `TransactionService.History`, —
+> «отфильтрованные транзакции» магазина. Связку «покупка → транзакция леджера»
+> сервер хранит внутренне и использует как фильтр набора групп; детали покупки —
+> в `entry.details` (`WintimeShopPurchaseDetails`).
 
 ## 7. Права доступа
 

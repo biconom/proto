@@ -2,99 +2,21 @@ syntax = "proto3";
 
 package biconom.types;
 
-import "google/protobuf/timestamp.proto";
-
 // Переиспользуемые модели данных подсистемы WinTime (игровой токен-баланс).
 //
-// Типы вынесены отдельно от сервиса, чтобы их можно было использовать в разных API-методах
-// (клиентских и админских).
+// Осталась только живая модель `WinTime.Balance` (поле `win_time` в
+// `WalletCurrency.List`). Модели истории транзакций v1 (`TxType`, `TypeStat`,
+// `TransactionGroup`, `Transaction`) удалены вместе со старым движком WinTime:
+// текущая подсистема — событийный аккумулятор, её история отдаётся сервисом
+// `biconom.client.wintime.WintimeService` (этапы статусов + пересчёт дохода).
 
 // WinTime — пространство имён для моделей токен-баланса WinTime.
 message WinTime {
-    // Тип транзакции WinTime — стабильный дискриминант (метаданные не влияют на тип).
-    // Используется для фильтра выборки, суммарной статистики и группировки.
-    // Значения append-only: новый вид начисления добавляет новый тип в конец.
-    enum TxType {
-        UNSPECIFIED = 0; // Не указан
-        ADMIN_ADJUST = 1; // Ручная корректировка администратором
-        PASSIVE_BONUS = 2; // Поминутное пассивное начисление
-        REFERRAL_BONUS = 3; // Реферальный бонус за личника
-        SLOT_QUEST_REWARD = 4; // Призовая часть квеста слота
-    }
-
-    // Суммарная статистика по одному типу транзакций за всё время.
-    // sum знаковый: начисления +, списания −.
-    message TypeStat {
-        TxType type = 1; // Тип транзакций
-        uint64 count = 2; // Количество транзакций этого типа
-        int64 sum = 3; // Суммарная (знаковая) сумма этого типа
-    }
-
-    // Группа подряд идущих однотипных транзакций (схлопнутый отрезок выборки).
-    // Границы seq_from..seq_to и created_from..created_to идут в порядке выборки
-    // (forward — возрастание seq, backward — убывание).
-    message TransactionGroup {
-        TxType type = 1; // Тип транзакций группы
-        uint64 count = 2; // Количество транзакций в группе
-        int64 sum = 3; // Суммарная (знаковая) сумма группы
-        uint32 seq_from = 4; // seq первой транзакции группы (в порядке выборки)
-        uint32 seq_to = 5; // seq последней транзакции группы (в порядке выборки)
-        google.protobuf.Timestamp created_from = 6; // Время первой транзакции группы
-        google.protobuf.Timestamp created_to = 7; // Время последней транзакции группы
-        // Идентификатор группы (монотонный номер у дистрибьютора). Это и есть курсор
-        // пагинации: передайте group_seq в ListTransactionGroupsRequest.cursor.
-        uint32 group_seq = 8;
-    }
-
-    // Транзакция баланса WinTime.
-    message Transaction {
-        uint32 seq = 1; // Порядковый номер транзакции (курсор пагинации)
-        int64 amount = 2; // Сумма (знаковая: + начисление, − списание)
-        google.protobuf.Timestamp created_at = 3; // Время начисления
-
-        // Типизированные детали транзакции — по одному варианту на каждый вид начисления/списания.
-        // Идентификаторы (slot_id, child_distributor_id) обогащаются через справочники в корне ответа
-        // (BFF-паттерн): полные модели Slot/Distributor/Account доступны там по id.
-        reserved 7; // бывш. slot_depth_filled_bonus (удалён, заменён quest_reward)
-        oneof details {
-            AdminAdjustDetails admin_adjust = 4; // Ручная корректировка администратором
-            PassiveBonusDetails passive_bonus = 5; // Поминутное пассивное начисление
-            ReferralBonusDetails referral_bonus = 6; // Реферальный бонус за личника
-            QuestRewardDetails quest_reward = 8; // Призовая часть квеста слота
-        }
-
-        // Детали ручной корректировки администратором (без дополнительных данных).
-        message AdminAdjustDetails {}
-
-        // Детали поминутного пассивного начисления.
-        message PassiveBonusDetails {
-            uint32 multiplier = 1; // Множитель начисления (зависит от статуса/подписок)
-        }
-
-        // Детали реферального бонуса за личника.
-        message ReferralBonusDetails {
-            uint32 child_distributor_id = 1; // Личник, за которого начислен бонус (см. справочник distributors/accounts)
-            uint32 multiplier = 2; // Множитель начисления
-        }
-
-        // Детали призовой части квеста слота.
-        message QuestRewardDetails {
-            uint32 slot_id = 1; // Слот, выполнивший условие квеста (см. справочник slots/distributors/accounts)
-            uint32 quest_id = 2; // Какой именно квест (1 = первая+вторая линия; 2..6 — уровни 3..7)
-        }
-    }
-
     // Баланс WinTime владельца.
     message Balance {
-        int64 amount = 1; // Текущий баланс токенов
-        uint32 seq = 2; // Последний порядковый номер транзакции
-        // Последний номер группы (group_seq) владельца — «верхушка» материализованных
-        // групп. Удобно как стартовый курсор для ListTransactionGroups (backward).
-        // 0, если групп ещё нет.
-        uint32 group_seq = 3;
-        // Суммарная статистика по типам за всё время (по одной записи на тип с count > 0).
-        // Не зависит от фильтра/пагинации запроса — это агрегат за всю историю владельца.
-        // Едет в любом ответе с балансом (WinTimeService и WalletCurrencyService/List).
-        repeated TypeStat stats = 4;
+        // Поля курсоров/статистики истории v1 (seq, group_seq, stats) удалены —
+        // номера зарезервированы от переиспользования.
+        reserved 2, 3, 4;
+        int64 amount = 1; // Текущий баланс токенов (знаковый)
     }
 }

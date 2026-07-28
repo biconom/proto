@@ -71,7 +71,11 @@ flowchart TD
       уменьшенным остатком);
     - `delivery` (`WintimeShop.Delivery`): результат выдачи — `LicenseGrant` (для
       `TREE_LICENSE`) ИЛИ `CouponCode` (для `TEXT_COUPON`);
-    - `spent_wintime` (uint64): списано WinTime-токенов.
+    - `transaction` (`biconom.types.Transaction.Group`): финансовая транзакция
+      этой покупки — тот же визуальный блок, что элемент `items` в
+      `ListMyPurchases` / `TransactionService.History`, но один и без
+      справочников; сумма списания — в `entry.amount`, детали — в
+      `entry.details` (`WintimeShopPurchaseDetails`).
 - **Ошибки**:
     - `NotFound` (`WINTIME_SHOP_PRODUCT_NOT_FOUND`) — товар не найден.
     - `FailedPrecondition` (`WINTIME_SHOP_UNAVAILABLE`) — товар недоступен
@@ -107,3 +111,17 @@ flowchart TD
 > **Примечание об именовании ошибок**: коды `WINTIME_SHOP_*` — предполагаемые
 > строковые константы уровня `service::mod.rs`, добавляются на этапе реализации
 > механики (см. `types/wintime_shop.md`, раздел «Реализация»).
+
+## 6. История своих покупок (`ListMyPurchases`)
+
+ВСЯ история покупок текущего дистрибьютора (из контекста авторизации), новые
+сверху, **без пагинации, фильтров и total** — одним ответом:
+`ListMyPurchases(google.protobuf.Empty)` → `ListMyPurchasesResponse { items:
+biconom.types.Transaction.Group[], accounts, distributors, slots }`.
+
+Ответ — **формат `TransactionService.History`**: аккаунт видит ОТФИЛЬТРОВАННЫЕ
+транзакции магазина. Сервер по внутренней истории покупок находит группы
+транзакций списания WinTime в леджере и упаковывает их так же, как общую историю
+транзакций (одна покупка = одна группа). Детали покупки — в `entry.details`
+(`WintimeShopPurchaseDetails`: `product_id`, `coupon_code`, `slot_id`,
+`voucher_id`, `tree_id`); сумма entry — фактически списанная цена.

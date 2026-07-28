@@ -142,3 +142,11 @@ message WintimeShop {
         Coupons coupons = 6;        // Пул купонов по статусам (только TEXT_COUPON).
     }
 }
+
+// История покупок НЕ имеет собственной модели: списки покупок (client
+// `ListMyPurchases` / admin `ListPurchases`) возвращают те же визуальные блоки
+// транзакций (`biconom.types.Transaction.Group`), что и
+// `TransactionService.History`, — «отфильтрованные транзакции» магазина. Сервер
+// хранит связку «покупка → транзакция леджера» внутренне и использует её как
+// фильтр набора групп. Детали покупки видны в entry.details
+// (`WintimeShopPurchaseDetails`: product_id, coupon_code, slot/voucher/tree).

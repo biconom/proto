@@ -212,6 +212,29 @@ pub mod list_coupons_response {
         pub distributor_id: u32,
     }
 }
+/// Запрос истории покупок дистрибьютора.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListPurchasesRequest {
+    /// Покупатель. Обязателен (0 → InvalidArgument).
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+}
+/// ПОЛНАЯ история покупок — формат клиентского `TransactionService.History`.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListPurchasesResponse {
+    /// Блоки транзакций ВСЕХ покупок, новые сверху (одна покупка = одна группа).
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<super::super::types::transaction::Group>,
+    /// Дедуплицированный список аккаунтов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "2")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+    /// Дедуплицированный список дистрибьюторов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "3")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    /// Дедуплицированный список маркетинговых слотов, упомянутых в транзакциях.
+    #[prost(message, repeated, tag = "4")]
+    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
+}
 /// Статус текстового кода в пуле товара-купона.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -346,6 +369,20 @@ pub mod wintime_shop_admin_service_server {
             >,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::wintime_shop::Stats>,
+            tonic::Status,
+        >;
+        /// ВСЯ история покупок дистрибьютора (новые сверху) — БЕЗ пагинации и
+        /// фильтров, одним ответом. `distributor_id` обязателен (0 →
+        /// InvalidArgument). Возвращаются те же визуальные блоки транзакций, что и
+        /// в клиентском `TransactionService.History`, упакованные глазами аккаунта
+        /// дистрибьютора — саппорт видит ровно те «отфильтрованные транзакции»
+        /// магазина, что и сам пользователь. Детали покупки — в entry.details
+        /// (`WintimeShopPurchaseDetails`: product_id, coupon_code, slot/voucher/tree).
+        async fn list_purchases(
+            &self,
+            request: tonic::Request<super::ListPurchasesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListPurchasesResponse>,
             tonic::Status,
         >;
     }
@@ -813,6 +850,55 @@ pub mod wintime_shop_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetStatsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.wintime_shop.WintimeShopAdminService/ListPurchases" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListPurchasesSvc<T: WintimeShopAdminService>(pub Arc<T>);
+                    impl<
+                        T: WintimeShopAdminService,
+                    > tonic::server::UnaryService<super::ListPurchasesRequest>
+                    for ListPurchasesSvc<T> {
+                        type Response = super::ListPurchasesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListPurchasesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WintimeShopAdminService>::list_purchases(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListPurchasesSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

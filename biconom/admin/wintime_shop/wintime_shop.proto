@@ -4,6 +4,10 @@ package biconom.admin.wintime_shop;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "biconom/types/account.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/slot.proto";
+import "biconom/types/transaction.proto";
 import "biconom/types/wintime_shop.proto";
 
 // WintimeShopAdminService — админское управление WinTime-магазином.
@@ -71,6 +75,17 @@ service WintimeShopAdminService {
 
     // Сводная статистика по товару (остаток, всего продано, доступность).
     rpc GetStats(biconom.types.WintimeShop.Product.Id) returns (biconom.types.WintimeShop.Stats);
+
+    // ─── История покупок ──────────────────────────────────────────────
+
+    // ВСЯ история покупок дистрибьютора (новые сверху) — БЕЗ пагинации и
+    // фильтров, одним ответом. `distributor_id` обязателен (0 →
+    // InvalidArgument). Возвращаются те же визуальные блоки транзакций, что и
+    // в клиентском `TransactionService.History`, упакованные глазами аккаунта
+    // дистрибьютора — саппорт видит ровно те «отфильтрованные транзакции»
+    // магазина, что и сам пользователь. Детали покупки — в entry.details
+    // (`WintimeShopPurchaseDetails`: product_id, coupon_code, slot/voucher/tree).
+    rpc ListPurchases(ListPurchasesRequest) returns (ListPurchasesResponse);
 }
 
 // Запрос создания/обновления товара.
@@ -201,4 +216,22 @@ message ListCouponsResponse {
     repeated Item items = 1;
     // Всего кодов под выбранным фильтром (для пагинации).
     uint64 total = 2;
+}
+
+// Запрос истории покупок дистрибьютора.
+message ListPurchasesRequest {
+    // Покупатель. Обязателен (0 → InvalidArgument).
+    uint32 distributor_id = 1;
+}
+
+// ПОЛНАЯ история покупок — формат клиентского `TransactionService.History`.
+message ListPurchasesResponse {
+    // Блоки транзакций ВСЕХ покупок, новые сверху (одна покупка = одна группа).
+    repeated biconom.types.Transaction.Group items = 1;
+    // Дедуплицированный список аккаунтов, упомянутых в транзакциях.
+    repeated biconom.types.Account accounts = 2;
+    // Дедуплицированный список дистрибьюторов, упомянутых в транзакциях.
+    repeated biconom.types.Distributor distributors = 3;
+    // Дедуплицированный список маркетинговых слотов, упомянутых в транзакциях.
+    repeated biconom.types.Slot slots = 4;
 }

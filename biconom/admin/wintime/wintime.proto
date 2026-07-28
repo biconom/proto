@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package biconom.admin.wintime;
+
+import "google/protobuf/timestamp.proto";
+
+// WintimeAdminService — СЫРАЯ история статус-событий WinTime по ПРОИЗВОЛЬНОМУ
+// дистрибьютору (саппорт: подтвердить пользователю, когда и почему менялась
+// скорость начисления / произошёл откат множителя). В отличие от клиентского
+// `biconom.client.wintime.WintimeService` (этапы с булевыми статусами и
+// пересчётом дохода), админский отдаёт журнал как есть: Registered +
+// MaskChanged с сырой маской — вид для диагностики.
+//
+// Доступ — только под Permission::ROOT.
+service WintimeAdminService {
+    // Полная история статус-событий дистрибьютора в хронологическом порядке
+    // (старые → новые), без пагинации. `distributor_id` обязателен
+    // (0 → InvalidArgument).
+    rpc GetMaskHistory(GetMaskHistoryRequest) returns (MaskHistoryResponse);
+}
+
+// Запрос истории статус-событий дистрибьютора.
+message GetMaskHistoryRequest {
+    // Дистрибьютор. Обязателен (0 → InvalidArgument).
+    uint32 distributor_id = 1;
+}
+
+// Полная СЫРАЯ история статус-событий дистрибьютора (журнал как есть).
+message MaskHistoryResponse {
+    // Одно событие durable-журнала WinTime.
+    message Item {
+        // Вид события журнала.
+        enum Kind {
+            KIND_UNSPECIFIED = 0;
+            // Регистрация дистрибьютора в WinTime.
+            KIND_REGISTERED = 1;
+            // Смена статус-маски (готовое итоговое значение).
+            KIND_MASK_CHANGED = 2;
+        }
+        Kind kind = 1;
+        // Бизнес-дата события (когда фактически применилось).
+        google.protobuf.Timestamp ts = 2;
+        // Маска ПОСЛЕ события (для KIND_MASK_CHANGED; у KIND_REGISTERED — 0).
+        // Биты: 1<<0 — регистрация, 1<<1 — дерево Lite, 1<<2 — дерево Pro.
+        uint32 mask = 3;
+        // Множитель скорости дохода, соответствующий маске (серверная LUT).
+        uint32 multiplier = 4;
+    }
+
+    // Хронологический порядок (старые → новые), ПОЛНЫЙ список без пагинации.
+    repeated Item items = 1;
+}
