@@ -36,8 +36,12 @@ pub struct ClientProduct {
     /// покупается один раз на дерево).
     #[prost(uint64, tag = "2")]
     pub purchased_by_me: u64,
-    /// Доступен ли товар к покупке ИМЕННО этому покупателю прямо сейчас
-    /// (эквивалент `status == STATUS_AVAILABLE`; сохранено для совместимости).
+    /// Может ли покупатель приобрести товар ПО ЛИЧНОМУ УСЛОВИЮ: для
+    /// TREE_LICENSE — у него не было слота в этом дереве; для TEXT_COUPON —
+    /// всегда true. НЕ учитывает витринную доступность и наличие (их несут
+    /// `status` и `stock_remaining`): товар с `purchasable_by_me == true` может
+    /// быть STATUS_OUT_OF_STOCK или STATUS_COMING_SOON. Агрегат «можно купить
+    /// прямо сейчас» — это `status == STATUS_AVAILABLE`.
     #[prost(bool, tag = "3")]
     pub purchasable_by_me: bool,
     /// Статус товара для этого покупателя (см. enum Status и его приоритеты).
