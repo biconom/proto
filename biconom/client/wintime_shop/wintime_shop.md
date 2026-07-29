@@ -48,19 +48,29 @@ flowchart TD
 
 ## 3. Описание методов (RPC)
 
-### `rpc ListProducts(ListProductsRequest) returns (WintimeShop.Product.List)`
+### `rpc ListProducts(ListProductsRequest) returns (ClientProduct.List)`
 - **Назначение**: список товаров витрины.
 - **Входные параметры** (`ListProductsRequest`):
     - `include_unavailable` (bool): включать ли недоступные к покупке товары
       (`available == false`). По умолчанию `false` — только доступные. `true`
       показывает и скрытые (превью «coming soon»).
-- **Возвращаемое значение**: `WintimeShop.Product.List`.
+- **Возвращаемое значение**: `ClientProduct.List` — карточки, обогащённые
+  персональными полями покупателя (см. ниже).
 
-### `rpc GetProduct(WintimeShop.Product.Id) returns (WintimeShop.Product)`
+### `rpc GetProduct(WintimeShop.Product.Id) returns (ClientProduct)`
 - **Назначение**: карточка одного товара (в т.ч. недоступного).
 - **Входные параметры**: `Product.Id` — по числовому `id` или строковому `code`.
-- **Возвращаемое значение**: `WintimeShop.Product`.
+- **Возвращаемое значение**: `ClientProduct`.
 - **Ошибки**: `NotFound` (`WINTIME_SHOP_PRODUCT_NOT_FOUND`) — товар не найден.
+
+#### `ClientProduct` — персональные поля карточки
+
+| Поле | Значение |
+|---|---|
+| `product` | Базовая карточка каталога (`WintimeShop.Product`). |
+| `purchased_by_me` | Сколько единиц покупатель приобрёл лично (для `TREE_LICENSE` — 0 или 1). |
+| `purchasable_by_me` | Эквивалент `status == STATUS_AVAILABLE` (сохранён для совместимости). |
+| `status` | Агрегатный статус ДЛЯ покупателя: `AVAILABLE` — можно купить; `RESTRICTED` — нельзя по личному условию (для `TREE_LICENSE` — уже владел деревом); `COMING_SOON` — товар скрыт админом («скоро будет»); `OUT_OF_STOCK` — доступен, но нет в наличии. Приоритет при пересечении: `COMING_SOON` → `RESTRICTED` → `OUT_OF_STOCK` → `AVAILABLE` (личное ограничение выше «нет в наличии»: пополнение остатка такому покупателю не поможет). |
 
 ### `rpc Purchase(WintimeShop.Product.Id) returns (PurchaseResponse)`
 - **Назначение**: купить товар за WinTime-токены.

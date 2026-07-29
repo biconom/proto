@@ -1,6 +1,6 @@
-# CHANGELOG: 28–29 Июля 2026 (proto v0.3.6, core v1.9.93)
+# CHANGELOG: 28–29 Июля 2026 (proto v0.3.7, core v1.9.93)
 
-Сводка изменений API после релиза от 26 июля. Три блока:
+Сводка изменений API после релиза от 26 июля. Четыре блока:
 
 1. **История покупок WinTime-магазина** — `ListMyPurchases` (client) +
    `ListPurchases` (admin) в формате `TransactionService.History`;
@@ -9,7 +9,8 @@
    `biconom.client.wintime.WintimeService` (этапы пассива + доходы за
    приглашения + общий доход) и `biconom.admin.wintime.WintimeAdminService`
    (сырой журнал).
-3. **Чистка `types/win_time.proto`** — удалено наследие WinTime v1.
+3. **Статус товара для покупателя** — `ClientProduct.status` (enum, аддитивно).
+4. **Чистка `types/win_time.proto`** — удалено наследие WinTime v1.
 
 > ⚠️ **Breaking для фронта — один пункт**: в `WintimeShopService.PurchaseResponse`
 > поле №3 сменило тип (`uint64 spent_wintime` → `biconom.types.Transaction.Group
@@ -146,7 +147,33 @@ message GetMaskHistoryRequest { uint32 distributor_id = 1; } // 0 → WINTIME_DI
 
 ---
 
-## 3. 🧹 Чистка `biconom/types/win_time.proto` (наследие WinTime v1)
+## 3. 🏷️ Статус товара для покупателя — `ClientProduct.status`
+
+Аддитивное поле в `biconom.client.wintime_shop.ClientProduct` (возвращается
+`ListProducts` / `GetProduct`) — агрегат доступности карточки глазами покупателя:
+
+```protobuf
+message ClientProduct {
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_AVAILABLE = 1;    // доступен к покупке прямо сейчас
+        STATUS_RESTRICTED = 2;   // нельзя по ЛИЧНОМУ условию (TREE_LICENSE: уже владел деревом)
+        STATUS_COMING_SOON = 3;  // товар скрыт админом («скоро будет»)
+        STATUS_OUT_OF_STOCK = 4; // доступен, но нет в наличии (квота/пул исчерпаны)
+    }
+    // ... product = 1, purchased_by_me = 2, purchasable_by_me = 3 (без изменений)
+    Status status = 4; // новое поле
+}
+```
+
+Приоритет при пересечении условий: `COMING_SOON` → `RESTRICTED` →
+`OUT_OF_STOCK` → `AVAILABLE`. Личное ограничение сильнее «нет в наличии»:
+пополнение остатка такому покупателю не поможет. `purchasable_by_me` сохранён и
+эквивалентен `status == STATUS_AVAILABLE`.
+
+---
+
+## 4. 🧹 Чистка `biconom/types/win_time.proto` (наследие WinTime v1)
 
 Из файла удалены мёртвые модели истории транзакций v1 — `TxType`, `TypeStat`,
 `TransactionGroup`, `Transaction` (+ Details): API v1 удалён вместе со старым

@@ -36,12 +36,13 @@ pub struct ClientProduct {
     /// покупается один раз на дерево).
     #[prost(uint64, tag = "2")]
     pub purchased_by_me: u64,
-    /// Доступен ли товар к покупке ИМЕННО этому покупателю прямо сейчас:
-    /// `available` && `stock_remaining > 0` && (для TREE_LICENSE — у покупателя
-    /// НИКОГДА не было слота в соответствующем дереве).
-    /// Для TEXT_COUPON совпадает с (`available` && остаток > 0).
+    /// Доступен ли товар к покупке ИМЕННО этому покупателю прямо сейчас
+    /// (эквивалент `status == STATUS_AVAILABLE`; сохранено для совместимости).
     #[prost(bool, tag = "3")]
     pub purchasable_by_me: bool,
+    /// Статус товара для этого покупателя (см. enum Status и его приоритеты).
+    #[prost(enumeration = "client_product::Status", tag = "4")]
+    pub status: i32,
 }
 /// Nested message and enum types in `ClientProduct`.
 pub mod client_product {
@@ -50,6 +51,61 @@ pub mod client_product {
     pub struct List {
         #[prost(message, repeated, tag = "1")]
         pub items: ::prost::alloc::vec::Vec<super::ClientProduct>,
+    }
+    /// Статус товара ДЛЯ этого покупателя — агрегат доступности одной карточки.
+    /// Приоритет при пересечении условий: STATUS_COMING_SOON (товар скрыт
+    /// админом — глобальное состояние витрины) → STATUS_RESTRICTED (личное
+    /// ограничение: пополнение остатка покупателю не поможет) →
+    /// STATUS_OUT_OF_STOCK → STATUS_AVAILABLE.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum Status {
+        Unspecified = 0,
+        /// Доступен этому покупателю к покупке прямо сейчас.
+        Available = 1,
+        /// Покупатель НЕ может приобрести по личному условию: для TREE_LICENSE —
+        /// у него уже был слот в этом дереве (гейт «один раз на дерево»).
+        Restricted = 2,
+        /// Товар недоступен на витрине (скрыт админом — «скоро будет»).
+        ComingSoon = 3,
+        /// Товар доступен, но нет в наличии (квота исчерпана / пул кодов пуст).
+        OutOfStock = 4,
+    }
+    impl Status {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "STATUS_UNSPECIFIED",
+                Self::Available => "STATUS_AVAILABLE",
+                Self::Restricted => "STATUS_RESTRICTED",
+                Self::ComingSoon => "STATUS_COMING_SOON",
+                Self::OutOfStock => "STATUS_OUT_OF_STOCK",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                "STATUS_AVAILABLE" => Some(Self::Available),
+                "STATUS_RESTRICTED" => Some(Self::Restricted),
+                "STATUS_COMING_SOON" => Some(Self::ComingSoon),
+                "STATUS_OUT_OF_STOCK" => Some(Self::OutOfStock),
+                _ => None,
+            }
+        }
     }
 }
 /// Ответ на покупку — что получил покупатель.
