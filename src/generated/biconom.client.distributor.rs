@@ -42,6 +42,23 @@ pub struct Response {
     pub auto_reinvest: ::core::option::Option<
         super::super::types::dividend_pool::AutoReinvestState,
     >,
+    /// Вышестоящий дистрибьютор (спонсор). Отдаётся всегда, когда он есть;
+    /// отсутствует только у корня сети (`distributor.parent_id == 0`).
+    #[prost(message, optional, tag = "9")]
+    pub parent: ::core::option::Option<response::Parent>,
+}
+/// Nested message and enum types in `Response`.
+pub mod response {
+    /// Вышестоящий дистрибьютор (спонсор) — разрешённая ссылка `distributor.parent_id`.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Parent {
+        /// Аккаунт-владелец вышестоящего дистрибьютора.
+        #[prost(message, optional, tag = "1")]
+        pub account: ::core::option::Option<super::super::super::types::Account>,
+        /// Сам вышестоящий дистрибьютор.
+        #[prost(message, optional, tag = "2")]
+        pub distributor: ::core::option::Option<super::super::super::types::Distributor>,
+    }
 }
 /// ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
 /// Он содержит дедуплицированные списки связанных объектов, что позволяет клиенту легко сопоставить их

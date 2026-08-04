@@ -33,6 +33,14 @@ service DistributorService {
 // Такой подход (Data Transfer Object) позволяет клиенту получить всю необходимую информацию
 // (дистрибьютор, его владелец-аккаунт и сеть) за один запрос, избегая дополнительных обращений.
 message Response {
+	// Вышестоящий дистрибьютор (спонсор) — разрешённая ссылка `distributor.parent_id`.
+	message Parent {
+		// Аккаунт-владелец вышестоящего дистрибьютора.
+		biconom.types.Account account = 1;
+		// Сам вышестоящий дистрибьютор.
+		biconom.types.Distributor distributor = 2;
+	}
+
 	// Аккаунт-владелец дистрибьютора.
 	biconom.types.Account account = 1;
 	// Сам дистрибьютор.
@@ -52,6 +60,9 @@ message Response {
 	// Состояние авто-реинвеста (если когда-либо выбирался) — та же модель, что в
 	// GetDividendPool/GetAutoReinvest. Заполняется только при просмотре своего профиля.
 	optional biconom.types.DividendPool.AutoReinvestState auto_reinvest = 8;
+	// Вышестоящий дистрибьютор (спонсор). Отдаётся всегда, когда он есть;
+	// отсутствует только у корня сети (`distributor.parent_id == 0`).
+	optional Parent parent = 9;
 }
 
 // ListResponse - это ответ для списка сущностей, который включает в себя связанные данные.
