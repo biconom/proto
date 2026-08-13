@@ -4975,6 +4975,880 @@ pub mod price {
         pub items: ::prost::alloc::vec::Vec<super::Price>,
     }
 }
+/// Staking — пространство имён моделей стейкинга.
+///
+/// ─────────────────────────────────────────────────────────────────────
+/// Депозит
+/// ─────────────────────────────────────────────────────────────────────
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Staking {}
+/// Nested message and enum types in `Staking`.
+pub mod staking {
+    /// Отдельное вложение партнёра. Имеет собственный счёт-леджер
+    /// (`Ledger.Owner.staking_deposit_id`), собственное расписание циклов и
+    /// собственные настройки реинвеста.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Deposit {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        /// Владелец депозита.
+        #[prost(uint32, tag = "2")]
+        pub distributor_id: u32,
+        /// Счёт депозита в леджере. Его баланс И ЕСТЬ тело: отдельного поля с телом
+        /// в хранилище не существует, поле `body` ниже — материализация для API.
+        #[prost(uint64, tag = "3")]
+        pub ledger_id: u64,
+        /// Валюта депозита. Сейчас всегда USDT.
+        ///
+        /// ГАРАНТИЯ: ВСЕ денежные поля этого депозита (`initial_amount`, `body`,
+        /// `total_income_paid`, суммы в его событиях журнала) выражены ИМЕННО в
+        /// этой валюте. Смешения валют внутри одного депозита не бывает.
+        ///
+        /// Поле присутствует ради явности и на будущее, но программа сейчас
+        /// моно-валютная: требования рангов и сетка тиров заданы в одной валюте
+        /// (`Config.currency_id`), поэтому депозит в другой валюте сломал бы
+        /// расчёт вклада и оборота. Мультивалютность требует отдельного решения.
+        #[prost(uint32, tag = "4")]
+        pub currency_id: u32,
+        /// ── Деньги ──
+        /// Сумма на момент создания. НЕ МЕНЯЕТСЯ никогда.
+        #[prost(string, tag = "5")]
+        pub initial_amount: ::prost::alloc::string::String,
+        /// Тело депозита. Для активного — текущий баланс счёта; для закрытого —
+        /// тело на момент закрытия (счёт уже обнулён, значение сохранено для истории).
+        ///
+        /// Растёт только реинвестом дохода, поэтому
+        /// «сколько ушло в реинвест» = `body` − `initial_amount`. Отдельного поля
+        /// для этой величины намеренно нет — она выводится из двух имеющихся.
+        #[prost(string, tag = "6")]
+        pub body: ::prost::alloc::string::String,
+        /// Сколько дохода начислено за всё время по этому депозиту — независимо от
+        /// того, ушёл он на кошелёк или в тело. НЕ выводится из `body`, поэтому
+        /// хранится отдельно.
+        #[prost(string, tag = "7")]
+        pub total_income_paid: ::prost::alloc::string::String,
+        #[prost(enumeration = "deposit::status::Id", tag = "8")]
+        pub status: i32,
+        #[prost(enumeration = "deposit::source::Id", tag = "9")]
+        pub source: i32,
+        /// Закрытый депозит, тело которого открыло этот. Заполнено только при
+        /// `source == SOURCE_BODY_REINVEST`, иначе 0.
+        #[prost(uint32, tag = "10")]
+        pub source_deposit_id: u32,
+        /// ── Расписание ──
+        /// Тарифный план (снимок на момент создания). Сейчас всегда 1.
+        #[prost(uint32, tag = "11")]
+        pub plan_id: u32,
+        /// Сколько выплат должно быть всего (снимок). Сейчас 12.
+        #[prost(uint32, tag = "12")]
+        pub cycles_total: u32,
+        /// Длина цикла в секундах (снимок). Сейчас 2592000 = 30 суток.
+        #[prost(uint32, tag = "13")]
+        pub cycle_interval_secs: u32,
+        /// Сколько выплат уже реализовано. Стартует с 0, не превышает `cycles_total`.
+        #[prost(uint32, tag = "14")]
+        pub cycles_done: u32,
+        /// Момент создания депозита. Он же — точка отсчёта расписания:
+        /// первая выплата через `cycle_interval_secs` после него.
+        #[prost(message, optional, tag = "15")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// ПЛАНОВЫЙ момент следующей выплаты. Пусто у закрытого депозита.
+        #[prost(message, optional, tag = "16")]
+        pub next_payout_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Плановый момент последней реализованной выплаты. Пусто, если выплат не было.
+        #[prost(message, optional, tag = "17")]
+        pub last_cycle_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Пусто, пока депозит активен.
+        #[prost(message, optional, tag = "18")]
+        pub closed_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Момент последнего изменения записи.
+        #[prost(message, optional, tag = "22")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// ── Реинвест ──
+        /// Реинвест ПРИБЫЛИ: применённое значение — по нему отработает БЛИЖАЙШАЯ выплата.
+        #[prost(bool, tag = "19")]
+        pub reinvest_profit_applied: bool,
+        /// Реинвест ПРИБЫЛИ: что установил партнёр. Отличается от `applied`, когда
+        /// подана заявка на отключение: ближайшая выплата ещё уйдёт в тело,
+        /// следующая — на кошелёк.
+        #[prost(bool, tag = "20")]
+        pub reinvest_profit_requested: bool,
+        /// Реинвест ВСЕГО ДЕПОЗИТА: при закрытии тело автоматически откроет новый
+        /// депозит. Читается один раз, в момент закрытия.
+        #[prost(bool, tag = "21")]
+        pub reinvest_deposit: bool,
+    }
+    /// Nested message and enum types in `Deposit`.
+    pub mod deposit {
+        /// Идентификатор депозита. `oneof` — на случай появления
+        /// альтернативной адресации, как у `WintimeShop.Product.Id`.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(oneof = "id::Identifier", tags = "1")]
+            pub identifier: ::core::option::Option<id::Identifier>,
+        }
+        /// Nested message and enum types in `Id`.
+        pub mod id {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum Identifier {
+                #[prost(uint32, tag = "1")]
+                Id(u32),
+            }
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Deposit>,
+        }
+        /// Состояние депозита.
+        ///
+        /// Сейчас состояний ровно два, и поле могло бы быть булевым. Оставлено
+        /// перечислением осознанно: (1) в проекте статус сущности везде enum
+        /// (`Ledger.Status`, `Wallet.Status`, `PaymentNetwork.Status`) —
+        /// единообразие важнее экономии одного поля; (2) добавить значение в enum
+        /// — совместимое изменение, а заменить `bool` на enum позже — ломающее.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Status {}
+        /// Nested message and enum types in `Status`.
+        pub mod status {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                /// Выполнены не все циклы. Тело учитывается в сумме активных
+                /// депозитов и влияет на тир партнёра.
+                Active = 1,
+                /// Все циклы выполнены, тело возвращено на кошелёк. В сумму
+                /// активных депозитов не входит, на тир не влияет.
+                Closed = 2,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Active => "ACTIVE",
+                        Self::Closed => "CLOSED",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "ACTIVE" => Some(Self::Active),
+                        "CLOSED" => Some(Self::Closed),
+                        _ => None,
+                    }
+                }
+            }
+        }
+        /// Откуда взялся депозит.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Source {}
+        /// Nested message and enum types in `Source`.
+        pub mod source {
+            #[derive(
+                Clone,
+                Copy,
+                Debug,
+                PartialEq,
+                Eq,
+                Hash,
+                PartialOrd,
+                Ord,
+                ::prost::Enumeration
+            )]
+            #[repr(i32)]
+            pub enum Id {
+                Unspecified = 0,
+                /// Партнёр создал вручную, деньги списаны с его кошелька.
+                Manual = 1,
+                /// Открыт автоматически при закрытии предыдущего депозита, у
+                /// которого был включён `reinvest_deposit`. Предыдущий депозит —
+                /// в `source_deposit_id`; оно заполнено ТОЛЬКО при этом значении.
+                BodyReinvest = 2,
+            }
+            impl Id {
+                /// String value of the enum field names used in the ProtoBuf definition.
+                ///
+                /// The values are not transformed in any way and thus are considered stable
+                /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                pub fn as_str_name(&self) -> &'static str {
+                    match self {
+                        Self::Unspecified => "UNSPECIFIED",
+                        Self::Manual => "MANUAL",
+                        Self::BodyReinvest => "BODY_REINVEST",
+                    }
+                }
+                /// Creates an enum from field names used in the ProtoBuf definition.
+                pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                    match value {
+                        "UNSPECIFIED" => Some(Self::Unspecified),
+                        "MANUAL" => Some(Self::Manual),
+                        "BODY_REINVEST" => Some(Self::BodyReinvest),
+                        _ => None,
+                    }
+                }
+            }
+        }
+    }
+    /// Агрегаты по депозитам ОДНОГО партнёра.
+    ///
+    /// НЕ зависят от фильтра списка: если запрошены только активные депозиты,
+    /// здесь всё равно и активные, и итоги за всё время. Это позволяет странице
+    /// «мои депозиты» обойтись ОДНИМ запросом вместо списка + отдельной сводки.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct DepositsSummary {
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// ── Активные сейчас ──
+        #[prost(uint32, tag = "2")]
+        pub active_count: u32,
+        /// Сумма тел активных депозитов. Это и есть база выбора тира.
+        #[prost(string, tag = "3")]
+        pub active_total: ::prost::alloc::string::String,
+        /// Текущая ставка тира за цикл — коэффициент строкой. Пусто, если
+        /// активных депозитов нет.
+        #[prost(string, tag = "4")]
+        pub current_rate: ::prost::alloc::string::String,
+        /// ── За всё время ──
+        #[prost(uint32, tag = "5")]
+        pub total_count: u32,
+        /// Сумма `initial_amount` по всем депозитам — сколько РЕАЛЬНЫХ денег внесено.
+        /// Прокрутка тела сюда попадает как новый депозит, но без учёта роста тела.
+        #[prost(string, tag = "6")]
+        pub invested_total: ::prost::alloc::string::String,
+        /// Личный ВКЛАД для рангов: сумма максимальных тел по всем депозитам,
+        /// включая закрытые и включая прирост от реинвеста. Всегда ≥ `invested_total`;
+        /// разница показывает, сколько объёма создано реинвестом, а не новыми деньгами.
+        #[prost(string, tag = "7")]
+        pub personal_volume: ::prost::alloc::string::String,
+        /// ── Доход ──
+        /// Начислено дохода за всё время по всем депозитам.
+        #[prost(string, tag = "8")]
+        pub total_income_paid: ::prost::alloc::string::String,
+        /// Сколько из начисленного ушло обратно в тела депозитов.
+        #[prost(string, tag = "9")]
+        pub total_reinvested: ::prost::alloc::string::String,
+    }
+    /// Ступень СОБСТВЕННОЙ доходности.
+    ///
+    /// Ставка выбирается по сумме тел АКТИВНЫХ депозитов партнёра в момент
+    /// начисления и применяется к телу конкретного депозита. Величина
+    /// динамическая: она не «достигается» и не фиксируется — пересчитывается на
+    /// каждой выплате.
+    ///
+    /// Это НЕ ранг: тир не даёт ничего с чужих депозитов и может как расти,
+    /// так и падать.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Tier {
+        /// Нижняя граница суммы активных депозитов, с которой действует ставка.
+        #[prost(string, tag = "1")]
+        pub min_active_total: ::prost::alloc::string::String,
+        /// Ставка за один цикл — КОЭФФИЦИЕНТ строкой: 5% → "0.05", 10% → "0.10".
+        /// Умножается на тело депозита напрямую.
+        #[prost(string, tag = "2")]
+        pub rate: ::prost::alloc::string::String,
+    }
+    /// Nested message and enum types in `Tier`.
+    pub mod tier {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Tier>,
+        }
+    }
+    /// Ступень карьерной лестницы — определяет долю партнёра в реферальной
+    /// раздаче с ЧУЖИХ депозитов и разовый бонус за достижение.
+    ///
+    /// Значения захардкожены в сервисе, отдаются read-only.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Rank {
+        /// Номер ранга 1..12.
+        #[prost(uint32, tag = "1")]
+        pub rank: u32,
+        /// Доля в реферальной лестнице — КОЭФФИЦИЕНТ строкой: 5% → "0.05",
+        /// 16% → "0.16". Каждый вышестоящий получает
+        /// `база × (свой коэффициент − уже выплаченный)`.
+        #[prost(string, tag = "2")]
+        pub referral_rate: ::prost::alloc::string::String,
+        /// Требуемый личный ВКЛАД: сумма максимальных тел по всем депозитам,
+        /// когда-либо созданным партнёром, включая закрытые.
+        #[prost(string, tag = "3")]
+        pub required_personal_volume: ::prost::alloc::string::String,
+        /// Требуемый командный ОБОРОТ. ОТСУТСТВУЕТ у ранга 1 — он берётся одним
+        /// личным вкладом. Пустое значение означает «требования нет», а не «ноль».
+        #[prost(string, optional, tag = "4")]
+        pub required_team_volume: ::core::option::Option<::prost::alloc::string::String>,
+        /// Максимум, который ОДНА ветка первой линии может дать в командный оборот.
+        /// Задан СУММОЙ, а не долей, чтобы на разных рангах можно было задать разные
+        /// правила. По умолчанию — треть `required_team_volume`, округлённая ВВЕРХ:
+        /// три максимальные ветки обязаны покрывать 100% требования, иначе ранг
+        /// недостижим даже теоретически. Отсутствует там же, где и оборот.
+        #[prost(string, optional, tag = "5")]
+        pub max_per_leg: ::core::option::Option<::prost::alloc::string::String>,
+        /// Разовый бонус за достижение ранга. ОТСУТСТВУЕТ у рангов 1..3.
+        /// Пустое значение означает «бонуса нет», а не «ноль».
+        #[prost(string, optional, tag = "6")]
+        pub achievement_bonus: ::core::option::Option<::prost::alloc::string::String>,
+    }
+    /// Nested message and enum types in `Rank`.
+    pub mod rank {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Rank>,
+        }
+    }
+    /// ИЗМЕНЯЕМЫЕ настройки модуля.
+    ///
+    /// В отличие от таблицы рангов и сетки тиров, которые захардкожены и меняются
+    /// только пересборкой, эти четыре значения — операционные рычаги: админ меняет
+    /// их на лету через `UpdateSettings`, изменение персистентно и переживает рестарт.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Settings {
+        /// Минимальная сумма создания депозита. На реинвест прибыли НЕ действует:
+        /// в тело добавляется любая начисленная сумма, даже меньше минимума.
+        #[prost(string, tag = "1")]
+        pub min_deposit: ::prost::alloc::string::String,
+        /// Значение `Deposit.reinvest_profit_*` по умолчанию для НОВЫХ депозитов.
+        /// Считывается в момент создания, если клиент не задал своё.
+        #[prost(bool, tag = "2")]
+        pub default_reinvest_profit: bool,
+        /// Значение `Deposit.reinvest_deposit` по умолчанию для НОВЫХ депозитов.
+        #[prost(bool, tag = "3")]
+        pub default_reinvest_deposit: bool,
+        /// Глобальный статус модуля: можно ли покупать новые депозиты.
+        /// Уже открытые депозиты продолжают работать при PAUSED.
+        #[prost(enumeration = "service_status::Id", tag = "4")]
+        pub service_status: i32,
+    }
+    /// Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Config {
+        /// Валюта программы. Все суммы в `ranks`, `tiers` и `settings.min_deposit`
+        /// выражены в ней. Сейчас всегда USDT.
+        ///
+        /// Программа моно-валютная по построению: вклад и оборот суммируются
+        /// между депозитами, поэтому депозиты в разных валютах сложить нельзя.
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// 12 рангов по возрастанию. Захардкожены, read-only.
+        #[prost(message, repeated, tag = "2")]
+        pub ranks: ::prost::alloc::vec::Vec<Rank>,
+        /// Сетка тиров по возрастанию порога. Захардкожена, read-only.
+        #[prost(message, repeated, tag = "3")]
+        pub tiers: ::prost::alloc::vec::Vec<Tier>,
+        /// Число циклов депозита. Захардкожено, read-only.
+        #[prost(uint32, tag = "4")]
+        pub cycles_total: u32,
+        /// Длина цикла в секундах. Захардкожена, read-only.
+        #[prost(uint32, tag = "5")]
+        pub cycle_interval_secs: u32,
+        /// Изменяемая админом часть.
+        #[prost(message, optional, tag = "6")]
+        pub settings: ::core::option::Option<Settings>,
+    }
+    /// Вклад одной ветки первой линии в командный оборот — с раскрытием, почему
+    /// засчиталось именно столько. Главный ответ на вопрос «почему не взял ранг».
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Leg {
+        /// Лидер ветки — партнёр первой линии.
+        #[prost(uint32, tag = "1")]
+        pub distributor_id: u32,
+        /// Личный вклад самого лидера.
+        #[prost(string, tag = "2")]
+        pub leader_personal_volume: ::prost::alloc::string::String,
+        /// Объём всей ветки: лидер + все его нижестоящие.
+        #[prost(string, tag = "3")]
+        pub branch_volume: ::prost::alloc::string::String,
+        /// Лимит на ветку для проверяемого ранга.
+        #[prost(string, tag = "4")]
+        pub max_per_leg: ::prost::alloc::string::String,
+        /// Сколько фактически засчитано в командный оборот.
+        #[prost(string, tag = "5")]
+        pub counted: ::prost::alloc::string::String,
+        /// true — сработал лимит: ветка дала бы больше, но обрезана.
+        #[prost(bool, tag = "6")]
+        pub capped: bool,
+        /// true — засчитан ВЕСЬ личный вклад лидера, потому что он превышает лимит.
+        /// В этом случае нижестоящие этой ветки не учитываются вовсе.
+        #[prost(bool, tag = "7")]
+        pub leader_exceeds_cap: bool,
+    }
+    /// Прогресс партнёра по карьерной лестнице.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct RankProgress {
+        /// Достигнутый ранг. 0 — квалификации нет.
+        #[prost(uint32, tag = "1")]
+        pub current_rank: u32,
+        /// Пусто при `current_rank == 0`.
+        #[prost(message, optional, tag = "2")]
+        pub achieved_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// true — достигнут максимальный ранг, блок `next` пуст.
+        #[prost(bool, tag = "3")]
+        pub is_max: bool,
+        /// Требования следующего ранга. Пусто при `is_max`.
+        #[prost(message, optional, tag = "4")]
+        pub next: ::core::option::Option<Rank>,
+        /// Личный вклад. Никогда не уменьшается — даже когда депозит закрыт,
+        /// а тело выведено на кошелёк.
+        #[prost(string, tag = "5")]
+        pub personal_volume: ::prost::alloc::string::String,
+        /// ЗАСЧИТАННЫЙ командный оборот под СЛЕДУЮЩИЙ ранг: лимит на ветку зависит
+        /// от проверяемого ранга, поэтому величина имеет смысл только в паре с ним.
+        /// Пусто при `is_max`.
+        #[prost(string, optional, tag = "6")]
+        pub team_volume: ::core::option::Option<::prost::alloc::string::String>,
+        /// ПОЛНЫЙ оборот команды БЕЗ применения лимитов на ветку: вклад партнёра
+        /// плюс объёмы всех веток целиком.
+        ///
+        /// Всегда ≥ `team_volume`. Разница — это ровно то, что «срезал» лимит на
+        /// ветку, и главный ответ на вопрос «у меня в команде $60 000, почему не
+        /// дали ранг, где нужно $50 000».
+        #[prost(string, tag = "8")]
+        pub team_volume_uncapped: ::prost::alloc::string::String,
+        /// Число веток первой линии.
+        #[prost(uint32, tag = "9")]
+        pub legs_count: u32,
+        /// ИСТОРИЯ достижений: по одной записи на каждый взятый ранг, с датой.
+        /// Приходит и в `State` — записей максимум 12.
+        #[prost(message, repeated, tag = "10")]
+        pub achievements: ::prost::alloc::vec::Vec<rank_progress::Achievement>,
+        /// Разбивка командного оборота по веткам первой линии.
+        /// В `State` ВСЕГДА пусто (размер не ограничен) — см. `GetRankProgress`.
+        #[prost(message, repeated, tag = "7")]
+        pub legs: ::prost::alloc::vec::Vec<Leg>,
+    }
+    /// Nested message and enum types in `RankProgress`.
+    pub mod rank_progress {
+        /// Факт достижения ОДНОГО ранга. Ранги берутся последовательно и никогда не
+        /// теряются, поэтому список — это все ранги от 1 до `current_rank`, каждый
+        /// со своей датой. Нужен экрану «карьера»: 12 карточек, на взятых — галочка
+        /// и дата.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Achievement {
+            #[prost(uint32, tag = "1")]
+            pub rank: u32,
+            #[prost(message, optional, tag = "2")]
+            pub achieved_at: ::core::option::Option<::prost_types::Timestamp>,
+            /// Обязательство по бонусу за этот ранг. Отсутствует у рангов без бонуса
+            /// (1..3). По нему разрешается статус выплаты в `State.obligations`.
+            #[prost(uint64, optional, tag = "3")]
+            pub obligation_id: ::core::option::Option<u64>,
+        }
+    }
+    /// Обязательство выплатить бонус за достижение ранга.
+    ///
+    /// Создаётся ВСЕГДА, когда у достигнутого ранга есть бонус — и когда выплата
+    /// автоматическая, и когда ручная. Это даёт единый аудиторский след по всем
+    /// достижениям, без деления на «авто» и «ручные».
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Obligation {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+        #[prost(uint32, tag = "2")]
+        pub distributor_id: u32,
+        #[prost(uint32, tag = "3")]
+        pub rank: u32,
+        /// Сумма бонуса — СНИМОК на момент достижения. Последующее изменение
+        /// таблицы рангов не меняет уже созданные обязательства.
+        #[prost(string, tag = "4")]
+        pub amount: ::prost::alloc::string::String,
+        /// Валюта бонуса. Совпадает с `Config.currency_id`.
+        #[prost(uint32, tag = "5")]
+        pub currency_id: u32,
+        #[prost(message, optional, tag = "6")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// false — деньги ещё не выплачены, обязательство ждёт решения админа.
+        /// Отказать в бонусе нельзя: состояний ровно два.
+        #[prost(bool, tag = "7")]
+        pub released: bool,
+        /// Пусто, пока `released == false`.
+        #[prost(message, optional, tag = "8")]
+        pub released_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Админ, выпустивший деньги. 0 — выплачено автоматически.
+        #[prost(uint32, tag = "9")]
+        pub released_by_user_id: u32,
+        /// Группа проводок выплаты. 0 — не выплачено.
+        #[prost(uint64, tag = "10")]
+        pub ledger_group_id: u64,
+        #[prost(message, optional, tag = "11")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `Obligation`.
+    pub mod obligation {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(oneof = "id::Identifier", tags = "1")]
+            pub identifier: ::core::option::Option<id::Identifier>,
+        }
+        /// Nested message and enum types in `Id`.
+        pub mod id {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum Identifier {
+                #[prost(uint64, tag = "1")]
+                Id(u64),
+            }
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Obligation>,
+        }
+    }
+    /// Настройка автовыплаты бонуса для одного ранга. Единственная динамическая
+    /// настройка модуля: меняется админом на лету и переживает рестарт.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct RankBonusSetting {
+        #[prost(uint32, tag = "1")]
+        pub rank: u32,
+        /// Сумма бонуса этого ранга из конфигурации, read-only.
+        /// Отсутствует у рангов 1..3 — для них настройка неприменима.
+        #[prost(string, optional, tag = "2")]
+        pub achievement_bonus: ::core::option::Option<::prost::alloc::string::String>,
+        /// true — бонус выплачивается автоматически в момент достижения ранга.
+        /// false — обязательство ждёт ручной реализации админом.
+        #[prost(bool, tag = "3")]
+        pub auto_release: bool,
+    }
+    /// Nested message and enum types in `RankBonusSetting`.
+    pub mod rank_bonus_setting {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::RankBonusSetting>,
+        }
+    }
+    /// Событие журнала стейкинга — ТОЛЬКО личные события партнёра по его депозитам.
+    /// Реферальные бонусы, полученные от структуры, сюда НЕ попадают: они видны в
+    /// общей истории транзакций кошелька, как любые другие бонусы.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Event {
+        /// Глобальный монотонный идентификатор (хронология по всей системе).
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+        /// Порядковый номер события В РАМКАХ ПАРТНЁРА: 1, 2, 3 …
+        #[prost(uint32, tag = "2")]
+        pub seq: u32,
+        /// Депозит, к которому относится событие. 0 — не привязано (достижение ранга).
+        #[prost(uint32, tag = "3")]
+        pub deposit_id: u32,
+        /// БИЗНЕС-время события. Для выплат — ПЛАНОВЫЙ момент цикла, а не момент
+        /// фактической обработки: при догоне после простоя сервиса эти моменты
+        /// расходятся, и в истории должен стоять плановый.
+        #[prost(message, optional, tag = "4")]
+        pub ts: ::core::option::Option<::prost_types::Timestamp>,
+        /// Группа проводок леджера, породившая событие. 0 — событие без денег.
+        #[prost(uint64, tag = "5")]
+        pub ledger_group_id: u64,
+        #[prost(oneof = "event::Data", tags = "10, 11, 12, 13, 14, 15")]
+        pub data: ::core::option::Option<event::Data>,
+    }
+    /// Nested message and enum types in `Event`.
+    pub mod event {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Event>,
+        }
+        /// Создан депозит.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct DepositOpened {
+            #[prost(string, tag = "1")]
+            pub amount: ::prost::alloc::string::String,
+            #[prost(enumeration = "super::deposit::source::Id", tag = "2")]
+            pub source: i32,
+            /// Закрытый депозит, тело которого открыло этот. 0 — создан вручную.
+            #[prost(uint32, tag = "3")]
+            pub source_deposit_id: u32,
+        }
+        /// Начислен доход за цикл. Самодостаточно для перепроверки:
+        /// tier(active_deposits_total) == rate
+        /// body_at_payout × rate           == amount
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct IncomePaid {
+            /// Номер цикла, 1..cycles_total.
+            #[prost(uint32, tag = "1")]
+            pub payout_seq: u32,
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Применённая ставка тира — коэффициент строкой ("0.07").
+            #[prost(string, tag = "3")]
+            pub rate: ::prost::alloc::string::String,
+            /// ПОЧЕМУ такая ставка: сумма активных депозитов партнёра на момент
+            /// начисления — то значение, по которому выбран тир.
+            #[prost(string, tag = "4")]
+            pub active_deposits_total: ::prost::alloc::string::String,
+            /// База начисления: тело этого депозита на момент выплаты.
+            #[prost(string, tag = "5")]
+            pub body_at_payout: ::prost::alloc::string::String,
+            /// true — это последняя выплата; в той же группе проводок депозит закрылся.
+            #[prost(bool, tag = "6")]
+            pub is_final: bool,
+        }
+        /// Доход ушёл в тело того же депозита.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct IncomeReinvested {
+            #[prost(uint32, tag = "1")]
+            pub payout_seq: u32,
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Тело после прибавления.
+            #[prost(string, tag = "3")]
+            pub body_after: ::prost::alloc::string::String,
+        }
+        /// Переключение реинвеста прибыли — партнёром или системой.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct AutoReinvestChanged {
+            #[prost(enumeration = "auto_reinvest_changed::actor::Id", tag = "1")]
+            pub actor: i32,
+            /// Что хочет партнёр на этот момент.
+            #[prost(bool, tag = "2")]
+            pub requested: bool,
+            /// Что применено на этот момент. `requested == false` при
+            /// `applied == true` означает «отключится после ближайшей выплаты,
+            /// она ещё уйдёт в тело».
+            #[prost(bool, tag = "3")]
+            pub applied: bool,
+        }
+        /// Nested message and enum types in `AutoReinvestChanged`.
+        pub mod auto_reinvest_changed {
+            /// Кто инициировал изменение.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct Actor {}
+            /// Nested message and enum types in `Actor`.
+            pub mod actor {
+                #[derive(
+                    Clone,
+                    Copy,
+                    Debug,
+                    PartialEq,
+                    Eq,
+                    Hash,
+                    PartialOrd,
+                    Ord,
+                    ::prost::Enumeration
+                )]
+                #[repr(i32)]
+                pub enum Id {
+                    Unspecified = 0,
+                    /// Партнёр выполнил действие.
+                    User = 1,
+                    /// Система применила отложенное отключение в момент выплаты.
+                    System = 2,
+                }
+                impl Id {
+                    /// String value of the enum field names used in the ProtoBuf definition.
+                    ///
+                    /// The values are not transformed in any way and thus are considered stable
+                    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+                    pub fn as_str_name(&self) -> &'static str {
+                        match self {
+                            Self::Unspecified => "UNSPECIFIED",
+                            Self::User => "USER",
+                            Self::System => "SYSTEM",
+                        }
+                    }
+                    /// Creates an enum from field names used in the ProtoBuf definition.
+                    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                        match value {
+                            "UNSPECIFIED" => Some(Self::Unspecified),
+                            "USER" => Some(Self::User),
+                            "SYSTEM" => Some(Self::System),
+                            _ => None,
+                        }
+                    }
+                }
+            }
+        }
+        /// Депозит закрыт после последней выплаты. Тело вернулось на кошелёк.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct DepositClosed {
+            #[prost(string, tag = "1")]
+            pub body: ::prost::alloc::string::String,
+            /// Новый депозит, открытый телом этого. 0 — тело осталось на кошельке.
+            #[prost(uint32, tag = "2")]
+            pub reinvested_into_deposit_id: u32,
+        }
+        /// Достигнут новый ранг.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct RankAchieved {
+            #[prost(uint32, tag = "1")]
+            pub rank: u32,
+            /// Бонус за достижение. Отсутствует у рангов 1..3.
+            #[prost(string, optional, tag = "2")]
+            pub achievement_bonus: ::core::option::Option<
+                ::prost::alloc::string::String,
+            >,
+            /// Обязательство по бонусу. Отсутствует, если бонуса нет.
+            /// Текущий статус выплаты разрешается через список обязательств.
+            #[prost(uint64, optional, tag = "3")]
+            pub obligation_id: ::core::option::Option<u64>,
+        }
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+        pub enum Data {
+            #[prost(message, tag = "10")]
+            DepositOpened(DepositOpened),
+            #[prost(message, tag = "11")]
+            IncomePaid(IncomePaid),
+            #[prost(message, tag = "12")]
+            IncomeReinvested(IncomeReinvested),
+            #[prost(message, tag = "13")]
+            AutoReinvestChanged(AutoReinvestChanged),
+            #[prost(message, tag = "14")]
+            DepositClosed(DepositClosed),
+            #[prost(message, tag = "15")]
+            RankAchieved(RankAchieved),
+        }
+    }
+    /// ПОЛНОЕ состояние партнёра в стейкинге — всё, что нужно главному экрану,
+    /// одним запросом: настройки, сводка, список депозитов, ранг, бонусы.
+    ///
+    /// Чего здесь НЕТ и почему:
+    ///
+    /// * таблица рангов и сетка тиров — статичны, меняются только пересборкой.
+    ///   Клиент забирает их один раз через `GetConfig` и кэширует; гонять
+    ///   18 записей в каждом опросе состояния расточительно;
+    /// * `rank.legs` — разбивка по веткам первой линии НЕ ограничена по размеру
+    ///   (у лидера их могут быть сотни). В состоянии блок `rank` приходит БЕЗ
+    ///   `legs`; детальный разбор — отдельным `GetRankProgress`.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct State {
+        /// Изменяемые настройки модуля. В состоянии, а не в `Config`, потому что
+        /// меняются на лету и напрямую влияют на экран: по `service_status` клиент
+        /// решает, показывать ли кнопку покупки, по `min_deposit` — валидировать
+        /// форму, по дефолтам реинвеста — предзаполнить переключатели.
+        #[prost(message, optional, tag = "1")]
+        pub settings: ::core::option::Option<Settings>,
+        /// Агрегаты по ВСЕМ депозитам партнёра — не зависят от фильтра `deposits`.
+        #[prost(message, optional, tag = "2")]
+        pub summary: ::core::option::Option<DepositsSummary>,
+        /// Депозиты. Активные приходят всегда; закрытые — только если запрошены
+        /// флагом. Новые сверху.
+        #[prost(message, repeated, tag = "3")]
+        pub deposits: ::prost::alloc::vec::Vec<Deposit>,
+        /// Прогресс по карьерной лестнице. Поле `legs` здесь ВСЕГДА пустое —
+        /// см. примечание выше.
+        #[prost(message, optional, tag = "4")]
+        pub rank: ::core::option::Option<RankProgress>,
+        /// Сколько не хватает до следующего тира. Отсутствует, если тир
+        /// максимальный или активных депозитов нет.
+        #[prost(string, optional, tag = "5")]
+        pub to_next_tier: ::core::option::Option<::prost::alloc::string::String>,
+        /// Ставка следующего тира — коэффициент строкой. Пусто, если тир
+        /// максимальный или активных депозитов нет.
+        #[prost(string, optional, tag = "6")]
+        pub next_tier_rate: ::core::option::Option<::prost::alloc::string::String>,
+        /// Получено реферальных бонусов за всё время (с чужих депозитов).
+        #[prost(string, tag = "7")]
+        pub total_referral_received: ::prost::alloc::string::String,
+        /// Получено бонусов за достижение рангов за всё время.
+        #[prost(string, tag = "8")]
+        pub total_achievement_bonus_received: ::prost::alloc::string::String,
+        /// Бонусы за достижение рангов, включая ещё не выплаченные.
+        /// Всегда целиком: максимум 9 записей за всю жизнь аккаунта.
+        #[prost(message, repeated, tag = "9")]
+        pub obligations: ::prost::alloc::vec::Vec<Obligation>,
+    }
+    /// Глобальный статус модуля.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ServiceStatus {}
+    /// Nested message and enum types in `ServiceStatus`.
+    pub mod service_status {
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Id {
+            Unspecified = 0,
+            /// Штатная работа.
+            Active = 1,
+            /// Ручное создание депозитов запрещено. Выплаты, реинвест прибыли и
+            /// автоматический реинвест тела при закрытии продолжают работать —
+            /// это исполнение уже принятых обязательств, а не новая продажа.
+            Paused = 2,
+            /// Всё заморожено. Плановые моменты выплат накапливаются и догоняются
+            /// после возврата в ACTIVE.
+            Stopped = 3,
+        }
+        impl Id {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "UNSPECIFIED",
+                    Self::Active => "ACTIVE",
+                    Self::Paused => "PAUSED",
+                    Self::Stopped => "STOPPED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "UNSPECIFIED" => Some(Self::Unspecified),
+                    "ACTIVE" => Some(Self::Active),
+                    "PAUSED" => Some(Self::Paused),
+                    "STOPPED" => Some(Self::Stopped),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Сводка для админа. Величины поддерживаются счётчиками, а не считаются
+    /// обходом на каждый запрос.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Summary {
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// Сумма тел всех активных депозитов по системе.
+        #[prost(string, tag = "2")]
+        pub total_in_deposits: ::prost::alloc::string::String,
+        #[prost(uint32, tag = "3")]
+        pub deposits_active: u32,
+        #[prost(uint32, tag = "4")]
+        pub deposits_total: u32,
+        /// Выплачено доходности за всё время (модуль баланса пула COMPANY STAKING).
+        #[prost(string, tag = "5")]
+        pub total_income_paid: ::prost::alloc::string::String,
+        /// Выплачено реферальных бонусов (модуль баланса пула COMPANY REF).
+        #[prost(string, tag = "6")]
+        pub total_referral_paid: ::prost::alloc::string::String,
+        /// Выплачено бонусов за достижение рангов.
+        #[prost(string, tag = "7")]
+        pub total_achievement_bonus_paid: ::prost::alloc::string::String,
+        /// Сумма невыплаченных обязательств.
+        #[prost(string, tag = "8")]
+        pub obligations_pending_amount: ::prost::alloc::string::String,
+        #[prost(uint32, tag = "9")]
+        pub obligations_pending_count: u32,
+        #[prost(enumeration = "service_status::Id", tag = "10")]
+        pub service_status: i32,
+    }
+}
 /// DividendPool — модель данных дивидендного пула.
 /// Содержит типы для отображения состояния, pending-бонуса и истории выплат.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -5469,7 +6343,7 @@ pub mod ledger {
     /// Owner определяет владельца счета Ledger.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Owner {
-        #[prost(oneof = "owner::Entity", tags = "1, 2, 3, 4")]
+        #[prost(oneof = "owner::Entity", tags = "1, 2, 3, 4, 5")]
         pub entity: ::core::option::Option<owner::Entity>,
     }
     /// Nested message and enum types in `Owner`.
@@ -5488,6 +6362,12 @@ pub mod ledger {
             /// ID биржи/обменника.
             #[prost(uint32, tag = "4")]
             ExchangeId(u32),
+            /// ID депозита стейкинга (`biconom.types.Staking.Deposit`).
+            /// Каждый депозит владеет собственным счётом: баланс этого счёта И ЕСТЬ
+            /// тело депозита. Флаги счёта — ALLOW_DEBIT | ALLOW_CREDIT БЕЗ
+            /// ALLOW_NEGATIVE: счёт депозита не может уйти в минус.
+            #[prost(uint32, tag = "5")]
+            StakingDepositId(u32),
         }
     }
     /// Статус жизненного цикла счета.

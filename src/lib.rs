@@ -37,6 +37,9 @@ pub mod biconom {
         pub mod wintime_shop {
             include!("generated/biconom.admin.wintime_shop.rs");
         }
+        pub mod staking {
+            include!("generated/biconom.admin.staking.rs");
+        }
         pub mod wintime {
             include!("generated/biconom.admin.wintime.rs");
         }
@@ -143,6 +146,9 @@ pub mod biconom {
         }
         pub mod wintime_shop {
             include!("generated/biconom.client.wintime_shop.rs");
+        }
+        pub mod staking {
+            include!("generated/biconom.client.staking.rs");
         }
         pub mod wintime {
             include!("generated/biconom.client.wintime.rs");

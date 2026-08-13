@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package biconom.admin.staking;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/staking.proto";
+
+// StakingAdminService — админская поверхность стейкинга USDT.
+//
+// Право на всю поверхность — `ADMIN_STAKING` (`infra::access_control::Permission`):
+// чтение, выпуск денег (реализация обязательства по бонусу за достижение,
+// переключение авто-режима) и правка настроек модуля.
+//
+// `ROOT` включает все биты, поэтому под ним доступно всё без отдельной выдачи.
+// Право выдаётся узкому кругу: оно позволяет выпустить бонус за ранг 12
+// (до $1 000 000) и остановить приём новых депозитов.
+service StakingAdminService {
+    // ── Чтение ──
+
+    // ВСЁ состояние произвольного дистрибьютора в стейкинге одним запросом:
+    // настройки, сводка, депозиты, ранг, бонусы. Тот же тип, что у клиента.
+    // Основной метод экрана «открыл пользователя».
+    rpc GetState(GetStateRequest) returns (biconom.types.Staking.State);
+
+    // Карточка любого депозита.
+    rpc GetDeposit(biconom.types.Staking.Deposit.Id) returns (biconom.types.Staking.Deposit);
+
+    // Журнал стейкинга произвольного дистрибьютора, новые сверху.
+    rpc ListEvents(ListEventsRequest) returns (biconom.types.Staking.Event.List);
+
+    // Журнал конкретного депозита, новые сверху.
+    rpc ListDepositEvents(ListDepositEventsRequest) returns (biconom.types.Staking.Event.List);
+
+    // Разбор квалификации: почему дистрибьютор не взял следующий ранг.
+    // Возвращает вклад, командный объём под следующий ранг и разбивку по веткам
+    // с указанием, у какой сработал лимит.
+    rpc GetRankProgress(GetRankProgressRequest) returns (biconom.types.Staking.RankProgress);
+
+    // Полная конфигурация: захардкоженная экономика (ранги, тиры, циклы) плюс
+    // текущие изменяемые настройки. Экономика меняется только пересборкой,
+    // настройки — через `UpdateSettings`.
+    rpc GetConfig(google.protobuf.Empty) returns (biconom.types.Staking.Config);
+
+    // Сводка по модулю: сколько в депозитах, сколько выплачено доходности,
+    // рефералки и бонусов за достижение, сумма невыплаченных обязательств, статус.
+    rpc GetSummary(google.protobuf.Empty) returns (biconom.types.Staking.Summary);
+
+    // ── Бонусы за достижение рангов ──
+
+    // Обязательства по бонусам за достижение, НОВЫЕ СВЕРХУ, курсорная пагинация.
+    // Фильтры комбинируются: по статусу выплаты, по конкретному рангу,
+    // по дистрибьютору.
+    rpc ListObligations(ListObligationsRequest) returns (biconom.types.Staking.Obligation.List);
+
+    // Одно обязательство по идентификатору.
+    rpc GetObligation(biconom.types.Staking.Obligation.Id) returns (biconom.types.Staking.Obligation);
+
+    // Реализовать обязательство: бонус уходит из пула на кошелёк дистрибьютора.
+    // Идемпотентно: повторный вызов на уже выплаченном возвращает FailedPrecondition.
+    // Массовой реализации нет по решению заказчика — ручная модерация поштучно.
+    //
+    // Требует ADMIN_STAKING.
+    rpc ReleaseObligation(ReleaseObligationRequest) returns (biconom.types.Staking.Obligation);
+
+    // Настройки автовыплаты бонусов за достижение: 12 строк
+    // (ранг, сумма бонуса, флаг авто).
+    rpc ListRankBonusSettings(google.protobuf.Empty) returns (biconom.types.Staking.RankBonusSetting.List);
+
+    // Включить/выключить автовыплату бонуса за достижение для ОДНОГО ранга.
+    //
+    // Действует только на БУДУЩИЕ достижения. Уже висящие невыплаченные
+    // обязательства автоматически не выплачиваются — их по-прежнему нужно
+    // реализовывать вручную. Это защита от того, что одно переключение тумблера
+    // разом выпустит все накопленные суммы.
+    //
+    // Требует ADMIN_STAKING.
+    rpc SetRankBonusAutoRelease(SetRankBonusAutoReleaseRequest) returns (biconom.types.Staking.RankBonusSetting);
+
+    // ── Изменяемые настройки модуля ──
+
+    // Обновить настройки. Задаются только те поля, которые нужно изменить;
+    // незаданные остаются как есть. Возвращается полное новое состояние.
+    //
+    // Что можно менять:
+    //   * min_deposit               — минимальная сумма входа в депозит;
+    //   * default_reinvest_profit   — реинвест прибыли по умолчанию у новых депозитов;
+    //   * default_reinvest_deposit  — реинвест депозита по умолчанию у новых депозитов;
+    //   * service_status            — ACTIVE / PAUSED / STOPPED.
+    //
+    // Изменение действует на БУДУЩИЕ депозиты: у уже открытых ни минимум, ни
+    // значения реинвеста не переписываются.
+    //
+    // Требует ADMIN_STAKING — это глобальные рычаги, влияющие на деньги и на продажи.
+    rpc UpdateSettings(UpdateSettingsRequest) returns (biconom.types.Staking.Settings);
+}
+
+message GetStateRequest {
+    uint32 distributor_id = 1;
+    // true — добавить в `deposits` ещё и закрытые. На `summary` не влияет.
+    bool include_closed_deposits = 2;
+}
+
+message ListEventsRequest {
+    uint32 distributor_id = 1;
+    // Курсор: `Event.id` последнего полученного события (exclusive).
+    optional uint64 cursor = 2;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 записей.
+    optional biconom.types.Sort sort = 3;
+}
+
+message ListDepositEventsRequest {
+    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    optional uint64 cursor = 2;
+    optional biconom.types.Sort sort = 3;
+}
+
+message GetRankProgressRequest {
+    uint32 distributor_id = 1;
+}
+
+message ListObligationsRequest {
+    // Фильтр по факту выплаты. Не задан — все.
+    optional bool released = 1;
+    // Фильтр по конкретному рангу. 0 — все ранги.
+    uint32 rank = 2;
+    // Фильтр по дистрибьютору. 0 — все.
+    uint32 distributor_id = 3;
+    // Курсор: `Obligation.id` последнего полученного (exclusive).
+    // null — с самого нового. Конец: записей меньше чем `sort.limit`.
+    optional uint64 cursor = 4;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 записей.
+    optional biconom.types.Sort sort = 5;
+}
+
+message ReleaseObligationRequest {
+    biconom.types.Staking.Obligation.Id id = 1;
+    // Ключ идемпотентности: выпуск бонуса — денежная операция, повтор запроса
+    // не должен выплатить дважды. Дополняет проверку `released == false`.
+    optional string idempotency_key = 2;
+}
+
+message SetRankBonusAutoReleaseRequest {
+    // Ранг 1..12. У рангов 1..3 бонуса нет, настройка неприменима — InvalidArgument.
+    uint32 rank = 1;
+    bool auto_release = 2;
+}
+
+// Частичное обновление настроек: применяются только заданные поля.
+message UpdateSettingsRequest {
+    // Новая минимальная сумма входа в депозит. Должна быть > 0.
+    optional string min_deposit = 1;
+    // Новое значение реинвеста прибыли по умолчанию для новых депозитов.
+    optional bool default_reinvest_profit = 2;
+    // Новое значение реинвеста депозита по умолчанию для новых депозитов.
+    optional bool default_reinvest_deposit = 3;
+    // Новый глобальный статус модуля.
+    optional biconom.types.Staking.ServiceStatus.Id service_status = 4;
+}

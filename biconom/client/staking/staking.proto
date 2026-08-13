@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package biconom.client.staking;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/sort.proto";
+import "biconom/types/staking.proto";
+
+// StakingService — клиентская поверхность стейкинга USDT.
+//
+// Дистрибьютор определяется контекстом авторизации, НЕ из запроса: партнёр
+// видит и меняет только собственные депозиты.
+//
+// Все методы требуют Session-токен обычного пользователя.
+service StakingService {
+    // ВСЁ состояние партнёра в стейкинге одним запросом: настройки, сводка,
+    // список депозитов, ранг, бонусы. Основной метод главного экрана.
+    //
+    // Закрытые депозиты по умолчанию НЕ приходят — их включает флаг в запросе.
+    // Сводка при этом всегда по всем депозитам, независимо от флага.
+    rpc GetState(GetStateRequest) returns (biconom.types.Staking.State);
+
+    // СТАТИЧНАЯ экономика: таблица 12 рангов, сетка тиров, число и длина циклов.
+    // Меняется только пересборкой сервиса — клиент забирает один раз при старте
+    // и кэширует.
+    //
+    // Изменяемые настройки (минимум входа, дефолты реинвеста, статус приёма)
+    // сюда тоже входят, но их не нужно опрашивать отдельно: они приходят в
+    // каждом `GetState`.
+    rpc GetConfig(google.protobuf.Empty) returns (biconom.types.Staking.Config);
+
+    // Карточка одного своего депозита.
+    rpc GetDeposit(biconom.types.Staking.Deposit.Id) returns (biconom.types.Staking.Deposit);
+
+    // Создать депозит. Сумма списывается с USDT-кошелька и переводится на новый
+    // счёт-леджер депозита. Минимум — `Config.min_deposit` ($100). Ограничения на
+    // количество активных депозитов нет.
+    //
+    // В той же группе проводок раздаётся реферальная лестница вверх по спонсорскому
+    // дереву от суммы депозита. Отменить созданный депозит нельзя.
+    //
+    // Запрещено при статусе сервиса PAUSED и STOPPED.
+    rpc CreateDeposit(CreateDepositRequest) returns (biconom.types.Staking.Deposit);
+
+    // Реинвест ПРИБЫЛИ: направлять выплату дохода в тело этого же депозита.
+    //
+    // Включение действует НЕМЕДЛЕННО. Отключение отложенное: ближайшая выплата
+    // ещё уйдёт в тело, а со следующей доход пойдёт на кошелёк. Заявку на
+    // отключение можно отозвать до наступления ближайшей выплаты.
+    rpc SetAutoReinvestProfit(SetAutoReinvestProfitRequest) returns (biconom.types.Staking.Deposit);
+
+    // Реинвест ВСЕГО ДЕПОЗИТА: при закрытии тело автоматически откроет новый
+    // депозит на всю сумму — с новыми циклами и новой реферальной раздачей.
+    // Значение читается один раз, в момент закрытия; менять можно в любой момент до него.
+    rpc SetReinvestDeposit(SetReinvestDepositRequest) returns (biconom.types.Staking.Deposit);
+
+    // Весь свой журнал стейкинга, новые сверху, курсорная пагинация.
+    // Только личные события по своим депозитам — реферальные бонусы сюда не
+    // попадают, они видны в общей истории транзакций кошелька.
+    rpc ListEvents(ListEventsRequest) returns (biconom.types.Staking.Event.List);
+
+    // Журнал конкретного своего депозита, новые сверху.
+    rpc ListDepositEvents(ListDepositEventsRequest) returns (biconom.types.Staking.Event.List);
+
+    // ДЕТАЛЬНЫЙ разбор карьерной лестницы — с разбивкой по веткам первой линии
+    // (`legs`): видно, у какой ветки сработал лимит и сколько засчиталось.
+    //
+    // Отдельный метод, потому что число веток не ограничено: у лидера их могут
+    // быть сотни, и в состоянии главного экрана им не место. В `GetState` тот же
+    // блок `rank` приходит без `legs`.
+    rpc GetRankProgress(google.protobuf.Empty) returns (biconom.types.Staking.RankProgress);
+}
+
+message GetStateRequest {
+    // true — добавить в `deposits` ещё и закрытые депозиты (вся история).
+    // false / не задано — только активные.
+    //
+    // На блок `summary` НЕ влияет: он всегда считается по всем депозитам
+    // партнёра, включая закрытые.
+    bool include_closed_deposits = 1;
+}
+
+message CreateDepositRequest {
+    // Сумма в USDT, строкой. Не меньше `Config.settings.min_deposit`.
+    string amount = 1;
+    // Ключ идемпотентности. Создание депозита — денежная операция с реферальной
+    // раздачей вверх по дереву: повтор запроса (двойной тап, ретрай сети) без
+    // ключа создал бы ВТОРОЙ депозит и вторую раздачу. С ключом повтор
+    // возвращает уже созданный депозит.
+    optional string idempotency_key = 4;
+    // Реинвест прибыли. ЕСЛИ НЕ ЗАДАНО — применяется значение по умолчанию из
+    // `Config.settings.default_reinvest_profit`.
+    optional bool reinvest_profit = 2;
+    // Реинвест всего депозита при закрытии. ЕСЛИ НЕ ЗАДАНО — применяется
+    // `Config.settings.default_reinvest_deposit`.
+    optional bool reinvest_deposit = 3;
+}
+
+message SetAutoReinvestProfitRequest {
+    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    // true — включить немедленно. false — подать заявку на отключение
+    // (применится после ближайшей выплаты).
+    bool enabled = 2;
+}
+
+message SetReinvestDepositRequest {
+    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    bool enabled = 2;
+}
+
+message ListEventsRequest {
+    // Курсор: `Event.id` последнего полученного события (exclusive).
+    // null — с самого нового. Конец: получено записей меньше чем `sort.limit`.
+    optional uint64 cursor = 1;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 записей.
+    optional biconom.types.Sort sort = 2;
+}
+
+message ListDepositEventsRequest {
+    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    // Курсор: `Event.id` последнего полученного события (exclusive).
+    optional uint64 cursor = 2;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 записей.
+    optional biconom.types.Sort sort = 3;
+}

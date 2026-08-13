@@ -39,6 +39,11 @@ message Ledger {
 			uint32 payment_network_id = 3;
 			// ID биржи/обменника.
 			uint32 exchange_id = 4;
+			// ID депозита стейкинга (`biconom.types.Staking.Deposit`).
+			// Каждый депозит владеет собственным счётом: баланс этого счёта И ЕСТЬ
+			// тело депозита. Флаги счёта — ALLOW_DEBIT | ALLOW_CREDIT БЕЗ
+			// ALLOW_NEGATIVE: счёт депозита не может уйти в минус.
+			uint32 staking_deposit_id = 5;
 		}
 	}
 
