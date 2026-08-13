@@ -107,9 +107,16 @@ pub enum Topic {
     TelegramUnboundByApi = 18,
     DepositDetected = 19,
     /// Umbrella для всех видов бонусных начислений (dividend claim,
-    /// matching, marketing, structure, partner). Конкретный вид — поле
-    /// `kind` в payload события (см. `BonusKind` в Rust-домене).
+    /// matching, marketing, structure, партнёр, стейкинг). Конкретный вид —
+    /// поле `kind` в payload события (см. `BonusKind` в Rust-домене).
     BonusReceived = 20,
+    /// Партнёр взял новый ранг стейкинга.
+    ///
+    /// Отдельный топик, а не ветка `TOPIC_BONUS_RECEIVED`: частоты отличаются
+    /// на два порядка — 12 уведомлений на депозит против максимум 12 за всю
+    /// жизнь аккаунта, значит и переключатели должны быть раздельными.
+    /// Доставляется ТОЛЬКО в Telegram.
+    StakingRankAchieved = 21,
 }
 impl Topic {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -139,6 +146,7 @@ impl Topic {
             Self::TelegramUnboundByApi => "TOPIC_TELEGRAM_UNBOUND_BY_API",
             Self::DepositDetected => "TOPIC_DEPOSIT_DETECTED",
             Self::BonusReceived => "TOPIC_BONUS_RECEIVED",
+            Self::StakingRankAchieved => "TOPIC_STAKING_RANK_ACHIEVED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -165,6 +173,7 @@ impl Topic {
             "TOPIC_TELEGRAM_UNBOUND_BY_API" => Some(Self::TelegramUnboundByApi),
             "TOPIC_DEPOSIT_DETECTED" => Some(Self::DepositDetected),
             "TOPIC_BONUS_RECEIVED" => Some(Self::BonusReceived),
+            "TOPIC_STAKING_RANK_ACHIEVED" => Some(Self::StakingRankAchieved),
             _ => None,
         }
     }
