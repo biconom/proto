@@ -51,14 +51,10 @@ pub struct ListObligationsRequest {
     #[prost(message, optional, tag = "5")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReleaseObligationRequest {
     #[prost(message, optional, tag = "1")]
     pub id: ::core::option::Option<super::super::types::staking::obligation::Id>,
-    /// Ключ идемпотентности: выпуск бонуса — денежная операция, повтор запроса
-    /// не должен выплатить дважды. Дополняет проверку `released == false`.
-    #[prost(string, optional, tag = "2")]
-    pub idempotency_key: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetRankBonusAutoReleaseRequest {

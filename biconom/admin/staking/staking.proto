@@ -134,10 +134,13 @@ message ListObligationsRequest {
 }
 
 message ReleaseObligationRequest {
+    // Номер 2 занимал ключ идемпотентности. Он здесь и не был нужен: повтор
+    // защищён натуральным ключом `(distributor_id, rank)` и флагом
+    // `released` — вторая попытка выпустить те же деньги возвращает ошибку,
+    // а не выплачивает повторно.
+    reserved 2;
+
     biconom.types.Staking.Obligation.Id id = 1;
-    // Ключ идемпотентности: выпуск бонуса — денежная операция, повтор запроса
-    // не должен выплатить дважды. Дополняет проверку `released == false`.
-    optional string idempotency_key = 2;
 }
 
 message SetRankBonusAutoReleaseRequest {

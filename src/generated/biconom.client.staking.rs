@@ -14,12 +14,6 @@ pub struct CreateDepositRequest {
     /// Сумма в USDT, строкой. Не меньше `Config.settings.min_deposit`.
     #[prost(string, tag = "1")]
     pub amount: ::prost::alloc::string::String,
-    /// Ключ идемпотентности. Создание депозита — денежная операция с реферальной
-    /// раздачей вверх по дереву: повтор запроса (двойной тап, ретрай сети) без
-    /// ключа создал бы ВТОРОЙ депозит и вторую раздачу. С ключом повтор
-    /// возвращает уже созданный депозит.
-    #[prost(string, optional, tag = "4")]
-    pub idempotency_key: ::core::option::Option<::prost::alloc::string::String>,
     /// Реинвест прибыли. ЕСЛИ НЕ ЗАДАНО — применяется значение по умолчанию из
     /// `Config.settings.default_reinvest_profit`.
     #[prost(bool, optional, tag = "2")]
