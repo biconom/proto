@@ -2,7 +2,8 @@
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetStateRequest {
     /// true — добавить в `deposits` ещё и закрытые депозиты (вся история).
-    /// false / не задано — только активные.
+    /// false / не задано — только активные и созревшие. Созревшие приходят
+    /// всегда: они ждут действия партнёра.
     ///
     /// На блок `summary` НЕ влияет: он всегда считается по всем депозитам
     /// партнёра, включая закрытые.
@@ -12,32 +13,52 @@ pub struct GetStateRequest {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateDepositRequest {
     /// Сумма в USDT, строкой. Не меньше `Config.settings.min_deposit`.
+    ///
+    /// Больше в запросе ничего нет. Флаг реинвеста прибыли берётся сервером из
+    /// `Config.settings.default_reinvest_profit`: клиент не должен переопределять
+    /// серверную настройку, иначе значение в карточке депозита разойдётся с тем,
+    /// что показано в настройках модуля. Реинвеста депозита не существует вовсе —
+    /// созревший депозит ждёт решения партнёра.
+    ///
+    /// Ключа идемпотентности тоже нет: два депозита подряд — законный сценарий,
+    /// и сервер не отличит его от повторной отправки. Защита от двойного нажатия
+    /// на клиенте — заблокировать кнопку до ответа.
     #[prost(string, tag = "1")]
     pub amount: ::prost::alloc::string::String,
-    /// Реинвест прибыли. ЕСЛИ НЕ ЗАДАНО — применяется значение по умолчанию из
-    /// `Config.settings.default_reinvest_profit`.
-    #[prost(bool, optional, tag = "2")]
-    pub reinvest_profit: ::core::option::Option<bool>,
-    /// Реинвест всего депозита при закрытии. ЕСЛИ НЕ ЗАДАНО — применяется
-    /// `Config.settings.default_reinvest_deposit`.
-    #[prost(bool, optional, tag = "3")]
-    pub reinvest_deposit: ::core::option::Option<bool>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetAutoReinvestProfitRequest {
-    #[prost(message, optional, tag = "1")]
-    pub deposit_id: ::core::option::Option<super::super::types::staking::deposit::Id>,
+    #[prost(uint32, tag = "1")]
+    pub deposit_id: u32,
     /// true — включить немедленно. false — подать заявку на отключение
     /// (применится после ближайшей выплаты).
     #[prost(bool, tag = "2")]
     pub enabled: bool,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetReinvestDepositRequest {
-    #[prost(message, optional, tag = "1")]
-    pub deposit_id: ::core::option::Option<super::super::types::staking::deposit::Id>,
-    #[prost(bool, tag = "2")]
-    pub enabled: bool,
+pub struct ListTransactionsRequest {
+    /// Курсор: `Transaction.Group.group_id` последней полученной группы
+    /// (exclusive) — как в `TransactionService.History`. null — с самой новой.
+    #[prost(uint64, optional, tag = "1")]
+    pub cursor: ::core::option::Option<u64>,
+    /// Направление и лимит. По умолчанию: BACKWARD, 50 групп.
+    ///
+    /// Лимит считается в ГРУППАХ, а не в проводках: одна операция стейкинга —
+    /// одна группа, но внутри неё может быть несколько строк (например, доход и
+    /// тут же его реинвест в тело).
+    #[prost(message, optional, tag = "2")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListDepositTransactionsRequest {
+    #[prost(uint32, tag = "1")]
+    pub deposit_id: u32,
+    /// Курсор: `Transaction.Group.group_id` последней полученной группы (exclusive).
+    #[prost(uint64, optional, tag = "2")]
+    pub cursor: ::core::option::Option<u64>,
+    /// Направление и лимит. По умолчанию: BACKWARD, 50 групп.
+    #[prost(message, optional, tag = "3")]
+    pub sort: ::core::option::Option<super::super::types::Sort>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListEventsRequest {
@@ -51,8 +72,8 @@ pub struct ListEventsRequest {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListDepositEventsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub deposit_id: ::core::option::Option<super::super::types::staking::deposit::Id>,
+    #[prost(uint32, tag = "1")]
+    pub deposit_id: u32,
     /// Курсор: `Event.id` последнего полученного события (exclusive).
     #[prost(uint64, optional, tag = "2")]
     pub cursor: ::core::option::Option<u64>,
@@ -111,6 +132,10 @@ pub mod staking_service_server {
         /// счёт-леджер депозита. Минимум — `Config.min_deposit` ($100). Ограничения на
         /// количество активных депозитов нет.
         ///
+        /// Флаг реинвеста прибыли в запросе НЕ передаётся: он берётся из
+        /// `Config.settings.default_reinvest_profit` в момент создания. Менять его
+        /// после создания — `SetAutoReinvestProfit`.
+        ///
         /// В той же группе проводок раздаётся реферальная лестница вверх по спонсорскому
         /// дереву от суммы депозита. Отменить созданный депозит нельзя.
         ///
@@ -118,6 +143,43 @@ pub mod staking_service_server {
         async fn create_deposit(
             &self,
             request: tonic::Request<super::CreateDepositRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::Deposit>,
+            tonic::Status,
+        >;
+        /// ЗАБРАТЬ тело созревшего депозита на USDT-кошелёк.
+        ///
+        /// Только для депозита в статусе MATURED: активный — FailedPrecondition,
+        /// уже закрытый — тоже. Депозит переходит в CLOSED, вернуть его в работу
+        /// нельзя. Частичный вывод не поддерживается — забирается всё тело.
+        ///
+        /// Разрешено при ЛЮБОМ статусе сервиса, включая STOPPED: забрать своё тело
+        /// партнёру нельзя запретить.
+        ///
+        /// Возвращает закрытый депозит.
+        async fn claim_deposit(
+            &self,
+            request: tonic::Request<super::super::super::types::staking::deposit::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::Deposit>,
+            tonic::Status,
+        >;
+        /// РЕИНВЕСТИРОВАТЬ тело созревшего депозита — открыть новый депозит на всю
+        /// сумму тела: новые 12 циклов, новая реферальная раздача вверх по структуре,
+        /// рост личного вклада на всю сумму.
+        ///
+        /// Только для депозита в статусе MATURED. Исходный депозит переходит в CLOSED,
+        /// новый ссылается на него через `source_deposit_id`. Повторный реинвест того
+        /// же тела невозможен: на один исходный депозит приходится не больше одного
+        /// порождённого. Минимальная сумма входа НЕ проверяется — это не новая покупка.
+        ///
+        /// Запрещено при статусе сервиса PAUSED и STOPPED: в отличие от `ClaimDeposit`,
+        /// это решение вложить деньги заново.
+        ///
+        /// Возвращает НОВЫЙ депозит.
+        async fn reinvest_deposit(
+            &self,
+            request: tonic::Request<super::super::super::types::staking::deposit::Id>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::Deposit>,
             tonic::Status,
@@ -134,19 +196,11 @@ pub mod staking_service_server {
             tonic::Response<super::super::super::types::staking::Deposit>,
             tonic::Status,
         >;
-        /// Реинвест ВСЕГО ДЕПОЗИТА: при закрытии тело автоматически откроет новый
-        /// депозит на всю сумму — с новыми циклами и новой реферальной раздачей.
-        /// Значение читается один раз, в момент закрытия; менять можно в любой момент до него.
-        async fn set_reinvest_deposit(
-            &self,
-            request: tonic::Request<super::SetReinvestDepositRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::super::super::types::staking::Deposit>,
-            tonic::Status,
-        >;
         /// Весь свой журнал стейкинга, новые сверху, курсорная пагинация.
-        /// Только личные события по своим депозитам — реферальные бонусы сюда не
-        /// попадают, они видны в общей истории транзакций кошелька.
+        ///
+        /// Содержит и события по собственным депозитам, и доли реферальной лестницы,
+        /// пришедшие с депозитов структуры (`Event.ReferralReceived`) — то есть весь
+        /// заработок партнёра в модуле одной лентой.
         async fn list_events(
             &self,
             request: tonic::Request<super::ListEventsRequest>,
@@ -160,6 +214,40 @@ pub mod staking_service_server {
             request: tonic::Request<super::ListDepositEventsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::event::List>,
+            tonic::Status,
+        >;
+        /// ФИНАНСОВЫЕ ТРАНЗАКЦИИ партнёра по стейкингу — тот же ответ, что у
+        /// `TransactionService.History`, но уже отфильтрованный модулем.
+        ///
+        /// Отличие от `ListEvents`: журнал — это бизнес-события модуля (в том числе
+        /// безденежные: созревание, смена флага реинвеста, достижение ранга), а здесь
+        /// движение денег в том виде, в каком его рисует история кошелька — те же
+        /// карточки, те же справочники, та же вёрстка.
+        ///
+        /// Попадает всё, что стейкинг делал с деньгами партнёра: вложение, доход за
+        /// цикл, реинвест прибыли, возврат тела, доли реферальной лестницы с
+        /// депозитов структуры, бонусы за ранги.
+        ///
+        /// Фильтрации по всей истории кошелька не происходит: модуль ведёт
+        /// собственный индекс групп проводок.
+        async fn list_transactions(
+            &self,
+            request: tonic::Request<super::ListTransactionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::transaction::HistoryResponse>,
+            tonic::Status,
+        >;
+        /// То же, но только по одному своему депозиту: вложение в него, его выплаты,
+        /// реинвесты его прибыли и возврат его тела.
+        ///
+        /// Доли реферальной лестницы сюда НЕ попадают — они приходят с чужих
+        /// депозитов и к конкретному своему депозиту не относятся. Их место в
+        /// `ListTransactions`.
+        async fn list_deposit_transactions(
+            &self,
+            request: tonic::Request<super::ListDepositTransactionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::transaction::HistoryResponse>,
             tonic::Status,
         >;
         /// ДЕТАЛЬНЫЙ разбор карьерной лестницы — с разбивкой по веткам первой линии
@@ -436,6 +524,103 @@ pub mod staking_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/biconom.client.staking.StakingService/ClaimDeposit" => {
+                    #[allow(non_camel_case_types)]
+                    struct ClaimDepositSvc<T: StakingService>(pub Arc<T>);
+                    impl<
+                        T: StakingService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::staking::deposit::Id,
+                    > for ClaimDepositSvc<T> {
+                        type Response = super::super::super::types::staking::Deposit;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::staking::deposit::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingService>::claim_deposit(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ClaimDepositSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.staking.StakingService/ReinvestDeposit" => {
+                    #[allow(non_camel_case_types)]
+                    struct ReinvestDepositSvc<T: StakingService>(pub Arc<T>);
+                    impl<
+                        T: StakingService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::staking::deposit::Id,
+                    > for ReinvestDepositSvc<T> {
+                        type Response = super::super::super::types::staking::Deposit;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::staking::deposit::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingService>::reinvest_deposit(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ReinvestDepositSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/biconom.client.staking.StakingService/SetAutoReinvestProfit" => {
                     #[allow(non_camel_case_types)]
                     struct SetAutoReinvestProfitSvc<T: StakingService>(pub Arc<T>);
@@ -470,52 +655,6 @@ pub mod staking_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SetAutoReinvestProfitSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/biconom.client.staking.StakingService/SetReinvestDeposit" => {
-                    #[allow(non_camel_case_types)]
-                    struct SetReinvestDepositSvc<T: StakingService>(pub Arc<T>);
-                    impl<
-                        T: StakingService,
-                    > tonic::server::UnaryService<super::SetReinvestDepositRequest>
-                    for SetReinvestDepositSvc<T> {
-                        type Response = super::super::super::types::staking::Deposit;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::SetReinvestDepositRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as StakingService>::set_reinvest_deposit(&inner, request)
-                                    .await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = SetReinvestDepositSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -607,6 +746,103 @@ pub mod staking_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListDepositEventsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.staking.StakingService/ListTransactions" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListTransactionsSvc<T: StakingService>(pub Arc<T>);
+                    impl<
+                        T: StakingService,
+                    > tonic::server::UnaryService<super::ListTransactionsRequest>
+                    for ListTransactionsSvc<T> {
+                        type Response = super::super::transaction::HistoryResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListTransactionsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingService>::list_transactions(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListTransactionsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.staking.StakingService/ListDepositTransactions" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListDepositTransactionsSvc<T: StakingService>(pub Arc<T>);
+                    impl<
+                        T: StakingService,
+                    > tonic::server::UnaryService<super::ListDepositTransactionsRequest>
+                    for ListDepositTransactionsSvc<T> {
+                        type Response = super::super::transaction::HistoryResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::ListDepositTransactionsRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingService>::list_deposit_transactions(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListDepositTransactionsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

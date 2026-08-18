@@ -117,6 +117,14 @@ pub enum Topic {
     /// жизнь аккаунта, значит и переключатели должны быть раздельными.
     /// Доставляется ТОЛЬКО в Telegram.
     StakingRankAchieved = 21,
+    /// Депозит стейкинга отработал все циклы и ждёт решения партнёра — забрать
+    /// тело на кошелёк или реинвестировать его целиком в новый депозит.
+    ///
+    /// Отдельный топик, потому что это единственное уведомление стейкинга,
+    /// которое требует ДЕЙСТВИЯ, а не сообщает о зачислении: тело больше не
+    /// возвращается автоматически, и без напоминания деньги могут месяцами
+    /// лежать без движения. Доставляется ТОЛЬКО в Telegram.
+    StakingDepositMatured = 22,
 }
 impl Topic {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -147,6 +155,7 @@ impl Topic {
             Self::DepositDetected => "TOPIC_DEPOSIT_DETECTED",
             Self::BonusReceived => "TOPIC_BONUS_RECEIVED",
             Self::StakingRankAchieved => "TOPIC_STAKING_RANK_ACHIEVED",
+            Self::StakingDepositMatured => "TOPIC_STAKING_DEPOSIT_MATURED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -174,6 +183,7 @@ impl Topic {
             "TOPIC_DEPOSIT_DETECTED" => Some(Self::DepositDetected),
             "TOPIC_BONUS_RECEIVED" => Some(Self::BonusReceived),
             "TOPIC_STAKING_RANK_ACHIEVED" => Some(Self::StakingRankAchieved),
+            "TOPIC_STAKING_DEPOSIT_MATURED" => Some(Self::StakingDepositMatured),
             _ => None,
         }
     }

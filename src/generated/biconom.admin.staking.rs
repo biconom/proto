@@ -4,6 +4,7 @@ pub struct GetStateRequest {
     #[prost(uint32, tag = "1")]
     pub distributor_id: u32,
     /// true — добавить в `deposits` ещё и закрытые. На `summary` не влияет.
+    /// Активные и созревшие приходят всегда.
     #[prost(bool, tag = "2")]
     pub include_closed_deposits: bool,
 }
@@ -20,17 +21,12 @@ pub struct ListEventsRequest {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListDepositEventsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub deposit_id: ::core::option::Option<super::super::types::staking::deposit::Id>,
+    #[prost(uint32, tag = "1")]
+    pub deposit_id: u32,
     #[prost(uint64, optional, tag = "2")]
     pub cursor: ::core::option::Option<u64>,
     #[prost(message, optional, tag = "3")]
     pub sort: ::core::option::Option<super::super::types::Sort>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetRankProgressRequest {
-    #[prost(uint32, tag = "1")]
-    pub distributor_id: u32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListObligationsRequest {
@@ -52,11 +48,6 @@ pub struct ListObligationsRequest {
     pub sort: ::core::option::Option<super::super::types::Sort>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ReleaseObligationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub id: ::core::option::Option<super::super::types::staking::obligation::Id>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetRankBonusAutoReleaseRequest {
     /// Ранг 1..12. У рангов 1..3 бонуса нет, настройка неприменима — InvalidArgument.
     #[prost(uint32, tag = "1")]
@@ -71,16 +62,14 @@ pub struct UpdateSettingsRequest {
     #[prost(string, optional, tag = "1")]
     pub min_deposit: ::core::option::Option<::prost::alloc::string::String>,
     /// Новое значение реинвеста прибыли по умолчанию для новых депозитов.
+    /// ЕДИНСТВЕННЫЙ источник этого флага: клиент при создании его не передаёт.
     #[prost(bool, optional, tag = "2")]
     pub default_reinvest_profit: ::core::option::Option<bool>,
-    /// Новое значение реинвеста депозита по умолчанию для новых депозитов.
-    #[prost(bool, optional, tag = "3")]
-    pub default_reinvest_deposit: ::core::option::Option<bool>,
     /// Новый глобальный статус модуля.
     #[prost(
         enumeration = "super::super::types::staking::service_status::Id",
         optional,
-        tag = "4"
+        tag = "3"
     )]
     pub service_status: ::core::option::Option<i32>,
 }
@@ -134,9 +123,12 @@ pub mod staking_admin_service_server {
         /// Разбор квалификации: почему дистрибьютор не взял следующий ранг.
         /// Возвращает вклад, командный объём под следующий ранг и разбивку по веткам
         /// с указанием, у какой сработал лимит.
+        ///
+        /// Идентификатор — общая модель `Distributor.Id`, поэтому поддержке не нужно
+        /// сначала искать числовой id: можно спросить сразу по username.
         async fn get_rank_progress(
             &self,
-            request: tonic::Request<super::GetRankProgressRequest>,
+            request: tonic::Request<super::super::super::types::distributor::Id>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::RankProgress>,
             tonic::Status,
@@ -182,10 +174,15 @@ pub mod staking_admin_service_server {
         /// Идемпотентно: повторный вызов на уже выплаченном возвращает FailedPrecondition.
         /// Массовой реализации нет по решению заказчика — ручная модерация поштучно.
         ///
+        /// Ключа идемпотентности в запросе нет и не нужно: повтор защищён натуральным
+        /// ключом `(distributor_id, rank)` и флагом `released` — вторая попытка
+        /// выпустить те же деньги возвращает ошибку, а не выплачивает повторно.
+        /// Поэтому запрос состоит из одного идентификатора и передаётся им напрямую.
+        ///
         /// Требует ADMIN_STAKING.
         async fn release_obligation(
             &self,
-            request: tonic::Request<super::ReleaseObligationRequest>,
+            request: tonic::Request<super::super::super::types::staking::obligation::Id>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::Obligation>,
             tonic::Status,
@@ -222,12 +219,14 @@ pub mod staking_admin_service_server {
         /// Что можно менять:
         ///
         /// * min_deposit               — минимальная сумма входа в депозит;
-        /// * default_reinvest_profit   — реинвест прибыли по умолчанию у новых депозитов;
-        /// * default_reinvest_deposit  — реинвест депозита по умолчанию у новых депозитов;
+        /// * default_reinvest_profit   — реинвест прибыли у новых депозитов;
         /// * service_status            — ACTIVE / PAUSED / STOPPED.
         ///
         /// Изменение действует на БУДУЩИЕ депозиты: у уже открытых ни минимум, ни
-        /// значения реинвеста не переписываются.
+        /// значение реинвеста не переписываются.
+        ///
+        /// `default_reinvest_profit` — единственный источник флага при создании
+        /// депозита: клиент его в `CreateDeposit` не передаёт.
         ///
         /// Требует ADMIN_STAKING — это глобальные рычаги, влияющие на деньги и на продажи.
         async fn update_settings(
@@ -517,8 +516,9 @@ pub mod staking_admin_service_server {
                     struct GetRankProgressSvc<T: StakingAdminService>(pub Arc<T>);
                     impl<
                         T: StakingAdminService,
-                    > tonic::server::UnaryService<super::GetRankProgressRequest>
-                    for GetRankProgressSvc<T> {
+                    > tonic::server::UnaryService<
+                        super::super::super::types::distributor::Id,
+                    > for GetRankProgressSvc<T> {
                         type Response = super::super::super::types::staking::RankProgress;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -526,7 +526,9 @@ pub mod staking_admin_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::GetRankProgressRequest>,
+                            request: tonic::Request<
+                                super::super::super::types::distributor::Id,
+                            >,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
@@ -746,8 +748,9 @@ pub mod staking_admin_service_server {
                     struct ReleaseObligationSvc<T: StakingAdminService>(pub Arc<T>);
                     impl<
                         T: StakingAdminService,
-                    > tonic::server::UnaryService<super::ReleaseObligationRequest>
-                    for ReleaseObligationSvc<T> {
+                    > tonic::server::UnaryService<
+                        super::super::super::types::staking::obligation::Id,
+                    > for ReleaseObligationSvc<T> {
                         type Response = super::super::super::types::staking::Obligation;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -755,7 +758,9 @@ pub mod staking_admin_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::ReleaseObligationRequest>,
+                            request: tonic::Request<
+                                super::super::super::types::staking::obligation::Id,
+                            >,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {

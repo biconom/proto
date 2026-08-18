@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.client.staking;
 
 import "google/protobuf/empty.proto";
+import "biconom/client/transaction/transaction.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/staking.proto";
 
@@ -36,11 +37,42 @@ service StakingService {
     // счёт-леджер депозита. Минимум — `Config.min_deposit` ($100). Ограничения на
     // количество активных депозитов нет.
     //
+    // Флаг реинвеста прибыли в запросе НЕ передаётся: он берётся из
+    // `Config.settings.default_reinvest_profit` в момент создания. Менять его
+    // после создания — `SetAutoReinvestProfit`.
+    //
     // В той же группе проводок раздаётся реферальная лестница вверх по спонсорскому
     // дереву от суммы депозита. Отменить созданный депозит нельзя.
     //
     // Запрещено при статусе сервиса PAUSED и STOPPED.
     rpc CreateDeposit(CreateDepositRequest) returns (biconom.types.Staking.Deposit);
+
+    // ЗАБРАТЬ тело созревшего депозита на USDT-кошелёк.
+    //
+    // Только для депозита в статусе MATURED: активный — FailedPrecondition,
+    // уже закрытый — тоже. Депозит переходит в CLOSED, вернуть его в работу
+    // нельзя. Частичный вывод не поддерживается — забирается всё тело.
+    //
+    // Разрешено при ЛЮБОМ статусе сервиса, включая STOPPED: забрать своё тело
+    // партнёру нельзя запретить.
+    //
+    // Возвращает закрытый депозит.
+    rpc ClaimDeposit(biconom.types.Staking.Deposit.Id) returns (biconom.types.Staking.Deposit);
+
+    // РЕИНВЕСТИРОВАТЬ тело созревшего депозита — открыть новый депозит на всю
+    // сумму тела: новые 12 циклов, новая реферальная раздача вверх по структуре,
+    // рост личного вклада на всю сумму.
+    //
+    // Только для депозита в статусе MATURED. Исходный депозит переходит в CLOSED,
+    // новый ссылается на него через `source_deposit_id`. Повторный реинвест того
+    // же тела невозможен: на один исходный депозит приходится не больше одного
+    // порождённого. Минимальная сумма входа НЕ проверяется — это не новая покупка.
+    //
+    // Запрещено при статусе сервиса PAUSED и STOPPED: в отличие от `ClaimDeposit`,
+    // это решение вложить деньги заново.
+    //
+    // Возвращает НОВЫЙ депозит.
+    rpc ReinvestDeposit(biconom.types.Staking.Deposit.Id) returns (biconom.types.Staking.Deposit);
 
     // Реинвест ПРИБЫЛИ: направлять выплату дохода в тело этого же депозита.
     //
@@ -49,18 +81,39 @@ service StakingService {
     // отключение можно отозвать до наступления ближайшей выплаты.
     rpc SetAutoReinvestProfit(SetAutoReinvestProfitRequest) returns (biconom.types.Staking.Deposit);
 
-    // Реинвест ВСЕГО ДЕПОЗИТА: при закрытии тело автоматически откроет новый
-    // депозит на всю сумму — с новыми циклами и новой реферальной раздачей.
-    // Значение читается один раз, в момент закрытия; менять можно в любой момент до него.
-    rpc SetReinvestDeposit(SetReinvestDepositRequest) returns (biconom.types.Staking.Deposit);
-
     // Весь свой журнал стейкинга, новые сверху, курсорная пагинация.
-    // Только личные события по своим депозитам — реферальные бонусы сюда не
-    // попадают, они видны в общей истории транзакций кошелька.
+    //
+    // Содержит и события по собственным депозитам, и доли реферальной лестницы,
+    // пришедшие с депозитов структуры (`Event.ReferralReceived`) — то есть весь
+    // заработок партнёра в модуле одной лентой.
     rpc ListEvents(ListEventsRequest) returns (biconom.types.Staking.Event.List);
 
     // Журнал конкретного своего депозита, новые сверху.
     rpc ListDepositEvents(ListDepositEventsRequest) returns (biconom.types.Staking.Event.List);
+
+    // ФИНАНСОВЫЕ ТРАНЗАКЦИИ партнёра по стейкингу — тот же ответ, что у
+    // `TransactionService.History`, но уже отфильтрованный модулем.
+    //
+    // Отличие от `ListEvents`: журнал — это бизнес-события модуля (в том числе
+    // безденежные: созревание, смена флага реинвеста, достижение ранга), а здесь
+    // движение денег в том виде, в каком его рисует история кошелька — те же
+    // карточки, те же справочники, та же вёрстка.
+    //
+    // Попадает всё, что стейкинг делал с деньгами партнёра: вложение, доход за
+    // цикл, реинвест прибыли, возврат тела, доли реферальной лестницы с
+    // депозитов структуры, бонусы за ранги.
+    //
+    // Фильтрации по всей истории кошелька не происходит: модуль ведёт
+    // собственный индекс групп проводок.
+    rpc ListTransactions(ListTransactionsRequest) returns (biconom.client.transaction.HistoryResponse);
+
+    // То же, но только по одному своему депозиту: вложение в него, его выплаты,
+    // реинвесты его прибыли и возврат его тела.
+    //
+    // Доли реферальной лестницы сюда НЕ попадают — они приходят с чужих
+    // депозитов и к конкретному своему депозиту не относятся. Их место в
+    // `ListTransactions`.
+    rpc ListDepositTransactions(ListDepositTransactionsRequest) returns (biconom.client.transaction.HistoryResponse);
 
     // ДЕТАЛЬНЫЙ разбор карьерной лестницы — с разбивкой по веткам первой линии
     // (`legs`): видно, у какой ветки сработал лимит и сколько засчиталось.
@@ -73,7 +126,8 @@ service StakingService {
 
 message GetStateRequest {
     // true — добавить в `deposits` ещё и закрытые депозиты (вся история).
-    // false / не задано — только активные.
+    // false / не задано — только активные и созревшие. Созревшие приходят
+    // всегда: они ждут действия партнёра.
     //
     // На блок `summary` НЕ влияет: он всегда считается по всем депозитам
     // партнёра, включая закрытые.
@@ -81,32 +135,45 @@ message GetStateRequest {
 }
 
 message CreateDepositRequest {
-    // Номер 4 занимал ключ идемпотентности. Дедупликация создания депозита
-    // сознательно не делается: два депозита подряд — законный сценарий, а не
-    // ошибка, и сервер не может отличить его от повторной отправки. Защита от
-    // двойного нажатия — на клиенте: заблокировать кнопку до ответа.
-    reserved 4;
-
     // Сумма в USDT, строкой. Не меньше `Config.settings.min_deposit`.
+    //
+    // Больше в запросе ничего нет. Флаг реинвеста прибыли берётся сервером из
+    // `Config.settings.default_reinvest_profit`: клиент не должен переопределять
+    // серверную настройку, иначе значение в карточке депозита разойдётся с тем,
+    // что показано в настройках модуля. Реинвеста депозита не существует вовсе —
+    // созревший депозит ждёт решения партнёра.
+    //
+    // Ключа идемпотентности тоже нет: два депозита подряд — законный сценарий,
+    // и сервер не отличит его от повторной отправки. Защита от двойного нажатия
+    // на клиенте — заблокировать кнопку до ответа.
     string amount = 1;
-    // Реинвест прибыли. ЕСЛИ НЕ ЗАДАНО — применяется значение по умолчанию из
-    // `Config.settings.default_reinvest_profit`.
-    optional bool reinvest_profit = 2;
-    // Реинвест всего депозита при закрытии. ЕСЛИ НЕ ЗАДАНО — применяется
-    // `Config.settings.default_reinvest_deposit`.
-    optional bool reinvest_deposit = 3;
 }
 
 message SetAutoReinvestProfitRequest {
-    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    uint32 deposit_id = 1;
     // true — включить немедленно. false — подать заявку на отключение
     // (применится после ближайшей выплаты).
     bool enabled = 2;
 }
 
-message SetReinvestDepositRequest {
-    biconom.types.Staking.Deposit.Id deposit_id = 1;
-    bool enabled = 2;
+message ListTransactionsRequest {
+    // Курсор: `Transaction.Group.group_id` последней полученной группы
+    // (exclusive) — как в `TransactionService.History`. null — с самой новой.
+    optional uint64 cursor = 1;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 групп.
+    //
+    // Лимит считается в ГРУППАХ, а не в проводках: одна операция стейкинга —
+    // одна группа, но внутри неё может быть несколько строк (например, доход и
+    // тут же его реинвест в тело).
+    optional biconom.types.Sort sort = 2;
+}
+
+message ListDepositTransactionsRequest {
+    uint32 deposit_id = 1;
+    // Курсор: `Transaction.Group.group_id` последней полученной группы (exclusive).
+    optional uint64 cursor = 2;
+    // Направление и лимит. По умолчанию: BACKWARD, 50 групп.
+    optional biconom.types.Sort sort = 3;
 }
 
 message ListEventsRequest {
@@ -118,7 +185,7 @@ message ListEventsRequest {
 }
 
 message ListDepositEventsRequest {
-    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    uint32 deposit_id = 1;
     // Курсор: `Event.id` последнего полученного события (exclusive).
     optional uint64 cursor = 2;
     // Направление и лимит. По умолчанию: BACKWARD, 50 записей.

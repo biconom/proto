@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.admin.staking;
 
 import "google/protobuf/empty.proto";
+import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/staking.proto";
 
@@ -35,7 +36,10 @@ service StakingAdminService {
     // Разбор квалификации: почему дистрибьютор не взял следующий ранг.
     // Возвращает вклад, командный объём под следующий ранг и разбивку по веткам
     // с указанием, у какой сработал лимит.
-    rpc GetRankProgress(GetRankProgressRequest) returns (biconom.types.Staking.RankProgress);
+    //
+    // Идентификатор — общая модель `Distributor.Id`, поэтому поддержке не нужно
+    // сначала искать числовой id: можно спросить сразу по username.
+    rpc GetRankProgress(biconom.types.Distributor.Id) returns (biconom.types.Staking.RankProgress);
 
     // Полная конфигурация: захардкоженная экономика (ранги, тиры, циклы) плюс
     // текущие изменяемые настройки. Экономика меняется только пересборкой,
@@ -60,8 +64,13 @@ service StakingAdminService {
     // Идемпотентно: повторный вызов на уже выплаченном возвращает FailedPrecondition.
     // Массовой реализации нет по решению заказчика — ручная модерация поштучно.
     //
+    // Ключа идемпотентности в запросе нет и не нужно: повтор защищён натуральным
+    // ключом `(distributor_id, rank)` и флагом `released` — вторая попытка
+    // выпустить те же деньги возвращает ошибку, а не выплачивает повторно.
+    // Поэтому запрос состоит из одного идентификатора и передаётся им напрямую.
+    //
     // Требует ADMIN_STAKING.
-    rpc ReleaseObligation(ReleaseObligationRequest) returns (biconom.types.Staking.Obligation);
+    rpc ReleaseObligation(biconom.types.Staking.Obligation.Id) returns (biconom.types.Staking.Obligation);
 
     // Настройки автовыплаты бонусов за достижение: 12 строк
     // (ранг, сумма бонуса, флаг авто).
@@ -84,12 +93,14 @@ service StakingAdminService {
     //
     // Что можно менять:
     //   * min_deposit               — минимальная сумма входа в депозит;
-    //   * default_reinvest_profit   — реинвест прибыли по умолчанию у новых депозитов;
-    //   * default_reinvest_deposit  — реинвест депозита по умолчанию у новых депозитов;
+    //   * default_reinvest_profit   — реинвест прибыли у новых депозитов;
     //   * service_status            — ACTIVE / PAUSED / STOPPED.
     //
     // Изменение действует на БУДУЩИЕ депозиты: у уже открытых ни минимум, ни
-    // значения реинвеста не переписываются.
+    // значение реинвеста не переписываются.
+    //
+    // `default_reinvest_profit` — единственный источник флага при создании
+    // депозита: клиент его в `CreateDeposit` не передаёт.
     //
     // Требует ADMIN_STAKING — это глобальные рычаги, влияющие на деньги и на продажи.
     rpc UpdateSettings(UpdateSettingsRequest) returns (biconom.types.Staking.Settings);
@@ -98,6 +109,7 @@ service StakingAdminService {
 message GetStateRequest {
     uint32 distributor_id = 1;
     // true — добавить в `deposits` ещё и закрытые. На `summary` не влияет.
+    // Активные и созревшие приходят всегда.
     bool include_closed_deposits = 2;
 }
 
@@ -110,13 +122,9 @@ message ListEventsRequest {
 }
 
 message ListDepositEventsRequest {
-    biconom.types.Staking.Deposit.Id deposit_id = 1;
+    uint32 deposit_id = 1;
     optional uint64 cursor = 2;
     optional biconom.types.Sort sort = 3;
-}
-
-message GetRankProgressRequest {
-    uint32 distributor_id = 1;
 }
 
 message ListObligationsRequest {
@@ -133,16 +141,6 @@ message ListObligationsRequest {
     optional biconom.types.Sort sort = 5;
 }
 
-message ReleaseObligationRequest {
-    // Номер 2 занимал ключ идемпотентности. Он здесь и не был нужен: повтор
-    // защищён натуральным ключом `(distributor_id, rank)` и флагом
-    // `released` — вторая попытка выпустить те же деньги возвращает ошибку,
-    // а не выплачивает повторно.
-    reserved 2;
-
-    biconom.types.Staking.Obligation.Id id = 1;
-}
-
 message SetRankBonusAutoReleaseRequest {
     // Ранг 1..12. У рангов 1..3 бонуса нет, настройка неприменима — InvalidArgument.
     uint32 rank = 1;
@@ -154,9 +152,8 @@ message UpdateSettingsRequest {
     // Новая минимальная сумма входа в депозит. Должна быть > 0.
     optional string min_deposit = 1;
     // Новое значение реинвеста прибыли по умолчанию для новых депозитов.
+    // ЕДИНСТВЕННЫЙ источник этого флага: клиент при создании его не передаёт.
     optional bool default_reinvest_profit = 2;
-    // Новое значение реинвеста депозита по умолчанию для новых депозитов.
-    optional bool default_reinvest_deposit = 3;
     // Новый глобальный статус модуля.
-    optional biconom.types.Staking.ServiceStatus.Id service_status = 4;
+    optional biconom.types.Staking.ServiceStatus.Id service_status = 3;
 }

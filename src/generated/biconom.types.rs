@@ -973,7 +973,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1306,6 +1306,109 @@ pub mod transaction {
                 #[prost(uint32, tag = "5")]
                 pub tree_id: u32,
             }
+            /// Доля реферальной лестницы стейкинга — начисление с депозита
+            /// нижестоящего партнёра.
+            ///
+            /// Это НЕ матчинг-бонус: у стейкинга собственная лестница, она платит
+            /// не за оборот, а за каждый прирост тела в структуре, и её процент
+            /// задаётся рангом стейкинга.
+            ///
+            /// То же начисление приходит и в журнал стейкинга событием
+            /// `Staking.Event.ReferralReceived` — там оно лежит вместе со своими
+            /// депозитами партнёра.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingReferralDetails {
+                /// Партнёр, чьё вложение породило начисление.
+                #[prost(uint32, tag = "1")]
+                pub source_distributor_id: u32,
+                /// Его депозит.
+                #[prost(uint32, tag = "2")]
+                pub deposit_id: u32,
+                /// База начисления — прирост тела у источника.
+                #[prost(string, tag = "3")]
+                pub base_amount: ::prost::alloc::string::String,
+                /// Фактическая ставка — КОЭФФИЦИЕНТ строкой ("0.02"): разница
+                /// между процентом своего ранга и тем, что уже забрали
+                /// нижестоящие звенья цепочки.
+                #[prost(string, tag = "4")]
+                pub rate: ::prost::alloc::string::String,
+                /// НЕДОЗАРАБОТОК: сколько партнёр получил бы с этого начисления
+                /// на максимальном ранге (16%), минус то, что получил. Ноль —
+                /// взял всё возможное. Величина справочная, этих денег не
+                /// существует: это показатель «сколько даст рост ранга».
+                #[prost(string, tag = "5")]
+                pub lost_profit: ::prost::alloc::string::String,
+                /// ГЛУБИНА в спонсорском дереве: 1 — прямой личник, 2 — второй
+                /// уровень и так далее. Это «N Line» на карточке.
+                ///
+                /// Значение ЗАФИКСИРОВАНО в момент начисления: последующая смена
+                /// спонсора кем-то в цепочке историю не переписывает.
+                #[prost(uint32, tag = "6")]
+                pub depth: u32,
+            }
+            /// Деньги ушли с кошелька на счёт депозита.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingDepositFundDetails {
+                /// Депозит, который пополнен.
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                /// Созревший депозит, тело которого сюда переехало
+                /// (`ReinvestDeposit`). 0 — депозит куплен за деньги.
+                #[prost(uint32, tag = "2")]
+                pub source_deposit_id: u32,
+            }
+            /// Тело депозита вернулось на кошелёк — `ClaimDeposit` либо транзит
+            /// при `ReinvestDeposit`.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingBodyReturnDetails {
+                /// Депозит, который отдал тело.
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                /// НАМЕРЕНИЕ вложить тело заново: депозит, который открыт этими
+                /// же деньгами. 0 — партнёр забрал тело на кошелёк и оставил там.
+                ///
+                /// Ненулевое значение означает, что деньги на кошельке транзитом:
+                /// в той же группе есть парная `staking_deposit_fund` с
+                /// `source_deposit_id`, равным `deposit_id` отсюда. Отдельного
+                /// булева флага «был реинвест» нет намеренно — он был бы вторым
+                /// представлением того же факта и однажды разошёлся бы с id.
+                #[prost(uint32, tag = "2")]
+                pub reinvested_into_deposit_id: u32,
+            }
+            /// Доход за цикл начислен на кошелёк.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingIncomeDetails {
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                /// Номер цикла, 1…`Deposit.cycles_total`.
+                #[prost(uint32, tag = "2")]
+                pub payout_seq: u32,
+                /// Применённая ставка тира — КОЭФФИЦИЕНТ строкой ("0.07").
+                #[prost(string, tag = "3")]
+                pub rate: ::prost::alloc::string::String,
+                /// true — это была последняя выплата, депозит созрел.
+                #[prost(bool, tag = "4")]
+                pub is_final: bool,
+            }
+            /// Доход этого же цикла ушёл обратно в тело депозита. Приходит в паре
+            /// с `staking_income` в одной группе: сначала начисление, затем уход.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingProfitReinvestDetails {
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                #[prost(uint32, tag = "2")]
+                pub payout_seq: u32,
+            }
+            /// Разовый бонус за достижение ранга.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingRankBonusDetails {
+                /// Достигнутый ранг 4…12.
+                #[prost(uint32, tag = "1")]
+                pub rank: u32,
+                /// Обязательство, по которому выплачено.
+                #[prost(uint64, tag = "2")]
+                pub obligation_id: u64,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1352,6 +1455,18 @@ pub mod transaction {
                 WinTimeReferral(WinTimeReferralDetails),
                 #[prost(message, tag = "25")]
                 WintimeShopPurchase(WintimeShopPurchaseDetails),
+                #[prost(message, tag = "26")]
+                StakingReferral(StakingReferralDetails),
+                #[prost(message, tag = "27")]
+                StakingDepositFund(StakingDepositFundDetails),
+                #[prost(message, tag = "28")]
+                StakingIncome(StakingIncomeDetails),
+                #[prost(message, tag = "29")]
+                StakingProfitReinvest(StakingProfitReinvestDetails),
+                #[prost(message, tag = "30")]
+                StakingBodyReturn(StakingBodyReturnDetails),
+                #[prost(message, tag = "31")]
+                StakingRankBonus(StakingRankBonusDetails),
             }
         }
     }
@@ -5014,8 +5129,12 @@ pub mod staking {
         /// Сумма на момент создания. НЕ МЕНЯЕТСЯ никогда.
         #[prost(string, tag = "5")]
         pub initial_amount: ::prost::alloc::string::String,
-        /// Тело депозита. Для активного — текущий баланс счёта; для закрытого —
-        /// тело на момент закрытия (счёт уже обнулён, значение сохранено для истории).
+        /// Тело депозита. Для активного и созревшего — текущий баланс счёта; для
+        /// закрытого — тело на момент закрытия (счёт уже обнулён, значение
+        /// сохранено для истории).
+        ///
+        /// У созревшего депозита это ровно та сумма, которую партнёр заберёт
+        /// `ClaimDeposit` или отправит в новый депозит `ReinvestDeposit`.
         ///
         /// Растёт только реинвестом дохода, поэтому
         /// «сколько ушло в реинвест» = `body` − `initial_amount`. Отдельного поля
@@ -5031,10 +5150,21 @@ pub mod staking {
         pub status: i32,
         #[prost(enumeration = "deposit::source::Id", tag = "9")]
         pub source: i32,
-        /// Закрытый депозит, тело которого открыло этот. Заполнено только при
-        /// `source == SOURCE_BODY_REINVEST`, иначе 0.
+        /// НАЗАД: закрытый депозит, тело которого открыло этот.
+        /// Заполнено только при `source == SOURCE_BODY_REINVEST`, иначе 0.
         #[prost(uint32, tag = "10")]
         pub source_deposit_id: u32,
+        /// ВПЕРЁД: депозит, открытый телом этого (`ReinvestDeposit`).
+        ///
+        /// 0 означает одно из трёх: депозит ещё активен или созрел, тело забрано
+        /// на кошелёк (`ClaimDeposit`), либо это последнее звено цепочки.
+        /// Ненулевое значение бывает только у депозита в статусе `CLOSED` и
+        /// совпадает с `Event.DepositClosed.reinvested_into_deposit_id`.
+        ///
+        /// Повторно реинвестировать тело нельзя: на один исходный депозит
+        /// приходится не больше одного порождённого.
+        #[prost(uint32, tag = "21")]
+        pub reinvested_into_deposit_id: u32,
         /// ── Расписание ──
         /// Тарифный план (снимок на момент создания). Сейчас всегда 1.
         #[prost(uint32, tag = "11")]
@@ -5058,30 +5188,36 @@ pub mod staking {
         /// Плановый момент последней реализованной выплаты. Пусто, если выплат не было.
         #[prost(message, optional, tag = "17")]
         pub last_cycle_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Пусто, пока депозит активен.
+        /// Момент, когда тело ушло с депозита. Пусто, пока депозит активен ИЛИ
+        /// созрел, но не забран: созревание само по себе депозит не закрывает.
         #[prost(message, optional, tag = "18")]
         pub closed_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Момент последнего изменения записи.
         #[prost(message, optional, tag = "22")]
         pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// ── Реинвест ──
-        /// Реинвест ПРИБЫЛИ: применённое значение — по нему отработает БЛИЖАЙШАЯ выплата.
+        /// ── Реинвест прибыли ──
+        /// Начальное значение берётся из `Settings.default_reinvest_profit` в
+        /// момент создания депозита; клиент его при создании НЕ задаёт. Менять
+        /// после создания — `SetAutoReinvestProfit`.
+        ///
+        /// Применённое значение — по нему отработает БЛИЖАЙШАЯ выплата.
         #[prost(bool, tag = "19")]
         pub reinvest_profit_applied: bool,
-        /// Реинвест ПРИБЫЛИ: что установил партнёр. Отличается от `applied`, когда
-        /// подана заявка на отключение: ближайшая выплата ещё уйдёт в тело,
-        /// следующая — на кошелёк.
+        /// Что установил партнёр. Отличается от `applied`, когда подана заявка на
+        /// отключение: ближайшая выплата ещё уйдёт в тело, следующая — на кошелёк.
         #[prost(bool, tag = "20")]
         pub reinvest_profit_requested: bool,
-        /// Реинвест ВСЕГО ДЕПОЗИТА: при закрытии тело автоматически откроет новый
-        /// депозит. Читается один раз, в момент закрытия.
-        #[prost(bool, tag = "21")]
-        pub reinvest_deposit: bool,
     }
     /// Nested message and enum types in `Deposit`.
     pub mod deposit {
         /// Идентификатор депозита. `oneof` — на случай появления
         /// альтернативной адресации, как у `WintimeShop.Product.Id`.
+        ///
+        /// Используется как ТИП ЗАПРОСА тех методов, которым больше ничего не
+        /// нужно (`GetDeposit`, `ClaimDeposit`, `ReinvestDeposit`) — заводить под
+        /// них пустые сообщения-обёртки незачем. А вот ВНУТРИ запроса, где рядом
+        /// есть другие поля, депозит адресуется простым `uint32 deposit_id`:
+        /// вложенная обёртка там только добавляет уровень и проверку «задано ли».
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Id {
             #[prost(oneof = "id::Identifier", tags = "1")]
@@ -5101,12 +5237,6 @@ pub mod staking {
             pub items: ::prost::alloc::vec::Vec<super::Deposit>,
         }
         /// Состояние депозита.
-        ///
-        /// Сейчас состояний ровно два, и поле могло бы быть булевым. Оставлено
-        /// перечислением осознанно: (1) в проекте статус сущности везде enum
-        /// (`Ledger.Status`, `Wallet.Status`, `PaymentNetwork.Status`) —
-        /// единообразие важнее экономии одного поля; (2) добавить значение в enum
-        /// — совместимое изменение, а заменить `bool` на enum позже — ломающее.
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Status {}
         /// Nested message and enum types in `Status`.
@@ -5128,9 +5258,24 @@ pub mod staking {
                 /// Выполнены не все циклы. Тело учитывается в сумме активных
                 /// депозитов и влияет на тир партнёра.
                 Active = 1,
-                /// Все циклы выполнены, тело возвращено на кошелёк. В сумму
-                /// активных депозитов не входит, на тир не влияет.
+                /// Терминальное состояние: тело ушло с депозита — на кошелёк
+                /// (`ClaimDeposit`) либо в новый депозит (`ReinvestDeposit`).
+                /// Счёт депозита обнулён, `body` показывает тело на момент
+                /// закрытия. Вернуть депозит в работу нельзя.
                 Closed = 2,
+                /// СОЗРЕЛ: все 12 циклов выполнены, доход больше не начисляется,
+                /// но тело ещё лежит на счёте депозита и ждёт решения партнёра —
+                /// `ClaimDeposit` или `ReinvestDeposit`. Срока на решение нет,
+                /// депозит может оставаться в этом состоянии сколько угодно.
+                ///
+                /// В сумму активных депозитов НЕ входит и на тир не влияет:
+                /// иначе созревшие депозиты можно было бы не забирать и держать
+                /// высокую ставку по остальным даром.
+                ///
+                /// Значение добавлено ПОСЛЕ `CLOSED` намеренно: хранилище
+                /// кодирует статус порядковым номером, вставка в середину
+                /// переинтерпретировала бы уже записанные депозиты.
+                Matured = 3,
             }
             impl Id {
                 /// String value of the enum field names used in the ProtoBuf definition.
@@ -5142,6 +5287,7 @@ pub mod staking {
                         Self::Unspecified => "UNSPECIFIED",
                         Self::Active => "ACTIVE",
                         Self::Closed => "CLOSED",
+                        Self::Matured => "MATURED",
                     }
                 }
                 /// Creates an enum from field names used in the ProtoBuf definition.
@@ -5150,6 +5296,7 @@ pub mod staking {
                         "UNSPECIFIED" => Some(Self::Unspecified),
                         "ACTIVE" => Some(Self::Active),
                         "CLOSED" => Some(Self::Closed),
+                        "MATURED" => Some(Self::Matured),
                         _ => None,
                     }
                 }
@@ -5176,9 +5323,11 @@ pub mod staking {
                 Unspecified = 0,
                 /// Партнёр создал вручную, деньги списаны с его кошелька.
                 Manual = 1,
-                /// Открыт автоматически при закрытии предыдущего депозита, у
-                /// которого был включён `reinvest_deposit`. Предыдущий депозит —
-                /// в `source_deposit_id`; оно заполнено ТОЛЬКО при этом значении.
+                /// Открыт телом СОЗРЕВШЕГО депозита по команде партнёра
+                /// (`ReinvestDeposit`). Исходный депозит — в `source_deposit_id`;
+                /// оно заполнено ТОЛЬКО при этом значении. На один исходный
+                /// депозит приходится не больше одного такого — повторный
+                /// реинвест того же тела невозможен.
                 BodyReinvest = 2,
             }
             impl Id {
@@ -5217,7 +5366,8 @@ pub mod staking {
         /// ── Активные сейчас ──
         #[prost(uint32, tag = "2")]
         pub active_count: u32,
-        /// Сумма тел активных депозитов. Это и есть база выбора тира.
+        /// Сумма тел активных депозитов. Это и есть база выбора тира. СОЗРЕВШИЕ
+        /// депозиты сюда не входят — они больше не зарабатывают.
         #[prost(string, tag = "3")]
         pub active_total: ::prost::alloc::string::String,
         /// Текущая ставка тира за цикл — коэффициент строкой. Пусто, если
@@ -5243,6 +5393,14 @@ pub mod staking {
         /// Сколько из начисленного ушло обратно в тела депозитов.
         #[prost(string, tag = "9")]
         pub total_reinvested: ::prost::alloc::string::String,
+        /// ── Ждут решения ──
+        /// Сколько депозитов созрело и ждёт `ClaimDeposit` / `ReinvestDeposit`.
+        #[prost(uint32, tag = "10")]
+        pub matured_count: u32,
+        /// Сумма их тел — столько партнёр может забрать или реинвестировать прямо
+        /// сейчас. В `active_total` НЕ входит.
+        #[prost(string, tag = "11")]
+        pub matured_total: ::prost::alloc::string::String,
     }
     /// Ступень СОБСТВЕННОЙ доходности.
     ///
@@ -5316,24 +5474,23 @@ pub mod staking {
     /// ИЗМЕНЯЕМЫЕ настройки модуля.
     ///
     /// В отличие от таблицы рангов и сетки тиров, которые захардкожены и меняются
-    /// только пересборкой, эти четыре значения — операционные рычаги: админ меняет
-    /// их на лету через `UpdateSettings`, изменение персистентно и переживает рестарт.
+    /// только пересборкой, эти значения — операционные рычаги: админ меняет их на
+    /// лету через `UpdateSettings`, изменение персистентно и переживает рестарт.
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Settings {
         /// Минимальная сумма создания депозита. На реинвест прибыли НЕ действует:
-        /// в тело добавляется любая начисленная сумма, даже меньше минимума.
+        /// в тело добавляется любая начисленная сумма, даже меньше минимума. На
+        /// `ReinvestDeposit` тоже не действует — это не новая продажа.
         #[prost(string, tag = "1")]
         pub min_deposit: ::prost::alloc::string::String,
-        /// Значение `Deposit.reinvest_profit_*` по умолчанию для НОВЫХ депозитов.
-        /// Считывается в момент создания, если клиент не задал своё.
+        /// Значение `Deposit.reinvest_profit_*` для НОВЫХ депозитов. ЕДИНСТВЕННЫЙ
+        /// источник этого флага при создании: клиент его в `CreateDeposit` не
+        /// передаёт и переопределить не может.
         #[prost(bool, tag = "2")]
         pub default_reinvest_profit: bool,
-        /// Значение `Deposit.reinvest_deposit` по умолчанию для НОВЫХ депозитов.
-        #[prost(bool, tag = "3")]
-        pub default_reinvest_deposit: bool,
         /// Глобальный статус модуля: можно ли покупать новые депозиты.
         /// Уже открытые депозиты продолжают работать при PAUSED.
-        #[prost(enumeration = "service_status::Id", tag = "4")]
+        #[prost(enumeration = "service_status::Id", tag = "3")]
         pub service_status: i32,
     }
     /// Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
@@ -5355,7 +5512,13 @@ pub mod staking {
         /// Число циклов депозита. Захардкожено, read-only.
         #[prost(uint32, tag = "4")]
         pub cycles_total: u32,
-        /// Длина цикла в секундах. Захардкожена, read-only.
+        /// Длина цикла в секундах, read-only. ЗАВИСИТ ОТ ОКРУЖЕНИЯ: на продакшене
+        /// 2592000 (30 суток), на стейджинге 60 — иначе полный жизненный цикл
+        /// депозита нельзя было бы проверить руками.
+        ///
+        /// Значение — снимок на момент создания депозита: смена окружения или
+        /// пересборка не меняют расписание уже открытых депозитов. Клиенту не
+        /// следует зашивать 30 суток константой, надо брать это поле.
         #[prost(uint32, tag = "5")]
         pub cycle_interval_secs: u32,
         /// Изменяемая админом часть.
@@ -5491,6 +5654,9 @@ pub mod staking {
     }
     /// Nested message and enum types in `Obligation`.
     pub mod obligation {
+        /// Идентификатор обязательства. Используется как ТИП ЗАПРОСА методов,
+        /// которым больше ничего не нужно (`GetObligation`, `ReleaseObligation`) —
+        /// сообщения-обёртки с единственным полем под них не заводятся.
         #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct Id {
             #[prost(oneof = "id::Identifier", tags = "1")]
@@ -5533,9 +5699,9 @@ pub mod staking {
             pub items: ::prost::alloc::vec::Vec<super::RankBonusSetting>,
         }
     }
-    /// Событие журнала стейкинга — ТОЛЬКО личные события партнёра по его депозитам.
-    /// Реферальные бонусы, полученные от структуры, сюда НЕ попадают: они видны в
-    /// общей истории транзакций кошелька, как любые другие бонусы.
+    /// Событие журнала стейкинга: всё, что происходит с деньгами партнёра внутри
+    /// модуля — и по его собственным депозитам, и приход со структуры
+    /// (`ReferralReceived`).
     #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Event {
         /// Глобальный монотонный идентификатор (хронология по всей системе).
@@ -5544,7 +5710,9 @@ pub mod staking {
         /// Порядковый номер события В РАМКАХ ПАРТНЁРА: 1, 2, 3 …
         #[prost(uint32, tag = "2")]
         pub seq: u32,
-        /// Депозит, к которому относится событие. 0 — не привязано (достижение ранга).
+        /// СВОЙ депозит, к которому относится событие. 0 — событие не привязано к
+        /// своему депозиту: достижение ранга (`RankAchieved`) или доля с чужого
+        /// вложения (`ReferralReceived`, там депозит-источник лежит внутри).
         #[prost(uint32, tag = "3")]
         pub deposit_id: u32,
         /// БИЗНЕС-время события. Для выплат — ПЛАНОВЫЙ момент цикла, а не момент
@@ -5555,7 +5723,7 @@ pub mod staking {
         /// Группа проводок леджера, породившая событие. 0 — событие без денег.
         #[prost(uint64, tag = "5")]
         pub ledger_group_id: u64,
-        #[prost(oneof = "event::Data", tags = "10, 11, 12, 13, 14, 15")]
+        #[prost(oneof = "event::Data", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
         pub data: ::core::option::Option<event::Data>,
     }
     /// Nested message and enum types in `Event`.
@@ -5596,7 +5764,8 @@ pub mod staking {
             /// База начисления: тело этого депозита на момент выплаты.
             #[prost(string, tag = "5")]
             pub body_at_payout: ::prost::alloc::string::String,
-            /// true — это последняя выплата; в той же группе проводок депозит закрылся.
+            /// true — это последняя выплата: депозит после неё СОЗРЕЛ. Тело при
+            /// этом никуда не двигается, см. событие `DepositMatured`.
             #[prost(bool, tag = "6")]
             pub is_final: bool,
         }
@@ -5675,14 +5844,82 @@ pub mod staking {
                 }
             }
         }
-        /// Депозит закрыт после последней выплаты. Тело вернулось на кошелёк.
+        /// Депозит СОЗРЕЛ: 12 циклов выполнены, доход больше не начисляется.
+        /// Тело осталось на счёте депозита и ждёт решения партнёра.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct DepositMatured {
+            /// Тело на момент созревания — столько можно забрать или
+            /// реинвестировать.
+            #[prost(string, tag = "1")]
+            pub body: ::prost::alloc::string::String,
+        }
+        /// Тело ушло с депозита по решению партнёра, депозит закрыт.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
         pub struct DepositClosed {
             #[prost(string, tag = "1")]
             pub body: ::prost::alloc::string::String,
-            /// Новый депозит, открытый телом этого. 0 — тело осталось на кошельке.
+            /// Новый депозит, открытый телом этого (`ReinvestDeposit`).
+            /// 0 — тело забрано на кошелёк (`ClaimDeposit`).
             #[prost(uint32, tag = "2")]
             pub reinvested_into_deposit_id: u32,
+        }
+        /// Получена доля реферальной лестницы с депозита НИЖЕСТОЯЩЕГО партнёра.
+        ///
+        /// Единственное событие журнала, которое приходит не от своего депозита,
+        /// а от чужого: `Event.deposit_id` у него всегда 0, а депозит-источник
+        /// лежит внутри. Благодаря ему экран стейкинга показывает и свои
+        /// депозиты, и заработок со структуры одной лентой.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ReferralReceived {
+            /// Партнёр, чьё вложение породило начисление.
+            #[prost(uint32, tag = "1")]
+            pub source_distributor_id: u32,
+            /// Его депозит: только что созданный либо тот, в тело которого ушёл
+            /// реинвест прибыли.
+            #[prost(uint32, tag = "2")]
+            pub source_deposit_id: u32,
+            /// База начисления — прирост тела у источника.
+            #[prost(string, tag = "3")]
+            pub base_amount: ::prost::alloc::string::String,
+            /// Сколько получено.
+            #[prost(string, tag = "4")]
+            pub amount: ::prost::alloc::string::String,
+            /// Фактическая ставка начисления — КОЭФФИЦИЕНТ строкой. Это разница
+            /// между процентом своего ранга и тем, что уже забрали нижестоящие
+            /// звенья цепочки, а НЕ процент ранга: партнёр ранга 12 получает свои
+            /// 16% целиком только когда под ним никого с рангом нет.
+            #[prost(string, tag = "5")]
+            pub rate: ::prost::alloc::string::String,
+            /// Глубина: 1 — прямой личник.
+            #[prost(uint32, tag = "6")]
+            pub depth: u32,
+            /// НЕДОЗАРАБОТОК: сколько партнёр получил бы с этого же начисления,
+            /// будь он на максимальном ранге (16%), минус то, что получил.
+            ///
+            /// Считается от той же базы и того же `paid_before`, поэтому
+            /// `amount + lost_profit` — это потолок для данного начисления, а не
+            /// абстрактные «16% от базы». Ноль означает «взял всё возможное»:
+            /// либо максимальный ранг, либо нижестоящие уже выбрали лимит.
+            ///
+            /// Величина справочная: этих денег не существует, они не начислены
+            /// никому — это мотивационный показатель «сколько даст рост ранга».
+            #[prost(string, tag = "7")]
+            pub lost_profit: ::prost::alloc::string::String,
+        }
+        /// Бонус за достижение ранга ВЫПЛАЧЕН — автоматически либо админом.
+        ///
+        /// `RankAchieved` фиксирует только факт достижения и денег не двигает:
+        /// между достижением и выплатой могут пройти недели ручной модерации.
+        /// Это событие — момент прихода денег.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct RankBonusReleased {
+            #[prost(uint32, tag = "1")]
+            pub rank: u32,
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Обязательство, по которому выплачено.
+            #[prost(uint64, tag = "3")]
+            pub obligation_id: u64,
         }
         /// Достигнут новый ранг.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -5713,6 +5950,12 @@ pub mod staking {
             DepositClosed(DepositClosed),
             #[prost(message, tag = "15")]
             RankAchieved(RankAchieved),
+            #[prost(message, tag = "16")]
+            DepositMatured(DepositMatured),
+            #[prost(message, tag = "17")]
+            ReferralReceived(ReferralReceived),
+            #[prost(message, tag = "18")]
+            RankBonusReleased(RankBonusReleased),
         }
     }
     /// ПОЛНОЕ состояние партнёра в стейкинге — всё, что нужно главному экрану,
@@ -5737,8 +5980,8 @@ pub mod staking {
         /// Агрегаты по ВСЕМ депозитам партнёра — не зависят от фильтра `deposits`.
         #[prost(message, optional, tag = "2")]
         pub summary: ::core::option::Option<DepositsSummary>,
-        /// Депозиты. Активные приходят всегда; закрытые — только если запрошены
-        /// флагом. Новые сверху.
+        /// Депозиты. Активные и созревшие приходят всегда; закрытые — только если
+        /// запрошены флагом. Новые сверху.
         #[prost(message, repeated, tag = "3")]
         pub deposits: ::prost::alloc::vec::Vec<Deposit>,
         /// Прогресс по карьерной лестнице. Поле `legs` здесь ВСЕГДА пустое —
@@ -5785,9 +6028,13 @@ pub mod staking {
             Unspecified = 0,
             /// Штатная работа.
             Active = 1,
-            /// Ручное создание депозитов запрещено. Выплаты, реинвест прибыли и
-            /// автоматический реинвест тела при закрытии продолжают работать —
-            /// это исполнение уже принятых обязательств, а не новая продажа.
+            /// Ручное создание депозитов запрещено. Выплаты и реинвест прибыли
+            /// продолжают работать — это исполнение уже принятых обязательств.
+            ///
+            /// `ReinvestDeposit` при этом статусе ЗАПРЕЩЁН: переоткрыть тело
+            /// новым депозитом — осознанное решение партнёра, то есть новая
+            /// продажа. `ClaimDeposit` разрешён всегда, при любом статусе:
+            /// забрать своё тело партнёру нельзя запретить.
             Paused = 2,
             /// Всё заморожено. Плановые моменты выплат накапливаются и догоняются
             /// после возврата в ACTIVE.
@@ -5824,13 +6071,21 @@ pub mod staking {
     pub struct Summary {
         #[prost(uint32, tag = "1")]
         pub currency_id: u32,
-        /// Сумма тел всех активных депозитов по системе.
+        /// Сумма тел, которые сейчас держит программа: активные ПЛЮС созревшие,
+        /// но не забранные депозиты. Это обязательства перед партнёрами.
         #[prost(string, tag = "2")]
         pub total_in_deposits: ::prost::alloc::string::String,
         #[prost(uint32, tag = "3")]
         pub deposits_active: u32,
         #[prost(uint32, tag = "4")]
         pub deposits_total: u32,
+        /// Созрели и ждут решения партнёра.
+        #[prost(uint32, tag = "11")]
+        pub deposits_matured: u32,
+        /// Сумма их тел — деньги, которые партнёры могут забрать в любой момент.
+        /// Входит в `total_in_deposits`.
+        #[prost(string, tag = "12")]
+        pub matured_total: ::prost::alloc::string::String,
         /// Выплачено доходности за всё время (модуль баланса пула COMPANY STAKING).
         #[prost(string, tag = "5")]
         pub total_income_paid: ::prost::alloc::string::String,
