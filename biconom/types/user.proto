@@ -26,7 +26,8 @@ message User {
 	optional biconom.types.Image avatar = 6;
 
 	// Email пользователя. Заполняется ТОЛЬКО в контекстах, где у запрашивающего есть право видеть
-	// контакты (например, просмотр профиля своей команды/иерархии в DistributorService.Get).
+	// контакты: просмотр профиля своей команды/иерархии в DistributorService.Get (включая блок
+	// parent) и AccountService.GetCurrent (свой аккаунт + запрошенные вышестоящие).
 	// В прочих ответах, отдающих User, отсутствует.
 	optional string email = 7;
 

@@ -158,7 +158,8 @@ pub struct User {
     #[prost(message, optional, tag = "6")]
     pub avatar: ::core::option::Option<Image>,
     /// Email пользователя. Заполняется ТОЛЬКО в контекстах, где у запрашивающего есть право видеть
-    /// контакты (например, просмотр профиля своей команды/иерархии в DistributorService.Get).
+    /// контакты: просмотр профиля своей команды/иерархии в DistributorService.Get (включая блок
+    /// parent) и AccountService.GetCurrent (свой аккаунт + запрошенные вышестоящие).
     /// В прочих ответах, отдающих User, отсутствует.
     #[prost(string, optional, tag = "7")]
     pub email: ::core::option::Option<::prost::alloc::string::String>,
