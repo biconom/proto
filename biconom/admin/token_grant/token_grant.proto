@@ -53,7 +53,11 @@ message BuyTokensForRequest {
     // TradeSkipFlags — что отключить в побочных эффектах трейда.
     bool skip_marketing      = 7;  // Маркетинг-бонусы аплайну
     bool skip_arena          = 8;  // Очки в Arena
-    bool skip_dividend_pool  = 9;  // Учёт инвестиций в дивидендный пул
+
+    // 9 — skip_dividend_pool, удалён в 1.10.5. Агрегаты пула считаются по
+    // фактам леджера и пересобираются на старте, поэтому точечно пропустить
+    // сделку было нельзя: флаг не переживал перезапуск.
+    reserved 9;
 }
 
 message BuyTokensForResponse {

@@ -23,9 +23,6 @@ pub struct BuyTokensForRequest {
     /// Очки в Arena
     #[prost(bool, tag = "8")]
     pub skip_arena: bool,
-    /// Учёт инвестиций в дивидендный пул
-    #[prost(bool, tag = "9")]
-    pub skip_dividend_pool: bool,
     /// Намерение: задаётся ровно одна из сумм.
     /// Все mantissa-строки (как в biconom.client.trade), > 0.
     #[prost(oneof = "buy_tokens_for_request::Amount", tags = "4, 5")]
