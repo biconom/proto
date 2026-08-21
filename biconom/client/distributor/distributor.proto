@@ -27,6 +27,11 @@ service DistributorService {
 
 	// Изменяет username дистрибьютора, под которым авторизован пользователь.
 	rpc ChangeUsername(ChangeUsernameRequest) returns (Response);
+
+	// Возвращает хлебные крошки — путь по реферальному дереву от авторизованного
+	// дистрибьютора вниз до указанного. Доступно, только если указанный дистрибьютор —
+	// это сам авторизованный или его потомок.
+	rpc GetBreadcrumbs(biconom.types.Distributor.Id) returns (GetBreadcrumbsResponse);
 }
 
 // Response - это ответ для одиночной сущности, который включает в себя связанные данные.
@@ -183,4 +188,25 @@ message SearchRequest {
 message ChangeUsernameRequest {
 	// Новый username.
 	string new_username = 1;
+}
+
+// Ответ с хлебными крошками — цепочкой дистрибьюторов от авторизованного вниз до запрошенного.
+// Как и остальные ответы сервиса, отдаёт плоские дедуплицированные справочники: клиент
+// джойнит `chain_ids` с `distributors`, а `distributors[].account_id` — с `accounts`.
+message GetBreadcrumbsResponse {
+	// ID дистрибьютора, который выполняет запрос (авторизованный пользователь).
+	uint32 executor_distributor_id = 1;
+	// ID запрошенного дистрибьютора — хвост цепочки.
+	uint32 view_distributor_id = 2;
+	// Цепочка сверху вниз: последний элемент — всегда `view_distributor_id`, первый —
+	// `executor_distributor_id`. Если запрошен сам себя — ровно один элемент.
+	// Исключение: для обладателя глобального права просмотра, не являющегося вышестоящим
+	// для целевого, цепочка начинается с корня сети — своей связи с целевым у него нет.
+	repeated uint32 chain_ids = 3;
+	// Дедуплицированные дистрибьюторы всех звеньев цепочки.
+	repeated biconom.types.Distributor distributors = 4;
+	// Дедуплицированные аккаунты-владельцы звеньев. Внутри аккаунта — `User` с аватаром
+	// и контактами (email / telegram_username): право видеть их гарантировано самим
+	// фактом, что звено принадлежит структуре запрашивающего.
+	repeated biconom.types.Account accounts = 5;
 }

@@ -223,6 +223,32 @@ pub struct ChangeUsernameRequest {
     #[prost(string, tag = "1")]
     pub new_username: ::prost::alloc::string::String,
 }
+/// Ответ с хлебными крошками — цепочкой дистрибьюторов от авторизованного вниз до запрошенного.
+/// Как и остальные ответы сервиса, отдаёт плоские дедуплицированные справочники: клиент
+/// джойнит `chain_ids` с `distributors`, а `distributors\[\].account_id` — с `accounts`.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetBreadcrumbsResponse {
+    /// ID дистрибьютора, который выполняет запрос (авторизованный пользователь).
+    #[prost(uint32, tag = "1")]
+    pub executor_distributor_id: u32,
+    /// ID запрошенного дистрибьютора — хвост цепочки.
+    #[prost(uint32, tag = "2")]
+    pub view_distributor_id: u32,
+    /// Цепочка сверху вниз: последний элемент — всегда `view_distributor_id`, первый —
+    /// `executor_distributor_id`. Если запрошен сам себя — ровно один элемент.
+    /// Исключение: для обладателя глобального права просмотра, не являющегося вышестоящим
+    /// для целевого, цепочка начинается с корня сети — своей связи с целевым у него нет.
+    #[prost(uint32, repeated, tag = "3")]
+    pub chain_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Дедуплицированные дистрибьюторы всех звеньев цепочки.
+    #[prost(message, repeated, tag = "4")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    /// Дедуплицированные аккаунты-владельцы звеньев. Внутри аккаунта — `User` с аватаром
+    /// и контактами (email / telegram_username): право видеть их гарантировано самим
+    /// фактом, что звено принадлежит структуре запрашивающего.
+    #[prost(message, repeated, tag = "5")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+}
 /// Generated server implementations.
 pub mod distributor_service_server {
     #![allow(
@@ -265,6 +291,16 @@ pub mod distributor_service_server {
             &self,
             request: tonic::Request<super::ChangeUsernameRequest>,
         ) -> std::result::Result<tonic::Response<super::Response>, tonic::Status>;
+        /// Возвращает хлебные крошки — путь по реферальному дереву от авторизованного
+        /// дистрибьютора вниз до указанного. Доступно, только если указанный дистрибьютор —
+        /// это сам авторизованный или его потомок.
+        async fn get_breadcrumbs(
+            &self,
+            request: tonic::Request<super::super::super::types::distributor::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetBreadcrumbsResponse>,
+            tonic::Status,
+        >;
     }
     /// DistributorService предоставляет клиентский функционал для работы с дистрибьюторами.
     #[derive(Debug)]
@@ -562,6 +598,55 @@ pub mod distributor_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ChangeUsernameSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.distributor.DistributorService/GetBreadcrumbs" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetBreadcrumbsSvc<T: DistributorService>(pub Arc<T>);
+                    impl<
+                        T: DistributorService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::distributor::Id,
+                    > for GetBreadcrumbsSvc<T> {
+                        type Response = super::GetBreadcrumbsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::distributor::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DistributorService>::get_breadcrumbs(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetBreadcrumbsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
