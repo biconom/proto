@@ -4,6 +4,7 @@ package biconom.client.staking;
 
 import "google/protobuf/empty.proto";
 import "biconom/client/transaction/transaction.proto";
+import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/staking.proto";
 
@@ -123,9 +124,19 @@ service StakingService {
     // блок `rank` приходит без `legs`.
     //
     // Вместе с `legs` приходят справочники `distributors` и `accounts` — карточки
-    // лидеров веток с аватаром и контактами, чтобы список веток не требовал
-    // отдельного запроса на каждого партнёра.
-    rpc GetRankProgress(google.protobuf.Empty) returns (biconom.types.Staking.RankProgress);
+    // лидеров веток И самого показываемого партнёра, с аватаром и контактами,
+    // чтобы экран не требовал отдельного запроса на каждого.
+    //
+    // По умолчанию — СВОЙ прогресс. Если идентификатор задан, показывается
+    // чужой, но только при праве видеть его профиль: тот же гейт,
+    // что у `DistributorService.Get` (свой / команда по спонсорскому дереву /
+    // слотовая иерархия, плюс глобальный просмотр у поддержки). Нет права —
+    // `PermissionDenied`, несуществующий — `NotFound`.
+    // Запрос — общая модель идентификатора: и числовой id (так фронт
+    // проваливается из списка веток), и username. Пустой идентификатор означает
+    // «свой прогресс», поэтому сообщения-обёртки под метод не заводится — тем же
+    // приёмом адресуется депозит в `GetDeposit` / `ClaimDeposit`.
+    rpc GetRankProgress(biconom.types.Distributor.Id) returns (biconom.types.Staking.RankProgress);
 }
 
 message GetStateRequest {

@@ -5155,17 +5155,6 @@ pub mod staking {
         /// Заполнено только при `source == SOURCE_BODY_REINVEST`, иначе 0.
         #[prost(uint32, tag = "10")]
         pub source_deposit_id: u32,
-        /// ВПЕРЁД: депозит, открытый телом этого (`ReinvestDeposit`).
-        ///
-        /// 0 означает одно из трёх: депозит ещё активен или созрел, тело забрано
-        /// на кошелёк (`ClaimDeposit`), либо это последнее звено цепочки.
-        /// Ненулевое значение бывает только у депозита в статусе `CLOSED` и
-        /// совпадает с `Event.DepositClosed.reinvested_into_deposit_id`.
-        ///
-        /// Повторно реинвестировать тело нельзя: на один исходный депозит
-        /// приходится не больше одного порождённого.
-        #[prost(uint32, tag = "21")]
-        pub reinvested_into_deposit_id: u32,
         /// ── Расписание ──
         /// Тарифный план (снимок на момент создания). Сейчас всегда 1.
         #[prost(uint32, tag = "11")]
@@ -5193,9 +5182,6 @@ pub mod staking {
         /// созрел, но не забран: созревание само по себе депозит не закрывает.
         #[prost(message, optional, tag = "18")]
         pub closed_at: ::core::option::Option<::prost_types::Timestamp>,
-        /// Момент последнего изменения записи.
-        #[prost(message, optional, tag = "22")]
-        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
         /// ── Реинвест прибыли ──
         /// Начальное значение берётся из `Settings.default_reinvest_profit` в
         /// момент создания депозита; клиент его при создании НЕ задаёт. Менять
@@ -5208,6 +5194,21 @@ pub mod staking {
         /// отключение: ближайшая выплата ещё уйдёт в тело, следующая — на кошелёк.
         #[prost(bool, tag = "20")]
         pub reinvest_profit_requested: bool,
+        /// ВПЕРЁД (вторая половина цепочки реинвестов, см. `source_deposit_id`):
+        /// депозит, открытый телом этого (`ReinvestDeposit`).
+        ///
+        /// 0 означает одно из трёх: депозит ещё активен или созрел, тело забрано
+        /// на кошелёк (`ClaimDeposit`), либо это последнее звено цепочки.
+        /// Ненулевое значение бывает только у депозита в статусе `CLOSED` и
+        /// совпадает с `Event.DepositClosed.reinvested_into_deposit_id`.
+        ///
+        /// Повторно реинвестировать тело нельзя: на один исходный депозит
+        /// приходится не больше одного порождённого.
+        #[prost(uint32, tag = "21")]
+        pub reinvested_into_deposit_id: u32,
+        /// Момент последнего изменения записи.
+        #[prost(message, optional, tag = "22")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
     }
     /// Nested message and enum types in `Deposit`.
     pub mod deposit {
@@ -5595,6 +5596,10 @@ pub mod staking {
         /// Пусто при `is_max`.
         #[prost(string, optional, tag = "6")]
         pub team_volume: ::core::option::Option<::prost::alloc::string::String>,
+        /// Разбивка командного оборота по веткам первой линии.
+        /// В `State` ВСЕГДА пусто (размер не ограничен) — см. `GetRankProgress`.
+        #[prost(message, repeated, tag = "7")]
+        pub legs: ::prost::alloc::vec::Vec<Leg>,
         /// ПОЛНЫЙ оборот команды БЕЗ применения лимитов на ветку: вклад партнёра
         /// плюс объёмы всех веток целиком.
         ///
@@ -5610,10 +5615,6 @@ pub mod staking {
         /// Приходит и в `State` — записей максимум 12.
         #[prost(message, repeated, tag = "10")]
         pub achievements: ::prost::alloc::vec::Vec<rank_progress::Achievement>,
-        /// Разбивка командного оборота по веткам первой линии.
-        /// В `State` ВСЕГДА пусто (размер не ограничен) — см. `GetRankProgress`.
-        #[prost(message, repeated, tag = "7")]
-        pub legs: ::prost::alloc::vec::Vec<Leg>,
         /// Профили лидеров веток из `legs`: связь `Leg.distributor_id == Distributor.id`.
         ///
         /// Справочник, а не вложение: у одного лидера может быть несколько веток в
@@ -5637,6 +5638,26 @@ pub mod staking {
         /// То же по ВСЕЙ команде — поддерево целиком, без самого партнёра.
         #[prost(uint32, tag = "14")]
         pub stakers_team: u32,
+        /// ЧЕЙ это прогресс. Ключ к карточке в шапке экрана: по нему в
+        /// `distributors` / `accounts` находятся логин, аватар и контакты.
+        ///
+        /// Отдельное поле, а не «первый элемент списка»: клиент может смотреть и
+        /// чужой прогресс (партнёра из своей команды), и тогда «я» и «показанный»
+        /// — разные люди. Сами данные не дублируются — они уже лежат в
+        /// справочниках, а два представления одного факта рано или поздно
+        /// разъезжаются.
+        #[prost(uint32, tag = "15")]
+        pub distributor_id: u32,
+        /// Агрегаты по депозитам ПОКАЗЫВАЕМОГО партнёра: сколько внесено за всё
+        /// время, сколько активно сейчас, сколько начислено дохода, сколько
+        /// созрело и ждёт решения.
+        ///
+        /// Переиспользуется та же модель, что в `State.summary`, — заводить под
+        /// экран урезанную копию значило бы держать два описания одного факта.
+        /// Приходит ТОЛЬКО в `GetRankProgress`: внутри `State` эта же сводка уже
+        /// лежит на верхнем уровне, и дублировать её в блоке ранга незачем.
+        #[prost(message, optional, tag = "16")]
+        pub summary: ::core::option::Option<DepositsSummary>,
     }
     /// Nested message and enum types in `RankProgress`.
     pub mod rank_progress {
@@ -6121,13 +6142,6 @@ pub mod staking {
         pub deposits_active: u32,
         #[prost(uint32, tag = "4")]
         pub deposits_total: u32,
-        /// Созрели и ждут решения партнёра.
-        #[prost(uint32, tag = "11")]
-        pub deposits_matured: u32,
-        /// Сумма их тел — деньги, которые партнёры могут забрать в любой момент.
-        /// Входит в `total_in_deposits`.
-        #[prost(string, tag = "12")]
-        pub matured_total: ::prost::alloc::string::String,
         /// Выплачено доходности за всё время (модуль баланса пула COMPANY STAKING).
         #[prost(string, tag = "5")]
         pub total_income_paid: ::prost::alloc::string::String,
@@ -6144,6 +6158,13 @@ pub mod staking {
         pub obligations_pending_count: u32,
         #[prost(enumeration = "service_status::Id", tag = "10")]
         pub service_status: i32,
+        /// Созрели и ждут решения партнёра.
+        #[prost(uint32, tag = "11")]
+        pub deposits_matured: u32,
+        /// Сумма их тел — деньги, которые партнёры могут забрать в любой момент.
+        /// Входит в `total_in_deposits`.
+        #[prost(string, tag = "12")]
+        pub matured_total: ::prost::alloc::string::String,
     }
 }
 /// DividendPool — модель данных дивидендного пула.

@@ -258,11 +258,21 @@ pub mod staking_service_server {
         /// блок `rank` приходит без `legs`.
         ///
         /// Вместе с `legs` приходят справочники `distributors` и `accounts` — карточки
-        /// лидеров веток с аватаром и контактами, чтобы список веток не требовал
-        /// отдельного запроса на каждого партнёра.
+        /// лидеров веток И самого показываемого партнёра, с аватаром и контактами,
+        /// чтобы экран не требовал отдельного запроса на каждого.
+        ///
+        /// По умолчанию — СВОЙ прогресс. Если идентификатор задан, показывается
+        /// чужой, но только при праве видеть его профиль: тот же гейт,
+        /// что у `DistributorService.Get` (свой / команда по спонсорскому дереву /
+        /// слотовая иерархия, плюс глобальный просмотр у поддержки). Нет права —
+        /// `PermissionDenied`, несуществующий — `NotFound`.
+        /// Запрос — общая модель идентификатора: и числовой id (так фронт
+        /// проваливается из списка веток), и username. Пустой идентификатор означает
+        /// «свой прогресс», поэтому сообщения-обёртки под метод не заводится — тем же
+        /// приёмом адресуется депозит в `GetDeposit` / `ClaimDeposit`.
         async fn get_rank_progress(
             &self,
-            request: tonic::Request<()>,
+            request: tonic::Request<super::super::super::types::distributor::Id>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::RankProgress>,
             tonic::Status,
@@ -865,14 +875,22 @@ pub mod staking_service_server {
                 "/biconom.client.staking.StakingService/GetRankProgress" => {
                     #[allow(non_camel_case_types)]
                     struct GetRankProgressSvc<T: StakingService>(pub Arc<T>);
-                    impl<T: StakingService> tonic::server::UnaryService<()>
-                    for GetRankProgressSvc<T> {
+                    impl<
+                        T: StakingService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::distributor::Id,
+                    > for GetRankProgressSvc<T> {
                         type Response = super::super::super::types::staking::RankProgress;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::distributor::Id,
+                            >,
+                        ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
                                 <T as StakingService>::get_rank_progress(&inner, request)
