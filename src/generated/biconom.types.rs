@@ -5552,6 +5552,24 @@ pub mod staking {
         /// В этом случае нижестоящие этой ветки не учитываются вовсе.
         #[prost(bool, tag = "7")]
         pub leader_exceeds_cap: bool,
+        /// Лидер ветки САМ активировал хотя бы один депозит.
+        ///
+        /// Отдельный флаг, а не `stakers_partners > 0`: лидер может не иметь ни
+        /// одного депозита, но держать под собой активных партнёров, и наоборот.
+        #[prost(bool, tag = "8")]
+        pub personal_activated: bool,
+        /// Сколько ПАРТНЁРОВ лидера ветки — лично приглашённых им, то есть его
+        /// первая линия — активировали депозит.
+        #[prost(uint32, tag = "9")]
+        pub stakers_partners: u32,
+        /// Сколько партнёров в КОМАНДЕ лидера ветки активировали депозит — всё его
+        /// поддерево, БЕЗ него самого. Складывается с `personal_activated` в общее
+        /// число активных в ветке.
+        ///
+        /// Метрика структуры, а не денег: не зависит ни от лимита на ветку, ни от
+        /// того, закрыты депозиты или нет.
+        #[prost(uint32, tag = "10")]
+        pub stakers_team: u32,
     }
     /// Прогресс партнёра по карьерной лестнице.
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5596,6 +5614,29 @@ pub mod staking {
         /// В `State` ВСЕГДА пусто (размер не ограничен) — см. `GetRankProgress`.
         #[prost(message, repeated, tag = "7")]
         pub legs: ::prost::alloc::vec::Vec<Leg>,
+        /// Профили лидеров веток из `legs`: связь `Leg.distributor_id == Distributor.id`.
+        ///
+        /// Справочник, а не вложение: у одного лидера может быть несколько веток в
+        /// будущих раскладках, а карточка партнёра одна. Пусто, когда пуст `legs` —
+        /// то есть всегда внутри `State`.
+        #[prost(message, repeated, tag = "11")]
+        pub distributors: ::prost::alloc::vec::Vec<super::Distributor>,
+        /// Аккаунты-владельцы дистрибьюторов из `distributors`: связь
+        /// `Distributor.account_id == Account.id`. Внутри аккаунта лежит `User` с
+        /// аватаром, статусом присутствия и контактами.
+        #[prost(message, repeated, tag = "12")]
+        pub accounts: ::prost::alloc::vec::Vec<super::Account>,
+        /// Сколько ПАРТНЁРОВ — лично приглашённых, то есть первая линия — купили
+        /// хотя бы один депозит.
+        ///
+        /// Считается за всё время: созревание депозита, забор тела и закрытие
+        /// партнёра из счёта не убирают — как и `personal_volume`, величина только
+        /// растёт. В отличие от `legs`, приходит и в `State`: чтение за O(1).
+        #[prost(uint32, tag = "13")]
+        pub stakers_partners: u32,
+        /// То же по ВСЕЙ команде — поддерево целиком, без самого партнёра.
+        #[prost(uint32, tag = "14")]
+        pub stakers_team: u32,
     }
     /// Nested message and enum types in `RankProgress`.
     pub mod rank_progress {

@@ -39,6 +39,10 @@ service StakingAdminService {
     //
     // Идентификатор — общая модель `Distributor.Id`, поэтому поддержке не нужно
     // сначала искать числовой id: можно спросить сразу по username.
+    //
+    // Вместе с `legs` приходят справочники `distributors` и `accounts` — карточки
+    // лидеров веток с аватаром и контактами, чтобы поддержка видела, кто именно
+    // упёрся в лимит, без второго запроса.
     rpc GetRankProgress(biconom.types.Distributor.Id) returns (biconom.types.Staking.RankProgress);
 
     // Полная конфигурация: захардкоженная экономика (ранги, тиры, циклы) плюс

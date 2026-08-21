@@ -126,6 +126,10 @@ pub mod staking_admin_service_server {
         ///
         /// Идентификатор — общая модель `Distributor.Id`, поэтому поддержке не нужно
         /// сначала искать числовой id: можно спросить сразу по username.
+        ///
+        /// Вместе с `legs` приходят справочники `distributors` и `accounts` — карточки
+        /// лидеров веток с аватаром и контактами, чтобы поддержка видела, кто именно
+        /// упёрся в лимит, без второго запроса.
         async fn get_rank_progress(
             &self,
             request: tonic::Request<super::super::super::types::distributor::Id>,
