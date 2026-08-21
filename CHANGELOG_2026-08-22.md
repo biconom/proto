@@ -1,4 +1,4 @@
-# CHANGELOG: 22 Августа 2026 (proto `v0.3.15` → `v0.3.17`)
+# CHANGELOG: 22 Августа 2026 (proto `v0.3.15` → `v0.3.18`)
 
 Одно добавление: **`DistributorService.GetBreadcrumbs`** — навигационная цепочка
 «хлебные крошки» от авторизованного дистрибьютора вниз до указанного, со всеми
@@ -164,3 +164,87 @@ chain_ids[i] → Distributor.id → Distributor.account_id → Account.id → Ac
 Отличить старое поведение от нового на клиенте можно было бы по
 `chain_ids[0] != executor_distributor_id`, но проверка не нужна — в `v0.3.17`
 это условие не выполняется никогда.
+
+---
+
+## 6. 🧭 `MarketingService.GetSlotBreadcrumbs` — те же крошки, но по слотам (`v0.3.18`)
+
+Аналог `DistributorService.GetBreadcrumbs` для маркетингового дерева: путь от
+активного слота запрашивающего вниз до указанного слота.
+
+### `biconom/client/marketing/marketing.proto`
+
+```protobuf
+service MarketingService {
+    // ... существующие RPC не тронуты ...
+
+    rpc GetSlotBreadcrumbs(biconom.types.Slot.Id) returns (GetSlotBreadcrumbsResponse);
+}
+
+message GetSlotBreadcrumbsResponse {
+    uint32 executor_slot_id = 1;                     // мой активный слот в дереве целевого
+    uint32 view_slot_id = 2;                         // запрошенный слот — хвост цепочки
+    uint32 tree_id = 3;                              // дерево, общее для обоих
+    repeated uint32 chain_ids = 4;                   // цепочка сверху вниз
+    repeated biconom.types.Slot slots = 5;
+    repeated biconom.types.Distributor distributors = 6;
+    repeated biconom.types.Account accounts = 7;
+}
+```
+
+Запрос — `biconom.types.Slot.Id` напрямую, как в `GetSlot` / `GetSlotV2`.
+Идентификатор **обязателен**: именно он задаёт дерево, а без дерева неизвестно, от
+какого слота вести отсчёт.
+
+### Как определяется точка отсчёта
+
+Slot-контекст сессии **не используется** — сессия может быть открыта от слота
+другого дерева, и тогда цепочка считалась бы не от того корня. Порядок такой:
+
+1. дерево берётся у запрошенного слота (`view_slot.tree_id`);
+2. в этом дереве ищется активный слот авторизованного дистрибьютора;
+3. проверяется связь: запрошенный слот — это мой слот или слот в его структуре.
+
+### Как рисовать
+
+`chain_ids` приходит уже в порядке отрисовки, `[0]` — мой слот, последний —
+запрошенный. Джойны:
+
+```
+chain_ids[i] → Slot.id → Slot.distributor_id → Distributor.id
+                                             → Distributor.account_id → Account.id → Account.user
+```
+
+| Что показать | Откуда |
+|---|---|
+| Логин владельца звена | `Distributor.username` |
+| Аватар | `Account.user.avatar` |
+| Положение звена в дереве | `Slot.relationship_state` (от `executor_slot_id`) |
+| Номер ветки, уровень | `Slot.parent_branch_number`, `Slot.level` |
+
+⚠️ **Два разных `relationship_state` в одном ответе.** У `Slot` он про
+**маркетинговую** иерархию (от моего слота), у `Distributor` — про
+**реферальную** (от меня). Они не обязаны совпадать: слот в моей структуре
+дерева может принадлежать кому угодно, и наоборот — личник может стоять в
+чужой ветке. Не подписывайте звено словом «команда» по `Distributor`.
+
+Контакты (`email`, `telegram_username`) в этом ответе **не заполняются** — как и
+в `SearchSlots`. Если для экрана они нужны — скажите, добавим.
+
+### Ошибки
+
+| Ситуация | Код | Строка |
+|---|---|---|
+| Запрошенный слот вне моей структуры дерева (вышестоящий, соседняя ветка, чужое дерево) | `PermissionDenied` | `SLOT_VIEW_PERMISSION_DENIED` |
+| Идентификатор слота не передан или слота не существует | `NotFound` | `SLOT_VIEW_NOT_FOUND` |
+| У меня нет активного слота в этом дереве | `NotFound` | `SLOT_NOT_FOUND` |
+| Сессия не привязана к дистрибьютору | `NotFound` | `DISTRIBUTOR_NOT_FOUND` |
+| Токен не Session (гость) | `Unauthenticated` | `GUEST_ACCESS_DENIED` |
+| Скоуп токена — подтверждение | `PermissionDenied` | `ACCESS_SCOPE_DENIED` |
+
+### Чем отличается от `breadcrumbs` внутри `GetSlot`
+
+`MarketingSlot.breadcrumbs` (V1) — это цепочки по `MARKETING_LEVEL_LIMIT` слотов
+с номерами веток, под конкретную визуализацию дерева. `GetSlotBreadcrumbs` отдаёт
+плоский линейный список звеньев — под строку навигации. Первое из второго не
+выводится и наоборот; методы независимы.

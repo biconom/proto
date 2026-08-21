@@ -60,6 +60,12 @@ service MarketingService {
     // executor и view; агрегаты структуры — через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
     rpc GetSlotV2(biconom.types.Slot.Id) returns (biconom.types.MarketingSlotV2);
 
+    // Хлебные крошки по слотам: путь по маркетинговому дереву от активного слота
+    // авторизованного дистрибьютора вниз до указанного слота.
+    // Дерево берётся у запрошенного слота, слот запрашивающего ищется уже в нём —
+    // slot-контекст сессии не используется.
+    rpc GetSlotBreadcrumbs(biconom.types.Slot.Id) returns (GetSlotBreadcrumbsResponse);
+
     // Деактивировать автопродление подписки для текущего слота.
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
     // Восстановить автопродление подписки для текущего слота.
@@ -285,4 +291,32 @@ message ListTreePoolBalancesResponse {
     }
 
     repeated Balance items = 1;
+}
+
+// Ответ с хлебными крошками по слотам — цепочкой от активного слота запрашивающего
+// вниз до запрошенного слота. Плоские дедуплицированные справочники, как в
+// SearchSlotsResponse: клиент джойнит `chain_ids` со `slots`,
+// `slots[].distributor_id` — с `distributors`, `distributors[].account_id` — с `accounts`.
+message GetSlotBreadcrumbsResponse {
+    // Активный слот авторизованного дистрибьютора в дереве запрошенного слота.
+    uint32 executor_slot_id = 1;
+    // ID запрошенного слота — хвост цепочки.
+    uint32 view_slot_id = 2;
+    // Дерево, которому принадлежат оба слота: и `executor_slot_id`, и `view_slot_id`.
+    uint32 tree_id = 3;
+    // Цепочка сверху вниз, без исключений: `[0]` — всегда `executor_slot_id`,
+    // последний — всегда `view_slot_id`, между ними промежуточные звенья.
+    // Если запрошен собственный активный слот — ровно один элемент. Вышестоящих
+    // слотов запрашивающего в цепочке не бывает никогда: путь ведёт только вниз.
+    repeated uint32 chain_ids = 4;
+    // Слоты всех звеньев цепочки. `relationship_state` — положение звена
+    // относительно `executor_slot_id` в слотовой иерархии.
+    repeated biconom.types.Slot slots = 5;
+    // Дедуплицированные дистрибьюторы-владельцы слотов цепочки. `relationship_state`
+    // здесь — уже РЕФЕРАЛЬНАЯ связь с запрашивающим, она может быть любой:
+    // слот в моей маркетинговой структуре не обязан принадлежать моей команде.
+    repeated biconom.types.Distributor distributors = 6;
+    // Дедуплицированные аккаунты-владельцы дистрибьюторов; внутри аккаунта — `User`
+    // с аватаром и статусом присутствия.
+    repeated biconom.types.Account accounts = 7;
 }

@@ -283,6 +283,41 @@ pub mod list_tree_pool_balances_response {
         pub balance: ::core::option::Option<super::super::super::types::Price>,
     }
 }
+/// Ответ с хлебными крошками по слотам — цепочкой от активного слота запрашивающего
+/// вниз до запрошенного слота. Плоские дедуплицированные справочники, как в
+/// SearchSlotsResponse: клиент джойнит `chain_ids` со `slots`,
+/// `slots\[\].distributor_id` — с `distributors`, `distributors\[\].account_id` — с `accounts`.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetSlotBreadcrumbsResponse {
+    /// Активный слот авторизованного дистрибьютора в дереве запрошенного слота.
+    #[prost(uint32, tag = "1")]
+    pub executor_slot_id: u32,
+    /// ID запрошенного слота — хвост цепочки.
+    #[prost(uint32, tag = "2")]
+    pub view_slot_id: u32,
+    /// Дерево, которому принадлежат оба слота: и `executor_slot_id`, и `view_slot_id`.
+    #[prost(uint32, tag = "3")]
+    pub tree_id: u32,
+    /// Цепочка сверху вниз, без исключений: `\[0\]` — всегда `executor_slot_id`,
+    /// последний — всегда `view_slot_id`, между ними промежуточные звенья.
+    /// Если запрошен собственный активный слот — ровно один элемент. Вышестоящих
+    /// слотов запрашивающего в цепочке не бывает никогда: путь ведёт только вниз.
+    #[prost(uint32, repeated, tag = "4")]
+    pub chain_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Слоты всех звеньев цепочки. `relationship_state` — положение звена
+    /// относительно `executor_slot_id` в слотовой иерархии.
+    #[prost(message, repeated, tag = "5")]
+    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
+    /// Дедуплицированные дистрибьюторы-владельцы слотов цепочки. `relationship_state`
+    /// здесь — уже РЕФЕРАЛЬНАЯ связь с запрашивающим, она может быть любой:
+    /// слот в моей маркетинговой структуре не обязан принадлежать моей команде.
+    #[prost(message, repeated, tag = "6")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    /// Дедуплицированные аккаунты-владельцы дистрибьюторов; внутри аккаунта — `User`
+    /// с аватаром и статусом присутствия.
+    #[prost(message, repeated, tag = "7")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+}
 /// Generated server implementations.
 pub mod marketing_service_server {
     #![allow(
@@ -365,6 +400,17 @@ pub mod marketing_service_server {
             request: tonic::Request<super::super::super::types::slot::Id>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::MarketingSlotV2>,
+            tonic::Status,
+        >;
+        /// Хлебные крошки по слотам: путь по маркетинговому дереву от активного слота
+        /// авторизованного дистрибьютора вниз до указанного слота.
+        /// Дерево берётся у запрошенного слота, слот запрашивающего ищется уже в нём —
+        /// slot-контекст сессии не используется.
+        async fn get_slot_breadcrumbs(
+            &self,
+            request: tonic::Request<super::super::super::types::slot::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetSlotBreadcrumbsResponse>,
             tonic::Status,
         >;
         /// Деактивировать автопродление подписки для текущего слота.
@@ -914,6 +960,55 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetSlotV2Svc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/GetSlotBreadcrumbs" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSlotBreadcrumbsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::super::super::types::slot::Id>
+                    for GetSlotBreadcrumbsSvc<T> {
+                        type Response = super::GetSlotBreadcrumbsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::super::super::types::slot::Id>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::get_slot_breadcrumbs(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSlotBreadcrumbsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
