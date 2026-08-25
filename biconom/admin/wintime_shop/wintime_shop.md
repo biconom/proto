@@ -39,6 +39,13 @@
       текущим.
     - `price_wintime` (uint64): цена в WinTime-токенах (WIN_TIME precision 0), `> 0`.
     - `available` (bool): доступность к покупке сразу после операции.
+    - `required_license_bit_mask` (optional uint32): маска обязательных условий
+      покупки — побитовое ИЛИ значений `Product.RequiredLicense` (`TREE_LITE = 1`,
+      `TREE_PRO = 2`). **Поле необязательное, presence значима**: не передано —
+      текущая маска товара сохраняется (старый клиент админки не снимет условие,
+      правя цену); передано — заменяется целиком, явный `0` снимает все условия.
+      Неизвестный бит → `WINTIME_SHOP_MASK_INVALID`. Отдельного метода для маски
+      нет — она задаётся здесь.
     - `spec` (oneof): специфика семейства — `TreeLicenseSpec { tree_id }` для
       `TREE_LICENSE`, `TextCouponSpec { details }` для `TEXT_COUPON`; обязана
       соответствовать `kind`.
@@ -51,6 +58,8 @@
     - `InvalidArgument` (`WINTIME_SHOP_KIND_MISMATCH`) — при обновлении `kind` не
       совпал с текущим, либо `spec` не соответствует `kind`.
     - `InvalidArgument` (`WINTIME_SHOP_PRICE_INVALID`) — `price_wintime == 0`.
+    - `InvalidArgument` (`WINTIME_SHOP_MASK_INVALID`) — в `required_license_bit_mask`
+      взведён бит, не определённый в `Product.RequiredLicense`.
     - `NotFound` (`WINTIME_SHOP_PRODUCT_NOT_FOUND`) — обновление (`id != 0`), но товар
       не найден.
 

@@ -69,8 +69,8 @@ flowchart TD
 |---|---|
 | `product` | Базовая карточка каталога (`WintimeShop.Product`). |
 | `purchased_by_me` | Сколько единиц покупатель приобрёл лично (для `TREE_LICENSE` — 0 или 1). |
-| `purchasable_by_me` | ЛИЧНОЕ условие покупателя: для `TREE_LICENSE` — не владел деревом; для `TEXT_COUPON` — всегда `true`. НЕ учитывает витрину/наличие (товар может быть `OUT_OF_STOCK`/`COMING_SOON` при `true`); «можно купить прямо сейчас» — это `status == STATUS_AVAILABLE`. |
-| `status` | Агрегатный статус ДЛЯ покупателя: `AVAILABLE` — можно купить; `RESTRICTED` — нельзя по личному условию (для `TREE_LICENSE` — уже владел деревом); `COMING_SOON` — товар скрыт админом («скоро будет»); `OUT_OF_STOCK` — доступен, но нет в наличии. Приоритет при пересечении: `COMING_SOON` → `RESTRICTED` → `OUT_OF_STOCK` → `AVAILABLE` (личное ограничение выше «нет в наличии»: пополнение остатка такому покупателю не поможет). |
+| `purchasable_by_me` | ЛИЧНОЕ условие покупателя, две независимые проверки: (1) выполнена маска `Product.required_license_bit_mask` — касается ОБОИХ семейств; (2) для `TREE_LICENSE` дополнительно — не владел деревом. НЕ учитывает витрину/наличие (товар может быть `OUT_OF_STOCK`/`COMING_SOON` при `true`); «можно купить прямо сейчас» — это `status == STATUS_AVAILABLE`. |
+| `status` | Агрегатный статус ДЛЯ покупателя: `AVAILABLE` — можно купить; `RESTRICTED` — нельзя по личному условию: либо не выполнена маска условий товара (`required_license_bit_mask != 0` — показывать требование из неё, напр. «нужен тариф PRO»), либо для `TREE_LICENSE` — уже владел деревом; `COMING_SOON` — товар скрыт админом («скоро будет»); `OUT_OF_STOCK` — доступен, но нет в наличии. Приоритет при пересечении: `COMING_SOON` → `RESTRICTED` → `OUT_OF_STOCK` → `AVAILABLE` (личное ограничение выше «нет в наличии»: пополнение остатка такому покупателю не поможет). |
 
 ### `rpc Purchase(WintimeShop.Product.Id) returns (PurchaseResponse)`
 - **Назначение**: купить товар за WinTime-токены.
@@ -95,6 +95,10 @@ flowchart TD
     - `FailedPrecondition` (`WINTIME_SHOP_TREE_ALREADY_OWNED`) — для `TREE_LICENSE`:
       у дистрибьютора уже был слот в этом дереве (лицензию можно купить только один
       раз на дерево).
+    - `FailedPrecondition` (`WINTIME_SHOP_LICENSE_REQUIRED`) — не выполнена маска
+      обязательных условий товара (`required_license_bit_mask`), напр. нужен
+      активный тариф PRO. Проверяется ДО списания WinTime и ДО изъятия кода из
+      пула — неуспешная покупка не тратит ни баланс, ни купон.
     - `FailedPrecondition` (`LEDGER_INSUFFICIENT_FUNDS`) — недостаточно WinTime.
 - **Побочные эффекты**:
     - Списывает `price_wintime` с дистрибьютора-покупателя (валюта `WIN_TIME`).

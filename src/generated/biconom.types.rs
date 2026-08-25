@@ -9415,6 +9415,17 @@ pub mod wintime_shop {
         pub created_at: ::core::option::Option<::prost_types::Timestamp>,
         #[prost(message, optional, tag = "9")]
         pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Маска ОБЯЗАТЕЛЬНЫХ условий покупки — побитовое ИЛИ значений
+        /// `RequiredLicense` (см. enum выше). `0` — товар доступен всем.
+        /// Пример: `2` (REQUIRED_LICENSE_TREE_PRO) — купить может только
+        /// обладатель активного тарифа PRO.
+        ///
+        /// Условия проверяются НЕЗАВИСИМО от гейта семейства: у TREE_LICENSE
+        /// сверх маски действует ограничение «один раз на дерево». Невыполненное
+        /// условие даёт `ClientProduct.status == STATUS_RESTRICTED` на витрине и
+        /// ошибку `WINTIME_SHOP_LICENSE_REQUIRED` при покупке.
+        #[prost(uint32, tag = "12")]
+        pub required_license_bit_mask: u32,
         /// Специфика семейства товара.
         #[prost(oneof = "product::Spec", tags = "10, 11")]
         pub spec: ::core::option::Option<product::Spec>,
@@ -9506,6 +9517,55 @@ pub mod wintime_shop {
                     "KIND_UNSPECIFIED" => Some(Self::Unspecified),
                     "KIND_TREE_LICENSE" => Some(Self::TreeLicense),
                     "KIND_TEXT_COUPON" => Some(Self::TextCoupon),
+                    _ => None,
+                }
+            }
+        }
+        /// Биты маски `required_license_bit_mask` — обязательные условия покупки.
+        /// Значения — степени двойки; каждый взведённый бит означает отдельное
+        /// условие, которому покупатель обязан удовлетворять. Товар доступен, когда
+        /// выполнены ВСЕ взведённые биты; маска `0` — товар без условий.
+        /// Значения append-only: новое условие добавляется новым битом.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum RequiredLicense {
+            /// Заглушка proto3, в маске не используется (маска без условий — это `0`).
+            Unspecified = 0,
+            /// Бит 0 (значение 1): у покупателя должен быть АКТИВНЫЙ (не истёкший)
+            /// ваучер лицензии у слота в ПЕРВОМ дереве маркетинга (Lite, tree_id = 1).
+            TreeLite = 1,
+            /// Бит 1 (значение 2): то же во ВТОРОМ дереве (Pro, tree_id = 2) —
+            /// в продуктовых терминах «активный тариф PRO».
+            TreePro = 2,
+        }
+        impl RequiredLicense {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "REQUIRED_LICENSE_UNSPECIFIED",
+                    Self::TreeLite => "REQUIRED_LICENSE_TREE_LITE",
+                    Self::TreePro => "REQUIRED_LICENSE_TREE_PRO",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "REQUIRED_LICENSE_UNSPECIFIED" => Some(Self::Unspecified),
+                    "REQUIRED_LICENSE_TREE_LITE" => Some(Self::TreeLite),
+                    "REQUIRED_LICENSE_TREE_PRO" => Some(Self::TreePro),
                     _ => None,
                 }
             }
