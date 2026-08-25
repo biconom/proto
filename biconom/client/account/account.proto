@@ -40,12 +40,6 @@ message AccountView {
 		// Дублирует вывод из auto_reinvest для удобства — как auto_reinvest_active
 		// в GetDividendPool.
 		bool auto_reinvest_active = 7;
-		// Последние лично приглашённые партнёры (первая линия реферального дерева),
-		// новые первыми. Количество фиксировано бэкендом — 3; параметра в запросе нет.
-		// Аккаунты-владельцы лежат в общем справочнике AccountView.accounts,
-		// join по partner_distributors[].account_id. Контакты (email,
-		// telegram_username) во вложенном User у них НЕ заполняются.
-		repeated biconom.types.Distributor partner_distributors = 8;
 	}
 	uint32 executor_account_id = 1;
 	repeated biconom.types.Account accounts = 2;
@@ -60,6 +54,15 @@ message AccountView {
 	}
 	// Глобальный статус дивидендного пула.
 	biconom.types.DividendPool.ServiceStatus.Id dividend_pool_status = 6;
+	// Последние лично приглашённые партнёры аккаунта (первая линия реферального
+	// дерева), новые первыми. Количество фиксировано бэкендом — 3; параметра в
+	// запросе нет. Если аккаунт владеет несколькими дистрибьюторами — их первые
+	// линии объединены, и отдаются 3 самые свежие регистрации по всем.
+	// Аккаунты-владельцы лежат в общем справочнике AccountView.accounts,
+	// join по last_partner_distributors[].account_id; контакты (email,
+	// telegram_username) во вложенном User у них заполнены — как у своего
+	// аккаунта и у вышестоящих.
+	repeated biconom.types.Distributor last_partner_distributors = 7;
 }
 
 message UserProfile {

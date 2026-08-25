@@ -20,6 +20,18 @@ pub struct AccountView {
         tag = "6"
     )]
     pub dividend_pool_status: i32,
+    /// Последние лично приглашённые партнёры аккаунта (первая линия реферального
+    /// дерева), новые первыми. Количество фиксировано бэкендом — 3; параметра в
+    /// запросе нет. Если аккаунт владеет несколькими дистрибьюторами — их первые
+    /// линии объединены, и отдаются 3 самые свежие регистрации по всем.
+    /// Аккаунты-владельцы лежат в общем справочнике AccountView.accounts,
+    /// join по last_partner_distributors\[\].account_id; контакты (email,
+    /// telegram_username) во вложенном User у них заполнены — как у своего
+    /// аккаунта и у вышестоящих.
+    #[prost(message, repeated, tag = "7")]
+    pub last_partner_distributors: ::prost::alloc::vec::Vec<
+        super::super::types::Distributor,
+    >,
     #[prost(oneof = "account_view::Profile", tags = "4, 5")]
     pub profile: ::core::option::Option<account_view::Profile>,
 }
@@ -59,15 +71,6 @@ pub mod account_view {
         /// в GetDividendPool.
         #[prost(bool, tag = "7")]
         pub auto_reinvest_active: bool,
-        /// Последние лично приглашённые партнёры (первая линия реферального дерева),
-        /// новые первыми. Количество фиксировано бэкендом — 3; параметра в запросе нет.
-        /// Аккаунты-владельцы лежат в общем справочнике AccountView.accounts,
-        /// join по partner_distributors\[\].account_id. Контакты (email,
-        /// telegram_username) во вложенном User у них НЕ заполняются.
-        #[prost(message, repeated, tag = "8")]
-        pub partner_distributors: ::prost::alloc::vec::Vec<
-            super::super::super::types::Distributor,
-        >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {
