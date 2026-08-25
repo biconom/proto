@@ -59,6 +59,15 @@ pub mod account_view {
         /// в GetDividendPool.
         #[prost(bool, tag = "7")]
         pub auto_reinvest_active: bool,
+        /// Последние лично приглашённые партнёры (первая линия реферального дерева),
+        /// новые первыми. Количество фиксировано бэкендом — 3; параметра в запросе нет.
+        /// Аккаунты-владельцы лежат в общем справочнике AccountView.accounts,
+        /// join по partner_distributors\[\].account_id. Контакты (email,
+        /// telegram_username) во вложенном User у них НЕ заполняются.
+        #[prost(message, repeated, tag = "8")]
+        pub partner_distributors: ::prost::alloc::vec::Vec<
+            super::super::super::types::Distributor,
+        >,
     }
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Profile {
