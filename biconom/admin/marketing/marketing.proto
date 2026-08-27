@@ -138,6 +138,9 @@ message GetDistributorFlagsResponse {
     bool block_buy_voucher_for_self = 6;
     // Запрет покупки другим ваучеров.
     bool block_buy_voucher_for_others = 7;
+    // Запрет стейкинга: открытие депозита и реинвест тела отклоняются,
+    // реинвест прибыли на выплате игнорируется — доход уходит на кошелёк.
+    bool block_staking = 8;
 }
 
 // Запрос на изменение битовой маски флагов дистрибьютора.
@@ -160,4 +163,7 @@ message SetDistributorFlagsRequest {
     optional bool block_buy_voucher_for_self = 7;
     // Запрет покупки другим ваучеров.
     optional bool block_buy_voucher_for_others = 8;
+    // Запрет стейкинга: открытие депозита и реинвест тела отклоняются,
+    // реинвест прибыли на выплате игнорируется — доход уходит на кошелёк.
+    optional bool block_staking = 9;
 }

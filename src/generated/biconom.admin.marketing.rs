@@ -155,6 +155,10 @@ pub struct GetDistributorFlagsResponse {
     /// Запрет покупки другим ваучеров.
     #[prost(bool, tag = "7")]
     pub block_buy_voucher_for_others: bool,
+    /// Запрет стейкинга: открытие депозита и реинвест тела отклоняются,
+    /// реинвест прибыли на выплате игнорируется — доход уходит на кошелёк.
+    #[prost(bool, tag = "8")]
+    pub block_staking: bool,
 }
 /// Запрос на изменение битовой маски флагов дистрибьютора.
 /// Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
@@ -185,6 +189,10 @@ pub struct SetDistributorFlagsRequest {
     /// Запрет покупки другим ваучеров.
     #[prost(bool, optional, tag = "8")]
     pub block_buy_voucher_for_others: ::core::option::Option<bool>,
+    /// Запрет стейкинга: открытие депозита и реинвест тела отклоняются,
+    /// реинвест прибыли на выплате игнорируется — доход уходит на кошелёк.
+    #[prost(bool, optional, tag = "9")]
+    pub block_staking: ::core::option::Option<bool>,
 }
 /// Generated server implementations.
 pub mod marketing_service_server {
