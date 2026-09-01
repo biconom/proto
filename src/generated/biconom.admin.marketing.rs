@@ -194,6 +194,40 @@ pub struct SetDistributorFlagsRequest {
     #[prost(bool, optional, tag = "9")]
     pub block_staking: ::core::option::Option<bool>,
 }
+/// Запрос на смену вышестоящего (спонсора) у дистрибьютора.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDistributorParentRequest {
+    /// ID переносимого дистрибьютора (> 0).
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+    /// ID нового спонсора (> 0). Должен быть в той же сети, что и дистрибьютор,
+    /// и не быть его потомком.
+    #[prost(uint32, tag = "2")]
+    pub new_parent_id: u32,
+}
+/// Состояние дистрибьютора после смены спонсора.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDistributorParentResponse {
+    /// ID перенесённого дистрибьютора.
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+    /// Прежний спонсор. 0 — дистрибьютор был корнем своей партиции
+    /// (её партиция при переносе архивируется и обратно не восстанавливается).
+    #[prost(uint32, tag = "2")]
+    pub prev_parent_id: u32,
+    /// Новый спонсор.
+    #[prost(uint32, tag = "3")]
+    pub parent_id: u32,
+    /// Уровень дистрибьютора ПОСЛЕ переноса.
+    #[prost(uint32, tag = "4")]
+    pub level: u32,
+    /// Партиция сети ПОСЛЕ переноса.
+    #[prost(uint32, tag = "5")]
+    pub network_partition_id: u32,
+    /// Размер переехавшего поддерева (без самого дистрибьютора).
+    #[prost(uint32, tag = "6")]
+    pub structure_quantity: u32,
+}
 /// Generated server implementations.
 pub mod marketing_service_server {
     #![allow(
@@ -275,6 +309,17 @@ pub mod marketing_service_server {
             request: tonic::Request<super::SetDistributorFlagsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::GetDistributorFlagsResponse>,
+            tonic::Status,
+        >;
+        /// Сменить вышестоящего (спонсора) у дистрибьютора.
+        /// Дистрибьютор вместе со всем своим поддеревом переезжает под нового
+        /// спонсора в дереве спонсорства. Маркетинговые деревья (слоты) НЕ
+        /// затрагиваются, история начислений задним числом НЕ пересчитывается.
+        async fn set_distributor_parent(
+            &self,
+            request: tonic::Request<super::SetDistributorParentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetDistributorParentResponse>,
             tonic::Status,
         >;
     }
@@ -675,6 +720,55 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SetDistributorFlagsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.marketing.MarketingService/SetDistributorParent" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetDistributorParentSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::SetDistributorParentRequest>
+                    for SetDistributorParentSvc<T> {
+                        type Response = super::SetDistributorParentResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetDistributorParentRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::set_distributor_parent(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetDistributorParentSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

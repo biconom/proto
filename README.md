@@ -32,7 +32,10 @@
     - `DISTRIBUTOR_CURSOR_NOT_FOUND`: Курсор для дистрибьютора не найден.
     - `DISTRIBUTOR_CURSOR_WRONG`: Неверный курсор для дистрибьютора.
     - `DISTRIBUTOR_INVALID_FORMAT`: Неверный формат дистрибьютора.
+    - `DISTRIBUTOR_NETWORK_MISMATCH`: Новый спонсор находится в другой сети.
     - `DISTRIBUTOR_NOT_FOUND`: Дистрибьютор не найден.
+    - `DISTRIBUTOR_PARENT_CYCLE`: Новый спонсор является потомком переносимого дистрибьютора — получился бы цикл.
+    - `DISTRIBUTOR_PARENT_SELF`: Дистрибьютор не может быть спонсором самому себе.
     - `DISTRIBUTOR_PERMISSION_DENIED`: Доступ к дистрибьютору запрещен.
     - `DISTRIBUTOR_USERNAME_BUSY`: Имя пользователя дистрибьютора уже занято.
     - `DISTRIBUTOR_USERNAME_DISALLOWED_SEQUENCE`: Имя пользователя дистрибьютора содержит запрещенную последовательность символов.

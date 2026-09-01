@@ -40,6 +40,12 @@ service MarketingService {
     // Каждое поле запроса — отдельный бит. null/absent → бит не меняется.
     // true → устанавливается. false → сбрасывается.
     rpc SetDistributorFlags(SetDistributorFlagsRequest) returns (GetDistributorFlagsResponse);
+
+    // Сменить вышестоящего (спонсора) у дистрибьютора.
+    // Дистрибьютор вместе со всем своим поддеревом переезжает под нового
+    // спонсора в дереве спонсорства. Маркетинговые деревья (слоты) НЕ
+    // затрагиваются, история начислений задним числом НЕ пересчитывается.
+    rpc SetDistributorParent(SetDistributorParentRequest) returns (SetDistributorParentResponse);
 }
 
 // Запрос на выдачу лицензии администратором.
@@ -166,4 +172,30 @@ message SetDistributorFlagsRequest {
     // Запрет стейкинга: открытие депозита и реинвест тела отклоняются,
     // реинвест прибыли на выплате игнорируется — доход уходит на кошелёк.
     optional bool block_staking = 9;
+}
+
+// Запрос на смену вышестоящего (спонсора) у дистрибьютора.
+message SetDistributorParentRequest {
+    // ID переносимого дистрибьютора (> 0).
+    uint32 distributor_id = 1;
+    // ID нового спонсора (> 0). Должен быть в той же сети, что и дистрибьютор,
+    // и не быть его потомком.
+    uint32 new_parent_id = 2;
+}
+
+// Состояние дистрибьютора после смены спонсора.
+message SetDistributorParentResponse {
+    // ID перенесённого дистрибьютора.
+    uint32 distributor_id = 1;
+    // Прежний спонсор. 0 — дистрибьютор был корнем своей партиции
+    // (её партиция при переносе архивируется и обратно не восстанавливается).
+    uint32 prev_parent_id = 2;
+    // Новый спонсор.
+    uint32 parent_id = 3;
+    // Уровень дистрибьютора ПОСЛЕ переноса.
+    uint32 level = 4;
+    // Партиция сети ПОСЛЕ переноса.
+    uint32 network_partition_id = 5;
+    // Размер переехавшего поддерева (без самого дистрибьютора).
+    uint32 structure_quantity = 6;
 }
