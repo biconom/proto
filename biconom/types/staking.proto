@@ -114,6 +114,11 @@ message Staking {
                 // депозит приходится не больше одного такого — повторный
                 // реинвест того же тела невозможен.
                 BODY_REINVEST = 2;
+                // Подарен КОМПАНИЕЙ через админский `GrantDeposit`: тело пришло
+                // из орг-пула на кошелёк партнёра и оттуда — в депозит, партнёр
+                // своих денег не тратил. В `Deposit` это же выражено полем
+                // `granted_by_admin`; оно не меняется за всю жизнь депозита.
+                ADMIN_GRANT = 3;
             }
         }
 
@@ -217,6 +222,21 @@ message Staking {
         uint32 reinvested_into_deposit_id = 21;
         // Момент последнего изменения записи.
         google.protobuf.Timestamp updated_at = 22;
+
+        // ── Маркетинг ──
+        // true — прирост тела этого депозита НЕ раздаётся вверх по реферальной
+        // лестнице: ни при создании, ни при реинвесте прибыли. Доходность
+        // самому партнёру и тир считаются как обычно — флаг касается только
+        // выплат аплайну. Депозит, открытый телом этого (`ReinvestDeposit`),
+        // наследует флаг. Меняется админом (`SetDepositMarketingBlock`) в любом
+        // статусе депозита; действует на начисления ПОСЛЕ изменения, уже
+        // выплаченные доли не отзываются.
+        bool marketing_blocked = 23;
+        // true — депозит создан админом от имени компании (`GrantDeposit`),
+        // партнёр своих денег не вносил. Задаётся при создании и не меняется;
+        // то же самое, что `source == ADMIN_GRANT`, оставлено полем ради
+        // фильтров и отчётов.
+        bool granted_by_admin = 24;
     }
 
     // Агрегаты по депозитам ОДНОГО партнёра.
@@ -706,6 +726,21 @@ message Staking {
             optional uint64 obligation_id = 3;
         }
 
+        // Админ переключил блокировку маркетинга у депозита. Денег не двигает.
+        message MarketingBlockChanged {
+            // Новое значение `Deposit.marketing_blocked`.
+            bool marketing_blocked = 1;
+        }
+
+        // Депозит подарен компанией (`GrantDeposit`). Событие несёт группу
+        // проводок ПОДАРКА (орг-пул → кошелёк); группа покупки депозита с
+        // кошелька — у соседнего `DepositOpened`.
+        message DepositGranted {
+            string amount = 1;
+            // С каким значением блокировки маркетинга депозит создан.
+            bool marketing_blocked = 2;
+        }
+
         // Глобальный монотонный идентификатор (хронология по всей системе).
         uint64 id = 1;
         // Порядковый номер события В РАМКАХ ПАРТНЁРА: 1, 2, 3 …
@@ -731,6 +766,8 @@ message Staking {
             DepositMatured deposit_matured = 16;
             ReferralReceived referral_received = 17;
             RankBonusReleased rank_bonus_released = 18;
+            MarketingBlockChanged marketing_block_changed = 19;
+            DepositGranted deposit_granted = 20;
         }
     }
 

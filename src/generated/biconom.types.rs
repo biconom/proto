@@ -5214,6 +5214,22 @@ pub mod staking {
         /// Момент последнего изменения записи.
         #[prost(message, optional, tag = "22")]
         pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// ── Маркетинг ──
+        /// true — прирост тела этого депозита НЕ раздаётся вверх по реферальной
+        /// лестнице: ни при создании, ни при реинвесте прибыли. Доходность
+        /// самому партнёру и тир считаются как обычно — флаг касается только
+        /// выплат аплайну. Депозит, открытый телом этого (`ReinvestDeposit`),
+        /// наследует флаг. Меняется админом (`SetDepositMarketingBlock`) в любом
+        /// статусе депозита; действует на начисления ПОСЛЕ изменения, уже
+        /// выплаченные доли не отзываются.
+        #[prost(bool, tag = "23")]
+        pub marketing_blocked: bool,
+        /// true — депозит создан админом от имени компании (`GrantDeposit`),
+        /// партнёр своих денег не вносил. Задаётся при создании и не меняется;
+        /// то же самое, что `source == ADMIN_GRANT`, оставлено полем ради
+        /// фильтров и отчётов.
+        #[prost(bool, tag = "24")]
+        pub granted_by_admin: bool,
     }
     /// Nested message and enum types in `Deposit`.
     pub mod deposit {
@@ -5336,6 +5352,11 @@ pub mod staking {
                 /// депозит приходится не больше одного такого — повторный
                 /// реинвест того же тела невозможен.
                 BodyReinvest = 2,
+                /// Подарен КОМПАНИЕЙ через админский `GrantDeposit`: тело пришло
+                /// из орг-пула на кошелёк партнёра и оттуда — в депозит, партнёр
+                /// своих денег не тратил. В `Deposit` это же выражено полем
+                /// `granted_by_admin`; оно не меняется за всю жизнь депозита.
+                AdminGrant = 3,
             }
             impl Id {
                 /// String value of the enum field names used in the ProtoBuf definition.
@@ -5347,6 +5368,7 @@ pub mod staking {
                         Self::Unspecified => "UNSPECIFIED",
                         Self::Manual => "MANUAL",
                         Self::BodyReinvest => "BODY_REINVEST",
+                        Self::AdminGrant => "ADMIN_GRANT",
                     }
                 }
                 /// Creates an enum from field names used in the ProtoBuf definition.
@@ -5355,6 +5377,7 @@ pub mod staking {
                         "UNSPECIFIED" => Some(Self::Unspecified),
                         "MANUAL" => Some(Self::Manual),
                         "BODY_REINVEST" => Some(Self::BodyReinvest),
+                        "ADMIN_GRANT" => Some(Self::AdminGrant),
                         _ => None,
                     }
                 }
@@ -5796,7 +5819,10 @@ pub mod staking {
         /// Группа проводок леджера, породившая событие. 0 — событие без денег.
         #[prost(uint64, tag = "5")]
         pub ledger_group_id: u64,
-        #[prost(oneof = "event::Data", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
+        #[prost(
+            oneof = "event::Data",
+            tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+        )]
         pub data: ::core::option::Option<event::Data>,
     }
     /// Nested message and enum types in `Event`.
@@ -6017,6 +6043,24 @@ pub mod staking {
             #[prost(uint64, optional, tag = "3")]
             pub obligation_id: ::core::option::Option<u64>,
         }
+        /// Админ переключил блокировку маркетинга у депозита. Денег не двигает.
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct MarketingBlockChanged {
+            /// Новое значение `Deposit.marketing_blocked`.
+            #[prost(bool, tag = "1")]
+            pub marketing_blocked: bool,
+        }
+        /// Депозит подарен компанией (`GrantDeposit`). Событие несёт группу
+        /// проводок ПОДАРКА (орг-пул → кошелёк); группа покупки депозита с
+        /// кошелька — у соседнего `DepositOpened`.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct DepositGranted {
+            #[prost(string, tag = "1")]
+            pub amount: ::prost::alloc::string::String,
+            /// С каким значением блокировки маркетинга депозит создан.
+            #[prost(bool, tag = "2")]
+            pub marketing_blocked: bool,
+        }
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Data {
             #[prost(message, tag = "10")]
@@ -6037,6 +6081,10 @@ pub mod staking {
             ReferralReceived(ReferralReceived),
             #[prost(message, tag = "18")]
             RankBonusReleased(RankBonusReleased),
+            #[prost(message, tag = "19")]
+            MarketingBlockChanged(MarketingBlockChanged),
+            #[prost(message, tag = "20")]
+            DepositGranted(DepositGranted),
         }
     }
     /// ПОЛНОЕ состояние партнёра в стейкинге — всё, что нужно главному экрану,

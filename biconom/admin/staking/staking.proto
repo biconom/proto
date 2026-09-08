@@ -108,6 +108,33 @@ service StakingAdminService {
     //
     // Требует ADMIN_STAKING — это глобальные рычаги, влияющие на деньги и на продажи.
     rpc UpdateSettings(UpdateSettingsRequest) returns (biconom.types.Staking.Settings);
+
+    // ── Депозиты от имени компании (только ROOT) ──
+
+    // Подарить партнёру депозит за счёт компании.
+    //
+    // Две отдельные группы проводок: сначала подарок из орг-пула на USDT-кошелёк
+    // партнёра, затем обычная покупка депозита с кошелька на ту же сумму. В
+    // истории партнёра это две карточки — «бонус» и «вложение».
+    //
+    // Минимальная сумма, `BLOCK_STAKING` партнёра и статус модуля (`PAUSED`) НЕ
+    // проверяются: это действие компании, а не продажа. Сумма должна быть > 0.
+    //
+    // `marketing_blocked` задаёт `Deposit.marketing_blocked` создаваемого
+    // депозита: при true прирост его тела не раздаётся аплайну по реферальной
+    // лестнице. Объёмы для рангов растут в любом случае.
+    //
+    // Требует ROOT.
+    rpc GrantDeposit(GrantDepositRequest) returns (biconom.types.Staking.Deposit);
+
+    // Установить или снять блокировку маркетинга у ЛЮБОГО депозита.
+    //
+    // Действует на начисления после изменения: следующий реинвест прибыли в
+    // этот депозит и, для созревшего, реинвест тела в новый. Уже выплаченные
+    // доли не отзываются. Повтор с тем же значением — no-op без события.
+    //
+    // Требует ROOT.
+    rpc SetDepositMarketingBlock(SetDepositMarketingBlockRequest) returns (biconom.types.Staking.Deposit);
 }
 
 message GetStateRequest {
@@ -160,4 +187,19 @@ message UpdateSettingsRequest {
     optional bool default_reinvest_profit = 2;
     // Новый глобальный статус модуля.
     optional biconom.types.Staking.ServiceStatus.Id service_status = 3;
+}
+
+message GrantDepositRequest {
+    uint32 distributor_id = 1;
+    // Сумма в USDT, строкой. Больше нуля; минимум модуля не применяется.
+    string amount = 2;
+    // Блокировать ли реферальную лестницу с этого депозита.
+    bool marketing_blocked = 3;
+}
+
+message SetDepositMarketingBlockRequest {
+    uint32 deposit_id = 1;
+    // Новое значение `Deposit.marketing_blocked`: true — лестница с депозита
+    // не раздаётся, false — раздаётся штатно.
+    bool marketing_blocked = 2;
 }

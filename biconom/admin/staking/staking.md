@@ -58,6 +58,20 @@
 |---|---|---|
 | `UpdateSettings` | Частичное обновление настроек | `ADMIN_STAKING` |
 
+### 3.4. Депозиты от имени компании
+
+| RPC | Назначение | Право |
+|---|---|---|
+| `GrantDeposit` | Подарить партнёру депозит за счёт компании. Две группы проводок: подарок из орг-пула на кошелёк, затем покупка депозита с кошелька. Минимум, `BLOCK_STAKING` и `PAUSED` не проверяются | `ROOT` |
+| `SetDepositMarketingBlock` | Установить или снять `Deposit.marketing_blocked` у любого депозита (`marketing_blocked` в запросе) | `ROOT` |
+
+`marketing_blocked` выключает **только** реферальную лестницу с прироста тела
+этого депозита (создание и реинвест прибыли). Доходность партнёру, тир, объёмы
+и ранги считаются как обычно. Депозит, открытый телом заблокированного
+(`ReinvestDeposit`), наследует флаг. Изменение действует на начисления после
+него, выплаченные доли не отзываются; повтор с тем же значением — no-op.
+`Deposit.granted_by_admin` и `Source.ADMIN_GRANT` помечают подарок и не меняются.
+
 ## 4. Разбор квалификации
 
 `GetRankProgress` — главный инструмент поддержки. Возвращает вклад, командный оборот
@@ -214,3 +228,6 @@ flowchart TD
 | `SetRankBonusAutoRelease` для ранга без бонуса | `InvalidArgument` |
 | `min_deposit` ≤ 0 | `InvalidArgument` |
 | `GetRankProgress` по несуществующему дистрибьютору | `NotFound`, `DISTRIBUTOR_NOT_FOUND` |
+| `GrantDeposit` по несуществующему дистрибьютору | `NotFound`, `DISTRIBUTOR_NOT_FOUND` |
+| `GrantDeposit` с нечисловой или нулевой суммой | `InvalidArgument`, `STAKING_AMOUNT_INVALID` |
+| `SetDepositMarketingBlock` по несуществующему депозиту | `NotFound`, `STAKING_DEPOSIT_NOT_FOUND` |

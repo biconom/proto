@@ -73,6 +73,26 @@ pub struct UpdateSettingsRequest {
     )]
     pub service_status: ::core::option::Option<i32>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GrantDepositRequest {
+    #[prost(uint32, tag = "1")]
+    pub distributor_id: u32,
+    /// Сумма в USDT, строкой. Больше нуля; минимум модуля не применяется.
+    #[prost(string, tag = "2")]
+    pub amount: ::prost::alloc::string::String,
+    /// Блокировать ли реферальную лестницу с этого депозита.
+    #[prost(bool, tag = "3")]
+    pub marketing_blocked: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDepositMarketingBlockRequest {
+    #[prost(uint32, tag = "1")]
+    pub deposit_id: u32,
+    /// Новое значение `Deposit.marketing_blocked`: true — лестница с депозита
+    /// не раздаётся, false — раздаётся штатно.
+    #[prost(bool, tag = "2")]
+    pub marketing_blocked: bool,
+}
 /// Generated server implementations.
 pub mod staking_admin_service_server {
     #![allow(
@@ -238,6 +258,41 @@ pub mod staking_admin_service_server {
             request: tonic::Request<super::UpdateSettingsRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::Settings>,
+            tonic::Status,
+        >;
+        /// Подарить партнёру депозит за счёт компании.
+        ///
+        /// Две отдельные группы проводок: сначала подарок из орг-пула на USDT-кошелёк
+        /// партнёра, затем обычная покупка депозита с кошелька на ту же сумму. В
+        /// истории партнёра это две карточки — «бонус» и «вложение».
+        ///
+        /// Минимальная сумма, `BLOCK_STAKING` партнёра и статус модуля (`PAUSED`) НЕ
+        /// проверяются: это действие компании, а не продажа. Сумма должна быть > 0.
+        ///
+        /// `marketing_blocked` задаёт `Deposit.marketing_blocked` создаваемого
+        /// депозита: при true прирост его тела не раздаётся аплайну по реферальной
+        /// лестнице. Объёмы для рангов растут в любом случае.
+        ///
+        /// Требует ROOT.
+        async fn grant_deposit(
+            &self,
+            request: tonic::Request<super::GrantDepositRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::Deposit>,
+            tonic::Status,
+        >;
+        /// Установить или снять блокировку маркетинга у ЛЮБОГО депозита.
+        ///
+        /// Действует на начисления после изменения: следующий реинвест прибыли в
+        /// этот депозит и, для созревшего, реинвест тела в новый. Уже выплаченные
+        /// доли не отзываются. Повтор с тем же значением — no-op без события.
+        ///
+        /// Требует ROOT.
+        async fn set_deposit_marketing_block(
+            &self,
+            request: tonic::Request<super::SetDepositMarketingBlockRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::Deposit>,
             tonic::Status,
         >;
     }
@@ -927,6 +982,105 @@ pub mod staking_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateSettingsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/GrantDeposit" => {
+                    #[allow(non_camel_case_types)]
+                    struct GrantDepositSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<super::GrantDepositRequest>
+                    for GrantDepositSvc<T> {
+                        type Response = super::super::super::types::staking::Deposit;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GrantDepositRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::grant_deposit(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GrantDepositSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/SetDepositMarketingBlock" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetDepositMarketingBlockSvc<T: StakingAdminService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<super::SetDepositMarketingBlockRequest>
+                    for SetDepositMarketingBlockSvc<T> {
+                        type Response = super::super::super::types::staking::Deposit;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::SetDepositMarketingBlockRequest,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::set_deposit_marketing_block(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetDepositMarketingBlockSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
