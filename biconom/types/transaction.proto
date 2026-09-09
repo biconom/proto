@@ -55,6 +55,7 @@ message Transaction {
                 StakingProfitReinvestDetails staking_profit_reinvest = 29;
                 StakingBodyReturnDetails staking_body_return = 30;
                 StakingRankBonusDetails staking_rank_bonus = 31;
+                StakingPromoTokenDetails staking_promo_token = 32;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -426,6 +427,19 @@ message Transaction {
                 uint32 rank = 1;
                 // Обязательство, по которому выплачено.
                 uint64 obligation_id = 2;
+            }
+
+            // Промо-акция «токен за депозит»: WINZU, подаренный за поступление
+            // денег в тело депозита. Сумма проводки = `base_amount / rate`,
+            // округление вниз. Деньги не конвертируются — это подарок компании.
+            message StakingPromoTokenDetails {
+                // Депозит, поступление в который дало бонус.
+                uint32 deposit_id = 1;
+                // База — сумма ЭТОГО поступления в USDT (открытие депозита либо
+                // реинвест прибыли цикла).
+                string base_amount = 2;
+                // Применённый курс — USDT за 1 WINZU, строкой ("2.50").
+                string rate = 3;
             }
         }
     }

@@ -192,6 +192,9 @@ message UpdateSettingsRequest {
     optional bool default_reinvest_profit = 2;
     // Новый глобальный статус модуля.
     optional biconom.types.Staking.ServiceStatus.Id service_status = 3;
+    // Новый курс промо-акции «токен за депозит»: USDT за 1 WINZU, строкой
+    // ("2.50"), > 0. Шаг — цент.
+    optional string promo_winzu_rate = 4;
 }
 
 message GrantDepositRequest {

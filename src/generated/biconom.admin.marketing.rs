@@ -101,6 +101,10 @@ pub struct GetMarketingFlagsResponse {
     /// Разрешает досрочное ручное расставление слотов.
     #[prost(bool, tag = "5")]
     pub allow_slot_placement: bool,
+    /// Промо-акция стейкинга «токен за депозит»: за каждое поступление в тело
+    /// депозита партнёру дарится WINZU по курсу `Staking.Settings.promo_winzu_rate`.
+    #[prost(bool, tag = "6")]
+    pub staking_promo_winzu: bool,
 }
 /// Запрос на изменение глобальной битовой маски маркетинга.
 /// Каждое поле — отдельный бит маски `MarketingFlags`.
@@ -122,6 +126,9 @@ pub struct SetMarketingFlagsRequest {
     /// Разрешает досрочное ручное расставление слотов.
     #[prost(bool, optional, tag = "5")]
     pub allow_slot_placement: ::core::option::Option<bool>,
+    /// Промо-акция стейкинга «токен за депозит».
+    #[prost(bool, optional, tag = "6")]
+    pub staking_promo_winzu: ::core::option::Option<bool>,
 }
 /// Запрос на чтение битовой маски флагов дистрибьютора.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

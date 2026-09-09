@@ -72,6 +72,10 @@ pub struct UpdateSettingsRequest {
         tag = "3"
     )]
     pub service_status: ::core::option::Option<i32>,
+    /// Новый курс промо-акции «токен за депозит»: USDT за 1 WINZU, строкой
+    /// ("2.50"), > 0. Шаг — цент.
+    #[prost(string, optional, tag = "4")]
+    pub promo_winzu_rate: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GrantDepositRequest {

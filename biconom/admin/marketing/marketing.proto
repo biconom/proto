@@ -103,6 +103,9 @@ message GetMarketingFlagsResponse {
     bool allow_buy_voucher_for_others = 4;
     // Разрешает досрочное ручное расставление слотов.
     bool allow_slot_placement = 5;
+    // Промо-акция стейкинга «токен за депозит»: за каждое поступление в тело
+    // депозита партнёру дарится WINZU по курсу `Staking.Settings.promo_winzu_rate`.
+    bool staking_promo_winzu = 6;
 }
 
 // Запрос на изменение глобальной битовой маски маркетинга.
@@ -119,6 +122,8 @@ message SetMarketingFlagsRequest {
     optional bool allow_buy_voucher_for_others = 4;
     // Разрешает досрочное ручное расставление слотов.
     optional bool allow_slot_placement = 5;
+    // Промо-акция стейкинга «токен за депозит».
+    optional bool staking_promo_winzu = 6;
 }
 
 // Запрос на чтение битовой маски флагов дистрибьютора.

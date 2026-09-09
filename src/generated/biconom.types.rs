@@ -974,7 +974,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1415,6 +1415,22 @@ pub mod transaction {
                 #[prost(uint64, tag = "2")]
                 pub obligation_id: u64,
             }
+            /// Промо-акция «токен за депозит»: WINZU, подаренный за поступление
+            /// денег в тело депозита. Сумма проводки = `base_amount / rate`,
+            /// округление вниз. Деньги не конвертируются — это подарок компании.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingPromoTokenDetails {
+                /// Депозит, поступление в который дало бонус.
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                /// База — сумма ЭТОГО поступления в USDT (открытие депозита либо
+                /// реинвест прибыли цикла).
+                #[prost(string, tag = "2")]
+                pub base_amount: ::prost::alloc::string::String,
+                /// Применённый курс — USDT за 1 WINZU, строкой ("2.50").
+                #[prost(string, tag = "3")]
+                pub rate: ::prost::alloc::string::String,
+            }
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
             pub enum Details {
                 #[prost(message, tag = "4")]
@@ -1473,6 +1489,8 @@ pub mod transaction {
                 StakingBodyReturn(StakingBodyReturnDetails),
                 #[prost(message, tag = "31")]
                 StakingRankBonus(StakingRankBonusDetails),
+                #[prost(message, tag = "32")]
+                StakingPromoToken(StakingPromoTokenDetails),
             }
         }
     }
@@ -5530,6 +5548,12 @@ pub mod staking {
         /// Уже открытые депозиты продолжают работать при PAUSED.
         #[prost(enumeration = "service_status::Id", tag = "3")]
         pub service_status: i32,
+        /// Курс промо-акции «токен за депозит»: сколько USDT стоит 1 WINZU,
+        /// строкой ("2.50"). Бонус = поступление в тело / курс, округление вниз.
+        /// Сама акция включается битом `staking_promo_winzu` в
+        /// `MarketingService.SetMarketingFlags`; курс без флага ничего не даёт.
+        #[prost(string, tag = "4")]
+        pub promo_winzu_rate: ::prost::alloc::string::String,
     }
     /// Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
     #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5824,7 +5848,7 @@ pub mod staking {
         pub ledger_group_id: u64,
         #[prost(
             oneof = "event::Data",
-            tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+            tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
         )]
         pub data: ::core::option::Option<event::Data>,
     }
@@ -6064,6 +6088,26 @@ pub mod staking {
             #[prost(bool, tag = "2")]
             pub marketing_blocked: bool,
         }
+        /// Промо-акция «токен за депозит»: за поступление в тело депозита
+        /// подарен WINZU. Несёт группу проводок бонуса (орг-пул → WINZU-кошелёк);
+        /// группа самого поступления — у соседнего `DepositOpened` /
+        /// `IncomeReinvested`. Ретро-начисление миграцией — тоже это событие.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct PromoTokenReceived {
+            /// База — сумма поступления в USDT.
+            #[prost(string, tag = "1")]
+            pub base_amount: ::prost::alloc::string::String,
+            /// Подаренный WINZU.
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Применённый курс — USDT за 1 WINZU, строкой ("2.50").
+            #[prost(string, tag = "3")]
+            pub rate: ::prost::alloc::string::String,
+            /// 0 — за открытие депозита (или ретро по всему телу),
+            /// N — за реинвест прибыли цикла N.
+            #[prost(uint32, tag = "4")]
+            pub accrual_seq: u32,
+        }
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Data {
             #[prost(message, tag = "10")]
@@ -6088,6 +6132,8 @@ pub mod staking {
             MarketingBlockChanged(MarketingBlockChanged),
             #[prost(message, tag = "20")]
             DepositGranted(DepositGranted),
+            #[prost(message, tag = "21")]
+            PromoTokenReceived(PromoTokenReceived),
         }
     }
     /// ПОЛНОЕ состояние партнёра в стейкинге — всё, что нужно главному экрану,

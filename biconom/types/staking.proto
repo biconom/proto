@@ -362,6 +362,11 @@ message Staking {
         // Глобальный статус модуля: можно ли покупать новые депозиты.
         // Уже открытые депозиты продолжают работать при PAUSED.
         ServiceStatus.Id service_status = 3;
+        // Курс промо-акции «токен за депозит»: сколько USDT стоит 1 WINZU,
+        // строкой ("2.50"). Бонус = поступление в тело / курс, округление вниз.
+        // Сама акция включается битом `staking_promo_winzu` в
+        // `MarketingService.SetMarketingFlags`; курс без флага ничего не даёт.
+        string promo_winzu_rate = 4;
     }
 
     // Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
@@ -744,6 +749,22 @@ message Staking {
             bool marketing_blocked = 2;
         }
 
+        // Промо-акция «токен за депозит»: за поступление в тело депозита
+        // подарен WINZU. Несёт группу проводок бонуса (орг-пул → WINZU-кошелёк);
+        // группа самого поступления — у соседнего `DepositOpened` /
+        // `IncomeReinvested`. Ретро-начисление миграцией — тоже это событие.
+        message PromoTokenReceived {
+            // База — сумма поступления в USDT.
+            string base_amount = 1;
+            // Подаренный WINZU.
+            string amount = 2;
+            // Применённый курс — USDT за 1 WINZU, строкой ("2.50").
+            string rate = 3;
+            // 0 — за открытие депозита (или ретро по всему телу),
+            // N — за реинвест прибыли цикла N.
+            uint32 accrual_seq = 4;
+        }
+
         // Глобальный монотонный идентификатор (хронология по всей системе).
         uint64 id = 1;
         // Порядковый номер события В РАМКАХ ПАРТНЁРА: 1, 2, 3 …
@@ -771,6 +792,7 @@ message Staking {
             RankBonusReleased rank_bonus_released = 18;
             MarketingBlockChanged marketing_block_changed = 19;
             DepositGranted deposit_granted = 20;
+            PromoTokenReceived promo_token_received = 21;
         }
     }
 
