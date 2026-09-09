@@ -75,4 +75,7 @@ message UserFindByEmailResponse {
     uint32 user_id = 2; // 0 если не найден
     string email   = 3; // сохранённая (сырая) почта найденного юзера
     bool   banned  = 4; // забанен ли
+    // Все дистрибьюторы пользователя по возрастанию id. Пусто, если не найден
+    // или дистрибьютор ещё не создан.
+    repeated uint32 distributor_ids = 5;
 }

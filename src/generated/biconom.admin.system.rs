@@ -86,6 +86,10 @@ pub struct UserFindByEmailResponse {
     /// забанен ли
     #[prost(bool, tag = "4")]
     pub banned: bool,
+    /// Все дистрибьюторы пользователя по возрастанию id. Пусто, если не найден
+    /// или дистрибьютор ещё не создан.
+    #[prost(uint32, repeated, tag = "5")]
+    pub distributor_ids: ::prost::alloc::vec::Vec<u32>,
 }
 /// Generated server implementations.
 pub mod system_control_service_server {
