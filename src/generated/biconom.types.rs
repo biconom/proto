@@ -5631,6 +5631,11 @@ pub mod staking {
         /// того, закрыты депозиты или нет.
         #[prost(uint32, tag = "10")]
         pub stakers_team: u32,
+        /// Текущий ранг лидера ветки. 0 — квалификации нет. Та же величина, что
+        /// `RankProgress.current_rank` у самого лидера; доля лестницы и требования
+        /// ранга — в `Config.ranks` по этому номеру, вторым источником не дублируются.
+        #[prost(uint32, tag = "11")]
+        pub current_rank: u32,
     }
     /// Прогресс партнёра по карьерной лестнице.
     #[derive(Clone, PartialEq, ::prost::Message)]
