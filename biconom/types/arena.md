@@ -32,3 +32,4 @@ Arena → start_cycle → Cycle(Active) → [duration expires] → Cycle(Finishe
 | 2 | tree_1_license | 1 балл за первую активацию лицензии партнёром |
 | 3 | tree_2_license | Аналогично для дерева 2 |
 | 4 | tree_3_license | Аналогично для дерева 3 |
+| 5 | staking | Баллы = прирост тела депозита стейкинга — вкладчику и его прямому спонсору (в USDT) |

@@ -9230,12 +9230,12 @@ pub mod leaderboard {
 /// к одному лидерборду. Дистрибьюторы зарабатывают баллы и
 /// соревнуются за ранг в рамках текущего цикла.
 ///
-/// Имена арен: wincoin | win_lite | win_pro | win_ultra.
+/// Имена арен: wincoin | win_lite | win_pro | win_ultra | staking.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Arena {
     #[prost(uint32, tag = "1")]
     pub id: u32,
-    /// Строковый идентификатор (wincoin | win_lite | win_pro | win_ultra).
+    /// Строковый идентификатор (wincoin | win_lite | win_pro | win_ultra | staking).
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
     /// Общее количество завершённых и активных циклов.
@@ -9256,7 +9256,7 @@ pub mod arena {
     pub mod id {
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Identifier {
-            /// Числовой ID арены (1..4).
+            /// Числовой ID арены (1..5).
             #[prost(uint32, tag = "1")]
             Id(u32),
             /// Строковый идентификатор (например "wincoin").
