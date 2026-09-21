@@ -1231,6 +1231,16 @@ pub mod transaction {
                 /// от пропорциональной формулы, и цепочка обрыватся на нём.
                 #[prost(bool, tag = "7")]
                 pub had_flag: bool,
+                /// Заполнены ТОЛЬКО когда доля выплачена подарочными WINZU (флаг
+                /// маркетинга `matching_bonus_winzu`): `amount` проводки тогда в
+                /// WINZU, а остальные поля карточки по-прежнему в USDT.
+                /// `payout_usdt` — рассчитанная доля в USDT, которая была
+                /// сконвертирована; `winzu_rate` — применённая цена, USDT за 1 WINZU.
+                /// У токена упущенной выгоды `payout_usdt` = "0".
+                #[prost(string, optional, tag = "8")]
+                pub payout_usdt: ::core::option::Option<::prost::alloc::string::String>,
+                #[prost(string, optional, tag = "9")]
+                pub winzu_rate: ::core::option::Option<::prost::alloc::string::String>,
             }
             /// Метаданные для карточки дисконт-бонуса авто-реинвеста.
             ///

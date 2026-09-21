@@ -106,6 +106,10 @@ message GetMarketingFlagsResponse {
     // Промо-акция стейкинга «токен за депозит»: за каждое поступление в тело
     // депозита партнёру дарится WINZU по курсу `Staking.Settings.promo_winzu_rate`.
     bool staking_promo_winzu = 6;
+    // Матчинг-бонус выплачивается подарочными WINZU вместо USDT: доля считается
+    // по прежней формуле в USDT и конвертируется по фиксированной расчётной цене
+    // 2,50 $ за 1 WINZU (вниз). Выключен — матчинг платится в USDT, как раньше.
+    bool matching_bonus_winzu = 7;
 }
 
 // Запрос на изменение глобальной битовой маски маркетинга.
@@ -124,6 +128,8 @@ message SetMarketingFlagsRequest {
     optional bool allow_slot_placement = 5;
     // Промо-акция стейкинга «токен за депозит».
     optional bool staking_promo_winzu = 6;
+    // Матчинг-бонус подарочными WINZU вместо USDT.
+    optional bool matching_bonus_winzu = 7;
 }
 
 // Запрос на чтение битовой маски флагов дистрибьютора.

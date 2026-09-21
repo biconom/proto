@@ -5,8 +5,10 @@ pub struct GetDividendPoolResponse {
     /// Суммарный объём WIN, купленного через трейдинг (формат mantissa).
     #[prost(string, tag = "1")]
     pub purchased_win: ::prost::alloc::string::String,
-    /// Суммарный объём WIN, заработанного через бонусы (формат mantissa).
-    /// Зарезервировано — в текущей версии бонусы начисляются в USDT.
+    /// Суммарный объём WIN, заработанного через бонусы (формат mantissa):
+    /// призы, подарки, промо-токены стейкинга, дисконт авто-реинвеста и
+    /// матчинг-бонус при включённом флаге маркетинга `matching_bonus_winzu`.
+    /// В тело дивидендов (`invested_usdt`) эти токены не входят.
     #[prost(string, tag = "2")]
     pub earned_win: ::prost::alloc::string::String,
     /// Суммарный объём USDT, потраченного на покупку WIN (формат mantissa).

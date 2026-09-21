@@ -105,6 +105,11 @@ pub struct GetMarketingFlagsResponse {
     /// депозита партнёру дарится WINZU по курсу `Staking.Settings.promo_winzu_rate`.
     #[prost(bool, tag = "6")]
     pub staking_promo_winzu: bool,
+    /// Матчинг-бонус выплачивается подарочными WINZU вместо USDT: доля считается
+    /// по прежней формуле в USDT и конвертируется по фиксированной расчётной цене
+    /// 2,50 $ за 1 WINZU (вниз). Выключен — матчинг платится в USDT, как раньше.
+    #[prost(bool, tag = "7")]
+    pub matching_bonus_winzu: bool,
 }
 /// Запрос на изменение глобальной битовой маски маркетинга.
 /// Каждое поле — отдельный бит маски `MarketingFlags`.
@@ -129,6 +134,9 @@ pub struct SetMarketingFlagsRequest {
     /// Промо-акция стейкинга «токен за депозит».
     #[prost(bool, optional, tag = "6")]
     pub staking_promo_winzu: ::core::option::Option<bool>,
+    /// Матчинг-бонус подарочными WINZU вместо USDT.
+    #[prost(bool, optional, tag = "7")]
+    pub matching_bonus_winzu: ::core::option::Option<bool>,
 }
 /// Запрос на чтение битовой маски флагов дистрибьютора.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
