@@ -974,7 +974,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1406,8 +1406,27 @@ pub mod transaction {
                 #[prost(bool, tag = "4")]
                 pub is_final: bool,
             }
+            /// Экстра-прибыль за цикл начислена на кошелёк (акция
+            /// `Staking.ExtraPromo`). Приходит в ОДНОЙ группе с `staking_income`
+            /// того же цикла, отдельной проводкой: сумма = тело × `rate`.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct StakingExtraIncomeDetails {
+                #[prost(uint32, tag = "1")]
+                pub deposit_id: u32,
+                /// Номер цикла, 1…`Deposit.cycles_total`.
+                #[prost(uint32, tag = "2")]
+                pub payout_seq: u32,
+                /// Применённая экстра-ставка — КОЭФФИЦИЕНТ строкой ("0.05").
+                #[prost(string, tag = "3")]
+                pub rate: ::prost::alloc::string::String,
+                /// Версия акции, по которой начислено.
+                #[prost(uint32, tag = "4")]
+                pub extra_promo_id: u32,
+            }
             /// Доход этого же цикла ушёл обратно в тело депозита. Приходит в паре
             /// с `staking_income` в одной группе: сначала начисление, затем уход.
+            /// Если в цикле была экстра-прибыль (`staking_extra_income`), в тело
+            /// уходит их СУММА одной проводкой.
             #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct StakingProfitReinvestDetails {
                 #[prost(uint32, tag = "1")]
@@ -1501,6 +1520,8 @@ pub mod transaction {
                 StakingRankBonus(StakingRankBonusDetails),
                 #[prost(message, tag = "32")]
                 StakingPromoToken(StakingPromoTokenDetails),
+                #[prost(message, tag = "33")]
+                StakingExtraIncome(StakingExtraIncomeDetails),
             }
         }
     }
@@ -5261,6 +5282,26 @@ pub mod staking {
         /// фильтров и отчётов.
         #[prost(bool, tag = "24")]
         pub granted_by_admin: bool,
+        /// ── Экстра-прибыль (`ExtraPromo`) ──
+        /// Экстра-ставка, которая будет применена на БЛИЖАЙШЕЙ выплате этого
+        /// депозита, — коэффициент строкой, всегда непустой. Определяется
+        /// действующей акцией, в диапазон которой попадает `created_at` депозита;
+        /// `"0.00"` — такой акции сейчас нет либо депозит больше не получает
+        /// выплат (созрел или закрыт).
+        ///
+        /// Значение НЕ зафиксировано в депозите: админ может выпустить новую
+        /// версию акции (другие даты, процент, статус), и ставка следующей
+        /// выплаты изменится. Уже выплаченное не пересчитывается.
+        #[prost(string, tag = "25")]
+        pub extra_rate: ::prost::alloc::string::String,
+        /// Версия акции, давшая `extra_rate`. 0 — акции нет.
+        #[prost(uint32, tag = "26")]
+        pub extra_promo_id: u32,
+        /// Сколько экстра-прибыли начислено по этому депозиту за всё время —
+        /// независимо от того, ушла она на кошелёк или в тело. В
+        /// `total_income_paid` НЕ входит: там только доход по ставке тира.
+        #[prost(string, tag = "27")]
+        pub total_extra_paid: ::prost::alloc::string::String,
     }
     /// Nested message and enum types in `Deposit`.
     pub mod deposit {
@@ -5453,10 +5494,13 @@ pub mod staking {
         #[prost(string, tag = "7")]
         pub personal_volume: ::prost::alloc::string::String,
         /// ── Доход ──
-        /// Начислено дохода за всё время по всем депозитам.
+        /// Начислено дохода ПО СТАВКЕ ТИРА за всё время по всем депозитам.
+        /// Экстра-прибыль сюда не входит — она в `total_extra_paid`.
         #[prost(string, tag = "8")]
         pub total_income_paid: ::prost::alloc::string::String,
-        /// Сколько из начисленного ушло обратно в тела депозитов.
+        /// Сколько из начисленного ушло обратно в тела депозитов: доход по тиру
+        /// ВМЕСТЕ с экстра-прибылью. Поэтому может превышать `total_income_paid`
+        /// и сравнивается с суммой `total_income_paid + total_extra_paid`.
         #[prost(string, tag = "9")]
         pub total_reinvested: ::prost::alloc::string::String,
         /// ── Ждут решения ──
@@ -5467,6 +5511,11 @@ pub mod staking {
         /// сейчас. В `active_total` НЕ входит.
         #[prost(string, tag = "11")]
         pub matured_total: ::prost::alloc::string::String,
+        /// ── Экстра-прибыль ──
+        /// Начислено экстра-прибыли за всё время по всем депозитам партнёра.
+        /// В `total_income_paid` НЕ входит.
+        #[prost(string, tag = "12")]
+        pub total_extra_paid: ::prost::alloc::string::String,
     }
     /// Ступень СОБСТВЕННОЙ доходности.
     ///
@@ -5596,6 +5645,144 @@ pub mod staking {
         /// Изменяемая админом часть.
         #[prost(message, optional, tag = "6")]
         pub settings: ::core::option::Option<Settings>,
+    }
+    /// Акция «экстра-прибыль»: дополнительная ставка СВЕРХ ставки тира для
+    /// депозитов, СОЗДАННЫХ в заданный диапазон времени.
+    ///
+    /// На каждой выплате цикла сервис берёт дату создания депозита
+    /// (`Deposit.created_at`, а не момент выплаты) и ищет действующую акцию, в
+    /// диапазон которой она попадает. Нашлась — к доходу цикла в той же группе
+    /// проводок добавляется `тело × rate`. Не нашлась — экстра-прибыль равна нулю.
+    /// Поэтому акцию можно завести задним числом: депозиты, открытые в этом
+    /// диапазоне, начнут получать экстру со своей ближайшей выплаты. За уже
+    /// прошедшие циклы ничего не доначисляется.
+    ///
+    /// ЗАПИСЬ НЕИЗМЕНЯЕМА. Любая правка (даты, процент, статус) — это НОВАЯ запись,
+    /// то есть новая версия. Одна запись участвует в двух цепочках:
+    ///
+    /// * цепочка ДЕЙСТВУЮЩИХ (`prev_id` / `next_id`) — соседи слева и справа по
+    ///   времени. В ней только действующие акции (`status == 0`), их диапазоны
+    ///   не пересекаются;
+    /// * цепочка ВЕРСИЙ (`version_prev_id` / `version_next_id`) — прошлая версия
+    ///   снизу и новая сверху. У архивной записи соседей слева и справа уже
+    ///   нет, остаётся только эта цепочка.
+    ///
+    /// Меняются у существующей записи только ссылки цепочек и бит `ARCHIVED` —
+    /// значения (даты, процент) не переписываются никогда.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct ExtraPromo {
+        /// Идентификатор ВЕРСИИ. У каждой правки — свой id.
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        /// Диапазон дат СОЗДАНИЯ ДЕПОЗИТА, на который действует акция.
+        /// Нижняя граница ВКЛЮЧАЕТСЯ: `Deposit.created_at >= deposit_created_at_ge`.
+        #[prost(message, optional, tag = "2")]
+        pub deposit_created_at_ge: ::core::option::Option<::prost_types::Timestamp>,
+        /// Верхняя граница НЕ включается: `Deposit.created_at < deposit_created_at_lt`.
+        /// Всегда строго больше `deposit_created_at_ge`.
+        #[prost(message, optional, tag = "3")]
+        pub deposit_created_at_lt: ::core::option::Option<::prost_types::Timestamp>,
+        /// Экстра-ставка за один цикл — КОЭФФИЦИЕНТ строкой: 5% → "0.05".
+        /// Прибавляется к ставке тира, применяется к телу депозита.
+        #[prost(string, tag = "4")]
+        pub rate: ::prost::alloc::string::String,
+        /// Битовая маска состояния, биты — `StatusBit`. `0` — действующая.
+        #[prost(uint32, tag = "5")]
+        pub status: u32,
+        /// ── Цепочка действующих: соседи по времени ──
+        /// Действующая акция с более РАННИМ диапазоном. 0 — соседа нет либо
+        /// запись не в цепочке (архивная или деактивированная).
+        #[prost(uint32, tag = "6")]
+        pub prev_id: u32,
+        /// Действующая акция с более ПОЗДНИМ диапазоном. 0 — аналогично.
+        #[prost(uint32, tag = "7")]
+        pub next_id: u32,
+        /// ── Цепочка версий ──
+        /// ПРОШЛАЯ версия, которую заменила эта запись. 0 — это первая версия.
+        #[prost(uint32, tag = "8")]
+        pub version_prev_id: u32,
+        /// НОВАЯ версия, заменившая эту запись. 0 — версия верхняя (текущая).
+        #[prost(uint32, tag = "9")]
+        pub version_next_id: u32,
+        /// Админ, создавший эту версию. Заполнено только в админском API,
+        /// клиенту приходит 0.
+        #[prost(uint32, tag = "10")]
+        pub created_by_user_id: u32,
+        /// Момент создания версии.
+        #[prost(message, optional, tag = "11")]
+        pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Момент последнего изменения ссылок или статуса записи.
+        #[prost(message, optional, tag = "12")]
+        pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `ExtraPromo`.
+    pub mod extra_promo {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(oneof = "id::Identifier", tags = "1")]
+            pub identifier: ::core::option::Option<id::Identifier>,
+        }
+        /// Nested message and enum types in `Id`.
+        pub mod id {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+            pub enum Identifier {
+                #[prost(uint32, tag = "1")]
+                Id(u32),
+            }
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::ExtraPromo>,
+        }
+        /// Биты маски `status`. Значения — степени двойки. Маска `0` — акция
+        /// ДЕЙСТВУЮЩАЯ: она есть, была или будет в силе по своему диапазону дат.
+        /// Биты независимы и могут быть взведены оба: деактивированную акцию
+        /// тоже можно заменить новой версией.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum StatusBit {
+            /// Заглушка proto3, в маске не используется (действующая — это `0`).
+            Unspecified = 0,
+            /// Бит 0 (значение 1): запись заменена новой версией и ушла вниз по
+            /// цепочке версий. Новая версия — `version_next_id`.
+            Archived = 1,
+            /// Бит 1 (значение 2): акция выключена админом. В цепочке действующих
+            /// её нет, диапазон дат она не занимает, экстра по ней не платится.
+            Deactivated = 2,
+        }
+        impl StatusBit {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_BIT_UNSPECIFIED",
+                    Self::Archived => "STATUS_BIT_ARCHIVED",
+                    Self::Deactivated => "STATUS_BIT_DEACTIVATED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_BIT_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_BIT_ARCHIVED" => Some(Self::Archived),
+                    "STATUS_BIT_DEACTIVATED" => Some(Self::Deactivated),
+                    _ => None,
+                }
+            }
+        }
     }
     /// Вклад одной ветки первой линии в командный оборот — с раскрытием, почему
     /// засчиталось именно столько. Главный ответ на вопрос «почему не взял ранг».
@@ -5863,7 +6050,7 @@ pub mod staking {
         pub ledger_group_id: u64,
         #[prost(
             oneof = "event::Data",
-            tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+            tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
         )]
         pub data: ::core::option::Option<event::Data>,
     }
@@ -5915,6 +6102,8 @@ pub mod staking {
         pub struct IncomeReinvested {
             #[prost(uint32, tag = "1")]
             pub payout_seq: u32,
+            /// Сколько ушло в тело: доход цикла ВМЕСТЕ с экстра-прибылью, если
+            /// она была (`IncomePaid.amount` + `ExtraIncomePaid.amount`).
             #[prost(string, tag = "2")]
             pub amount: ::prost::alloc::string::String,
             /// Тело после прибавления.
@@ -6123,6 +6312,27 @@ pub mod staking {
             #[prost(uint32, tag = "4")]
             pub accrual_seq: u32,
         }
+        /// Начислена ЭКСТРА-ПРИБЫЛЬ за цикл (`ExtraPromo`). Приходит в той же
+        /// группе проводок, что и `IncomePaid` этого цикла. Самодостаточно для
+        /// перепроверки: `body_at_payout × rate == amount`.
+        #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct ExtraIncomePaid {
+            /// Номер цикла, 1..cycles_total.
+            #[prost(uint32, tag = "1")]
+            pub payout_seq: u32,
+            #[prost(string, tag = "2")]
+            pub amount: ::prost::alloc::string::String,
+            /// Применённая экстра-ставка — коэффициент строкой ("0.05").
+            #[prost(string, tag = "3")]
+            pub rate: ::prost::alloc::string::String,
+            /// База начисления: тело этого депозита на момент выплаты.
+            #[prost(string, tag = "4")]
+            pub body_at_payout: ::prost::alloc::string::String,
+            /// Версия акции, по которой начислено. Ставка сохранена в событии:
+            /// последующие версии акции уже выплаченное не меняют.
+            #[prost(uint32, tag = "5")]
+            pub extra_promo_id: u32,
+        }
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
         pub enum Data {
             #[prost(message, tag = "10")]
@@ -6149,6 +6359,8 @@ pub mod staking {
             DepositGranted(DepositGranted),
             #[prost(message, tag = "21")]
             PromoTokenReceived(PromoTokenReceived),
+            #[prost(message, tag = "22")]
+            ExtraIncomePaid(ExtraIncomePaid),
         }
     }
     /// ПОЛНОЕ состояние партнёра в стейкинге — всё, что нужно главному экрану,
@@ -6199,6 +6411,14 @@ pub mod staking {
         /// Всегда целиком: максимум 9 записей за всю жизнь аккаунта.
         #[prost(message, repeated, tag = "9")]
         pub obligations: ::prost::alloc::vec::Vec<Obligation>,
+        /// ТЕКУЩАЯ акция экстра-прибыли: действующая акция, в диапазон которой
+        /// попадает момент запроса, — то есть экстра-ставка депозита, который
+        /// партнёр откроет прямо сейчас. Отсутствует, если такой акции нет.
+        ///
+        /// Для уже открытых депозитов смотреть не сюда, а в `Deposit.extra_rate`:
+        /// у них ставка определяется их собственной датой создания.
+        #[prost(message, optional, tag = "10")]
+        pub extra_promo: ::core::option::Option<ExtraPromo>,
     }
     /// Глобальный статус модуля.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -6295,6 +6515,10 @@ pub mod staking {
         /// Входит в `total_in_deposits`.
         #[prost(string, tag = "12")]
         pub matured_total: ::prost::alloc::string::String,
+        /// Выплачено экстра-прибыли за всё время (модуль баланса пула
+        /// COMPANY STAKING EXTRA). В `total_income_paid` НЕ входит.
+        #[prost(string, tag = "13")]
+        pub total_extra_paid: ::prost::alloc::string::String,
     }
 }
 /// DividendPool — модель данных дивидендного пула.

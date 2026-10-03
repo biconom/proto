@@ -97,6 +97,49 @@ pub struct SetDepositMarketingBlockRequest {
     #[prost(bool, tag = "2")]
     pub marketing_blocked: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateExtraPromoRequest {
+    /// Нижняя граница даты создания депозита — ВКЛЮЧАЕТСЯ.
+    ///
+    /// Обе границы обязательны и задаются с точностью до СЕКУНДЫ: `nanos`
+    /// должен быть 0, `seconds` — от 0 до 4294967295. Иначе InvalidArgument
+    /// (`STAKING_EXTRA_PROMO_RANGE_INVALID`).
+    #[prost(message, optional, tag = "1")]
+    pub deposit_created_at_ge: ::core::option::Option<::prost_types::Timestamp>,
+    /// Верхняя граница — НЕ включается. Строго больше `deposit_created_at_ge`.
+    #[prost(message, optional, tag = "2")]
+    pub deposit_created_at_lt: ::core::option::Option<::prost_types::Timestamp>,
+    /// Экстра-ставка за цикл — коэффициент строкой: 5% → "0.05". Больше нуля и
+    /// не больше "1" (100% за цикл), шаг — 0.000001 (одна десятитысячная
+    /// процента): не более 6 знаков после точки, лишние не отбрасываются, а
+    /// отвергаются. Иначе InvalidArgument (`STAKING_EXTRA_PROMO_RATE_INVALID`).
+    #[prost(string, tag = "3")]
+    pub rate: ::prost::alloc::string::String,
+}
+/// Новая версия акции: применяются только заданные поля, остальные наследуются
+/// от заменяемой версии.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateExtraPromoRequest {
+    /// Верхняя (не архивная) версия акции, которую заменяет новая.
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(message, optional, tag = "2")]
+    pub deposit_created_at_ge: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub deposit_created_at_lt: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, optional, tag = "4")]
+    pub rate: ::core::option::Option<::prost::alloc::string::String>,
+    /// true — выключить акцию, false — включить обратно.
+    #[prost(bool, optional, tag = "5")]
+    pub deactivated: ::core::option::Option<bool>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListExtraPromosRequest {
+    /// true — добавить в ответ деактивированные акции (верхние версии).
+    /// По умолчанию приходят только действующие.
+    #[prost(bool, tag = "1")]
+    pub include_deactivated: bool,
+}
 /// Generated server implementations.
 pub mod staking_admin_service_server {
     #![allow(
@@ -302,6 +345,75 @@ pub mod staking_admin_service_server {
             request: tonic::Request<super::SetDepositMarketingBlockRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::types::staking::Deposit>,
+            tonic::Status,
+        >;
+        /// Создать акцию: диапазон дат создания депозита и экстра-ставка. Акция
+        /// сразу действующая.
+        ///
+        /// Диапазон не должен пересекаться ни с одной ДЕЙСТВУЮЩЕЙ акцией —
+        /// FailedPrecondition. `deposit_created_at_lt` обязано быть строго больше
+        /// `deposit_created_at_ge`, ставка — больше нуля; иначе InvalidArgument.
+        /// Диапазон может лежать в прошлом: депозиты, открытые в нём, начнут
+        /// получать экстру со своей ближайшей выплаты, без доплаты за прошедшие циклы.
+        ///
+        /// Требует ADMIN_STAKING.
+        async fn create_extra_promo(
+            &self,
+            request: tonic::Request<super::CreateExtraPromoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::ExtraPromo>,
+            tonic::Status,
+        >;
+        /// Выпустить НОВУЮ ВЕРСИЮ акции: изменить даты, ставку и/или статус.
+        ///
+        /// `id` — верхняя (не архивная) версия; архивную править нельзя —
+        /// FailedPrecondition, несуществующую — NotFound. Незаданные поля
+        /// наследуются от заменяемой версии; к заданным применяются те же правила
+        /// ввода, что в `CreateExtraPromo` (секунды без `nanos`, ставка до "1").
+        /// Запрос, который ничего не меняет, — InvalidArgument: пустых версий нет.
+        ///
+        /// Прежняя версия получает бит `ARCHIVED`, выходит из цепочки действующих и
+        /// остаётся только в цепочке версий. Новая версия, если она действующая,
+        /// встаёт в цепочку действующих по своим датам и проходит ту же проверку
+        /// пересечения, что и при создании. Деактивированная версия в цепочку не
+        /// встаёт и диапазон не занимает; повторное включение — снова новая версия,
+        /// и проверка пересечения выполняется заново.
+        ///
+        /// Действует на БУДУЩИЕ выплаты уже открытых депозитов. Выплаченное раньше
+        /// не пересчитывается.
+        ///
+        /// Требует ADMIN_STAKING.
+        async fn update_extra_promo(
+            &self,
+            request: tonic::Request<super::UpdateExtraPromoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::ExtraPromo>,
+            tonic::Status,
+        >;
+        /// Одна версия акции по идентификатору, включая архивные.
+        async fn get_extra_promo(
+            &self,
+            request: tonic::Request<super::super::super::types::staking::extra_promo::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::ExtraPromo>,
+            tonic::Status,
+        >;
+        /// Актуальные карточки акций — только верхние версии, архивных здесь нет.
+        /// Порядок: по `deposit_created_at_ge` от поздних к ранним.
+        async fn list_extra_promos(
+            &self,
+            request: tonic::Request<super::ListExtraPromosRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::extra_promo::List>,
+            tonic::Status,
+        >;
+        /// Цепочка версий акции целиком, от новой к старой. `id` — ЛЮБАЯ версия этой
+        /// цепочки: первая запись ответа всегда верхняя.
+        async fn list_extra_promo_versions(
+            &self,
+            request: tonic::Request<super::super::super::types::staking::extra_promo::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::staking::extra_promo::List>,
             tonic::Status,
         >;
     }
@@ -1090,6 +1202,254 @@ pub mod staking_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SetDepositMarketingBlockSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/CreateExtraPromo" => {
+                    #[allow(non_camel_case_types)]
+                    struct CreateExtraPromoSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<super::CreateExtraPromoRequest>
+                    for CreateExtraPromoSvc<T> {
+                        type Response = super::super::super::types::staking::ExtraPromo;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateExtraPromoRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::create_extra_promo(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = CreateExtraPromoSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/UpdateExtraPromo" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateExtraPromoSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<super::UpdateExtraPromoRequest>
+                    for UpdateExtraPromoSvc<T> {
+                        type Response = super::super::super::types::staking::ExtraPromo;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateExtraPromoRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::update_extra_promo(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateExtraPromoSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/GetExtraPromo" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetExtraPromoSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::staking::extra_promo::Id,
+                    > for GetExtraPromoSvc<T> {
+                        type Response = super::super::super::types::staking::ExtraPromo;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::staking::extra_promo::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::get_extra_promo(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetExtraPromoSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/ListExtraPromos" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListExtraPromosSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<super::ListExtraPromosRequest>
+                    for ListExtraPromosSvc<T> {
+                        type Response = super::super::super::types::staking::extra_promo::List;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListExtraPromosRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::list_extra_promos(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListExtraPromosSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.staking.StakingAdminService/ListExtraPromoVersions" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListExtraPromoVersionsSvc<T: StakingAdminService>(pub Arc<T>);
+                    impl<
+                        T: StakingAdminService,
+                    > tonic::server::UnaryService<
+                        super::super::super::types::staking::extra_promo::Id,
+                    > for ListExtraPromoVersionsSvc<T> {
+                        type Response = super::super::super::types::staking::extra_promo::List;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<
+                                super::super::super::types::staking::extra_promo::Id,
+                            >,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StakingAdminService>::list_extra_promo_versions(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListExtraPromoVersionsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

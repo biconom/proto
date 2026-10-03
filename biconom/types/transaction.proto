@@ -56,6 +56,7 @@ message Transaction {
                 StakingBodyReturnDetails staking_body_return = 30;
                 StakingRankBonusDetails staking_rank_bonus = 31;
                 StakingPromoTokenDetails staking_promo_token = 32;
+                StakingExtraIncomeDetails staking_extra_income = 33;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -423,8 +424,23 @@ message Transaction {
                 bool is_final = 4;
             }
 
+            // Экстра-прибыль за цикл начислена на кошелёк (акция
+            // `Staking.ExtraPromo`). Приходит в ОДНОЙ группе с `staking_income`
+            // того же цикла, отдельной проводкой: сумма = тело × `rate`.
+            message StakingExtraIncomeDetails {
+                uint32 deposit_id = 1;
+                // Номер цикла, 1…`Deposit.cycles_total`.
+                uint32 payout_seq = 2;
+                // Применённая экстра-ставка — КОЭФФИЦИЕНТ строкой ("0.05").
+                string rate = 3;
+                // Версия акции, по которой начислено.
+                uint32 extra_promo_id = 4;
+            }
+
             // Доход этого же цикла ушёл обратно в тело депозита. Приходит в паре
             // с `staking_income` в одной группе: сначала начисление, затем уход.
+            // Если в цикле была экстра-прибыль (`staking_extra_income`), в тело
+            // уходит их СУММА одной проводкой.
             message StakingProfitReinvestDetails {
                 uint32 deposit_id = 1;
                 uint32 payout_seq = 2;

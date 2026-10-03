@@ -7,7 +7,7 @@
 
 **`StakingAdminService`** — админская поверхность стейкинга: разбор депозитов и
 квалификации любого партнёра, ручная выплата бонусов за достижение рангов,
-управление настройками модуля.
+управление настройками модуля и акциями экстра-прибыли.
 
 ## 2. Права
 
@@ -74,6 +74,81 @@
 снимается с объёмов партнёра и всей цепочки предков при блокировке и
 возвращается при снятии. Ранг никогда не понижается.
 `Deposit.granted_by_admin` и `Source.ADMIN_GRANT` помечают подарок и не меняются.
+
+### 3.5. Экстра-прибыль
+
+| RPC | Назначение | Право |
+|---|---|---|
+| `CreateExtraPromo` | Создать акцию: диапазон дат создания депозита и экстра-ставка. Акция сразу действующая | `ADMIN_STAKING` |
+| `UpdateExtraPromo` | Выпустить **новую версию** акции: даты, ставка и/или статус | `ADMIN_STAKING` |
+| `GetExtraPromo` | Одна версия по идентификатору, включая архивные. Запрос — `Staking.ExtraPromo.Id` | `ADMIN_STAKING` |
+| `ListExtraPromos` | Актуальные карточки акций — только верхние версии, по `deposit_created_at_ge` от поздних к ранним | `ADMIN_STAKING` |
+| `ListExtraPromoVersions` | Цепочка версий целиком, от новой к старой. Запрос — `Staking.ExtraPromo.Id` | `ADMIN_STAKING` |
+
+Модель, правило начисления и две цепочки (действующих и версий) —
+[`types/staking.md`, раздел 4.5](../../types/staking.md). Здесь — управление.
+
+**Запись неизменяема.** Любая правка создаёт **новую** версию, прежняя получает бит
+`ARCHIVED` и уходит в архив. По цепочке версий видно, кто и когда что поменял и какие
+значения действовали раньше (`created_by_user_id`, `created_at`).
+
+#### `CreateExtraPromo`
+
+Запрос — `CreateExtraPromoRequest`:
+
+| Поле | Смысл |
+|---|---|
+| `deposit_created_at_ge` | Нижняя граница даты **создания депозита** — включается |
+| `deposit_created_at_lt` | Верхняя граница — **не** включается; строго больше `deposit_created_at_ge` |
+| `rate` | Экстра-ставка за цикл — коэффициент строкой: 5% → `"0.05"`. Больше нуля и не больше `"1"`, шаг — `0.000001` (одна десятитысячная процента): не более 6 знаков после точки, лишние отвергаются |
+
+- Диапазон не должен пересекаться ни с одной **действующей** акцией — `FailedPrecondition`.
+- Обе границы обязательны и задаются с точностью до секунды (`nanos` = 0). Граница не
+  задана или с `nanos`, `deposit_created_at_lt` не больше `deposit_created_at_ge`, ставка
+  вне `(0, 1]` или с седьмым знаком после точки — `InvalidArgument`.
+- Диапазон **может лежать в прошлом**: депозиты, открытые в нём, начнут получать экстру
+  со своей ближайшей выплаты, **без доплаты за прошедшие циклы**.
+
+#### `UpdateExtraPromo`
+
+Запрос — `UpdateExtraPromoRequest`. Применяются только заданные поля, остальные
+наследуются от заменяемой версии:
+
+| Поле | Смысл |
+|---|---|
+| `id` | **Верхняя** (не архивная) версия, которую заменяет новая |
+| `deposit_created_at_ge`, `deposit_created_at_lt`, `rate` | Новые значения (`optional`) |
+| `deactivated` | `true` — выключить акцию, `false` — включить обратно (`optional`) |
+
+```mermaid
+flowchart TD
+    A[UpdateExtraPromo] --> B{id — верхняя версия?}
+    B -- нет, архивная --> E1[FailedPrecondition]
+    B -- да --> C{что-то изменено?}
+    C -- нет --> E2[InvalidArgument: пустых версий нет]
+    C -- да --> D[Прежняя версия: бит ARCHIVED,<br/>выходит из цепочки действующих]
+    D --> F{новая версия действующая?}
+    F -- да --> G[Встаёт в цепочку действующих по датам,<br/>проверка пересечения как при создании]
+    F -- нет, deactivated --> H[В цепочку не встаёт,<br/>диапазон не занимает]
+```
+
+- Архивную версию править нельзя — `FailedPrecondition`.
+- Запрос, который ничего не меняет, — `InvalidArgument`.
+- Новая действующая версия проходит ту же проверку пересечения, что и при создании
+  (`FailedPrecondition`). Деактивированная версия в цепочку не встаёт и диапазон не
+  занимает; **повторное включение — снова новая версия**, и проверка пересечения
+  выполняется заново.
+- Действует на **будущие** выплаты уже открытых депозитов. Выплаченное раньше не
+  пересчитывается.
+
+#### Чтение
+
+- `GetExtraPromo` — любая версия по id, архивные тоже.
+- `ListExtraPromos` — только верхние версии. `ListExtraPromosRequest.include_deactivated =
+  true` добавляет деактивированные акции (верхние версии); по умолчанию приходят только
+  действующие.
+- `ListExtraPromoVersions` — `id` может быть **любой** версией цепочки: первая запись
+  ответа всегда верхняя.
 
 ## 4. Разбор квалификации
 
@@ -212,6 +287,7 @@ flowchart TD
 | `deposits_active` / `deposits_total` | Сколько депозитов работает и сколько было за всё время |
 | `deposits_matured` / `matured_total` | Созрели и ждут решения. Партнёры могут забрать эти деньги в любой момент — величину полезно держать на глазах |
 | `total_income_paid`, `total_referral_paid`, `total_achievement_bonus_paid` | Сколько роздано по каждому направлению |
+| `total_extra_paid` | Выплачено экстра-прибыли за всё время (модуль баланса пула COMPANY STAKING EXTRA). В `total_income_paid` **не** входит |
 | `obligations_pending_amount` / `obligations_pending_count` | Невыплаченные обязательства |
 
 Суммы выплат читаются **из балансов орг-пулов**, а не из отдельных счётчиков: пулы
@@ -235,3 +311,9 @@ flowchart TD
 | `GrantDeposit` по несуществующему дистрибьютору | `NotFound`, `DISTRIBUTOR_NOT_FOUND` |
 | `GrantDeposit` с нечисловой или нулевой суммой | `InvalidArgument`, `STAKING_AMOUNT_INVALID` |
 | `SetDepositMarketingBlock` по несуществующему депозиту | `NotFound`, `STAKING_DEPOSIT_NOT_FOUND` |
+| `CreateExtraPromo` / `UpdateExtraPromo`: диапазон пересекается с действующей акцией | `FailedPrecondition` |
+| `CreateExtraPromo` / `UpdateExtraPromo`: `deposit_created_at_lt` не больше `deposit_created_at_ge`; граница не задана, с ненулевым `nanos` или вне 0…4294967295 секунд | `InvalidArgument`, `STAKING_EXTRA_PROMO_RANGE_INVALID` |
+| `CreateExtraPromo` / `UpdateExtraPromo`: ставка не число, не больше нуля, больше `"1"` либо с более чем 6 знаками после точки | `InvalidArgument`, `STAKING_EXTRA_PROMO_RATE_INVALID` |
+| `UpdateExtraPromo` / `GetExtraPromo` / `ListExtraPromoVersions`: версии с таким `id` нет | `NotFound`, `STAKING_EXTRA_PROMO_NOT_FOUND` |
+| `UpdateExtraPromo`: запрос ничего не меняет | `InvalidArgument` |
+| `UpdateExtraPromo` по архивной версии | `FailedPrecondition` |

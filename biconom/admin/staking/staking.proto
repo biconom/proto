@@ -3,6 +3,7 @@ syntax = "proto3";
 package biconom.admin.staking;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "biconom/types/distributor.proto";
 import "biconom/types/sort.proto";
 import "biconom/types/staking.proto";
@@ -140,6 +141,56 @@ service StakingAdminService {
     //
     // Требует ROOT.
     rpc SetDepositMarketingBlock(SetDepositMarketingBlockRequest) returns (biconom.types.Staking.Deposit);
+
+    // ── Экстра-прибыль (`Staking.ExtraPromo`) ──
+    //
+    // Запись акции неизменяема: любая правка создаёт НОВУЮ версию, прежняя
+    // уходит в архив. По цепочке версий видно, кто и когда что поменял и какие
+    // значения действовали раньше.
+
+    // Создать акцию: диапазон дат создания депозита и экстра-ставка. Акция
+    // сразу действующая.
+    //
+    // Диапазон не должен пересекаться ни с одной ДЕЙСТВУЮЩЕЙ акцией —
+    // FailedPrecondition. `deposit_created_at_lt` обязано быть строго больше
+    // `deposit_created_at_ge`, ставка — больше нуля; иначе InvalidArgument.
+    // Диапазон может лежать в прошлом: депозиты, открытые в нём, начнут
+    // получать экстру со своей ближайшей выплаты, без доплаты за прошедшие циклы.
+    //
+    // Требует ADMIN_STAKING.
+    rpc CreateExtraPromo(CreateExtraPromoRequest) returns (biconom.types.Staking.ExtraPromo);
+
+    // Выпустить НОВУЮ ВЕРСИЮ акции: изменить даты, ставку и/или статус.
+    //
+    // `id` — верхняя (не архивная) версия; архивную править нельзя —
+    // FailedPrecondition, несуществующую — NotFound. Незаданные поля
+    // наследуются от заменяемой версии; к заданным применяются те же правила
+    // ввода, что в `CreateExtraPromo` (секунды без `nanos`, ставка до "1").
+    // Запрос, который ничего не меняет, — InvalidArgument: пустых версий нет.
+    //
+    // Прежняя версия получает бит `ARCHIVED`, выходит из цепочки действующих и
+    // остаётся только в цепочке версий. Новая версия, если она действующая,
+    // встаёт в цепочку действующих по своим датам и проходит ту же проверку
+    // пересечения, что и при создании. Деактивированная версия в цепочку не
+    // встаёт и диапазон не занимает; повторное включение — снова новая версия,
+    // и проверка пересечения выполняется заново.
+    //
+    // Действует на БУДУЩИЕ выплаты уже открытых депозитов. Выплаченное раньше
+    // не пересчитывается.
+    //
+    // Требует ADMIN_STAKING.
+    rpc UpdateExtraPromo(UpdateExtraPromoRequest) returns (biconom.types.Staking.ExtraPromo);
+
+    // Одна версия акции по идентификатору, включая архивные.
+    rpc GetExtraPromo(biconom.types.Staking.ExtraPromo.Id) returns (biconom.types.Staking.ExtraPromo);
+
+    // Актуальные карточки акций — только верхние версии, архивных здесь нет.
+    // Порядок: по `deposit_created_at_ge` от поздних к ранним.
+    rpc ListExtraPromos(ListExtraPromosRequest) returns (biconom.types.Staking.ExtraPromo.List);
+
+    // Цепочка версий акции целиком, от новой к старой. `id` — ЛЮБАЯ версия этой
+    // цепочки: первая запись ответа всегда верхняя.
+    rpc ListExtraPromoVersions(biconom.types.Staking.ExtraPromo.Id) returns (biconom.types.Staking.ExtraPromo.List);
 }
 
 message GetStateRequest {
@@ -210,4 +261,38 @@ message SetDepositMarketingBlockRequest {
     // Новое значение `Deposit.marketing_blocked`: true — лестница с депозита
     // не раздаётся, false — раздаётся штатно.
     bool marketing_blocked = 2;
+}
+
+message CreateExtraPromoRequest {
+    // Нижняя граница даты создания депозита — ВКЛЮЧАЕТСЯ.
+    //
+    // Обе границы обязательны и задаются с точностью до СЕКУНДЫ: `nanos`
+    // должен быть 0, `seconds` — от 0 до 4294967295. Иначе InvalidArgument
+    // (`STAKING_EXTRA_PROMO_RANGE_INVALID`).
+    google.protobuf.Timestamp deposit_created_at_ge = 1;
+    // Верхняя граница — НЕ включается. Строго больше `deposit_created_at_ge`.
+    google.protobuf.Timestamp deposit_created_at_lt = 2;
+    // Экстра-ставка за цикл — коэффициент строкой: 5% → "0.05". Больше нуля и
+    // не больше "1" (100% за цикл), шаг — 0.000001 (одна десятитысячная
+    // процента): не более 6 знаков после точки, лишние не отбрасываются, а
+    // отвергаются. Иначе InvalidArgument (`STAKING_EXTRA_PROMO_RATE_INVALID`).
+    string rate = 3;
+}
+
+// Новая версия акции: применяются только заданные поля, остальные наследуются
+// от заменяемой версии.
+message UpdateExtraPromoRequest {
+    // Верхняя (не архивная) версия акции, которую заменяет новая.
+    uint32 id = 1;
+    optional google.protobuf.Timestamp deposit_created_at_ge = 2;
+    optional google.protobuf.Timestamp deposit_created_at_lt = 3;
+    optional string rate = 4;
+    // true — выключить акцию, false — включить обратно.
+    optional bool deactivated = 5;
+}
+
+message ListExtraPromosRequest {
+    // true — добавить в ответ деактивированные акции (верхние версии).
+    // По умолчанию приходят только действующие.
+    bool include_deactivated = 1;
 }
