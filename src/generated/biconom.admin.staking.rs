@@ -109,10 +109,12 @@ pub struct CreateExtraPromoRequest {
     /// Верхняя граница — НЕ включается. Строго больше `deposit_created_at_ge`.
     #[prost(message, optional, tag = "2")]
     pub deposit_created_at_lt: ::core::option::Option<::prost_types::Timestamp>,
-    /// Экстра-ставка за цикл — коэффициент строкой: 5% → "0.05". Больше нуля и
-    /// не больше "1" (100% за цикл), шаг — 0.000001 (одна десятитысячная
-    /// процента): не более 6 знаков после точки, лишние не отбрасываются, а
-    /// отвергаются. Иначе InvalidArgument (`STAKING_EXTRA_PROMO_RATE_INVALID`).
+    /// Экстра-ставка ЗА ОДИН ЦИКЛ (не годовая) — коэффициент строкой, а не
+    /// процент: 5% → "0.05". Депозит получает `тело × rate` на каждой выплате,
+    /// то есть до 12 раз за свой срок. Больше нуля и не больше "1" (100% за
+    /// цикл), шаг — 0.000001 (одна десятитысячная процента): не более 6 знаков
+    /// после точки, лишние не отбрасываются, а отвергаются. Иначе
+    /// InvalidArgument (`STAKING_EXTRA_PROMO_RATE_INVALID`).
     #[prost(string, tag = "3")]
     pub rate: ::prost::alloc::string::String,
 }
@@ -129,7 +131,9 @@ pub struct UpdateExtraPromoRequest {
     pub deposit_created_at_lt: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(string, optional, tag = "4")]
     pub rate: ::core::option::Option<::prost::alloc::string::String>,
-    /// true — выключить акцию, false — включить обратно.
+    /// true — выключить акцию: с ближайшей выплаты депозиты перестают получать
+    /// по ней экстру. false — включить обратно (диапазон заново проверяется на
+    /// пересечение с действующими акциями).
     #[prost(bool, optional, tag = "5")]
     pub deactivated: ::core::option::Option<bool>,
 }
@@ -156,6 +160,14 @@ pub mod staking_admin_service_server {
         /// ВСЁ состояние произвольного дистрибьютора в стейкинге одним запросом:
         /// настройки, сводка, депозиты, ранг, бонусы. Тот же тип, что у клиента.
         /// Основной метод экрана «открыл пользователя».
+        ///
+        /// Денежные поля считаются ровно так же, как в клиентском
+        /// `StakingService.GetState`: админ видит те же числа, что и сам партнёр, —
+        /// включая `State.total_earned` и сводку его депозитов `State.summary`
+        /// (`DepositsSummary`). Единственное отличие — в `State.extra_promo`
+        /// заполнен автор версии (`created_by_user_id`).
+        ///
+        /// Не путать с `GetSummary`: там итоги по ВСЕМУ модулю, а не по партнёру.
         async fn get_state(
             &self,
             request: tonic::Request<super::GetStateRequest>,
@@ -214,8 +226,15 @@ pub mod staking_admin_service_server {
             tonic::Response<super::super::super::types::staking::Config>,
             tonic::Status,
         >;
-        /// Сводка по модулю: сколько в депозитах, сколько выплачено доходности,
+        /// Сводка по ВСЕМУ модулю, по всем партнёрам сразу (`Staking.Summary`):
+        /// сколько в депозитах, сколько выплачено доходности по тиру, экстра-прибыли,
         /// рефералки и бонусов за достижение, сумма невыплаченных обязательств, статус.
+        ///
+        /// Единственный источник сообщения `Summary`; клиентского аналога нет и он
+        /// не нужен. Цифры ОДНОГО партнёра — это `Staking.State` / `State.summary`
+        /// (`DepositsSummary`): партнёр получает их клиентским
+        /// `StakingService.GetState` без прав админа, админ — методом `GetState`
+        /// этого сервиса.
         async fn get_summary(
             &self,
             request: tonic::Request<()>,
@@ -379,8 +398,10 @@ pub mod staking_admin_service_server {
         /// встаёт и диапазон не занимает; повторное включение — снова новая версия,
         /// и проверка пересечения выполняется заново.
         ///
-        /// Действует на БУДУЩИЕ выплаты уже открытых депозитов. Выплаченное раньше
-        /// не пересчитывается.
+        /// Действует на БУДУЩИЕ выплаты уже открытых депозитов: с ближайшей выплаты
+        /// каждый депозит получает экстру по новой версии (или не получает вовсе,
+        /// если версия деактивирована либо его дата создания больше не попадает в
+        /// диапазон). Выплаченное раньше не пересчитывается и не отзывается.
         ///
         /// Требует ADMIN_STAKING.
         async fn update_extra_promo(
@@ -391,6 +412,8 @@ pub mod staking_admin_service_server {
             tonic::Status,
         >;
         /// Одна версия акции по идентификатору, включая архивные.
+        ///
+        /// Требует ADMIN_STAKING.
         async fn get_extra_promo(
             &self,
             request: tonic::Request<super::super::super::types::staking::extra_promo::Id>,
@@ -400,6 +423,12 @@ pub mod staking_admin_service_server {
         >;
         /// Актуальные карточки акций — только верхние версии, архивных здесь нет.
         /// Порядок: по `deposit_created_at_ge` от поздних к ранним.
+        ///
+        /// Сколько по акциям уже выплачено, этот список не показывает: общая сумма
+        /// экстра-прибыли по модулю — `Summary.total_extra_paid` (`GetSummary`), по
+        /// партнёру — `State.summary.total_extra_paid` (`GetState`).
+        ///
+        /// Требует ADMIN_STAKING.
         async fn list_extra_promos(
             &self,
             request: tonic::Request<super::ListExtraPromosRequest>,
@@ -409,6 +438,8 @@ pub mod staking_admin_service_server {
         >;
         /// Цепочка версий акции целиком, от новой к старой. `id` — ЛЮБАЯ версия этой
         /// цепочки: первая запись ответа всегда верхняя.
+        ///
+        /// Требует ADMIN_STAKING.
         async fn list_extra_promo_versions(
             &self,
             request: tonic::Request<super::super::super::types::staking::extra_promo::Id>,
