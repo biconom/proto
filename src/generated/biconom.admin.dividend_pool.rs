@@ -58,6 +58,44 @@ pub struct SetDistributorAutoReinvestStatusResponse {
         super::super::types::dividend_pool::AutoReinvestState,
     >,
 }
+/// Запрос на массовое включение авто-реинвеста.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnrollAutoReinvestAllRequest {
+    /// Срок в циклах клейма (на проде цикл — сутки). Должен совпадать с тарифом
+    /// конфигурации, иначе DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES.
+    #[prost(uint32, tag = "1")]
+    pub cycles: u32,
+    /// true — включить и тех, кому авто-реинвест выключил администратор.
+    /// По умолчанию (false) их запрет сильнее массового включения.
+    #[prost(bool, tag = "2")]
+    pub include_admin_disabled: bool,
+    /// true — только посчитать, кого затронет; состояние не меняется.
+    #[prost(bool, tag = "3")]
+    pub dry_run: bool,
+}
+/// Итог массового включения (при dry_run — прогноз, ничего не изменено).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EnrollAutoReinvestAllResponse {
+    /// Процент дисконта, с которым включены партнёры (например "40.0000").
+    #[prost(string, tag = "1")]
+    pub discount_percent: ::prost::alloc::string::String,
+    /// Включено: инвестиция есть, состояния не было или циклы исчерпаны.
+    /// Выключенные админом, включённые по include_admin_disabled, сюда НЕ входят.
+    #[prost(uint32, tag = "2")]
+    pub enrolled: u32,
+    /// Пропущено: авто-реинвест уже активен — состояние не тронуто.
+    #[prost(uint32, tag = "3")]
+    pub already_active: u32,
+    /// Пропущено: выключен администратором (include_admin_disabled = false).
+    #[prost(uint32, tag = "4")]
+    pub admin_disabled_skipped: u32,
+    /// Включено поверх выключения администратором (include_admin_disabled = true).
+    #[prost(uint32, tag = "5")]
+    pub admin_disabled_enrolled: u32,
+    /// Эхо запроса: true — ответ является прогнозом, изменений нет.
+    #[prost(bool, tag = "6")]
+    pub dry_run: bool,
+}
 /// Generated server implementations.
 pub mod dividend_pool_admin_service_server {
     #![allow(
@@ -106,12 +144,34 @@ pub mod dividend_pool_admin_service_server {
             tonic::Response<super::SetDistributorAutoReinvestStatusResponse>,
             tonic::Status,
         >;
+        /// Массово включить авто-реинвест на `cycles` циклов всем, кто может, но не в
+        /// реинвесте: инвестиция в пул есть (правило ActivateAll), активного авто-реинвеста
+        /// нет. Завершённые (циклы исчерпаны) включаются заново. Процент — снэпшот ТЕКУЩЕГО
+        /// тарифа конфигурации на `cycles` циклов, как при выборе самим партнёром.
+        ///
+        /// Не трогает активные состояния: ни процент, ни счётчик циклов не меняются.
+        /// Выключенных администратором пропускает, пока не задан `include_admin_disabled`.
+        /// Повторный вызов безопасен — уже включённые считаются в `already_active`.
+        /// `dry_run` возвращает те же счётчики без изменений.
+        ///
+        /// Требует permission ROOT (строже остальных методов сервиса: отката нет —
+        /// выключать обратно только поштучно через SetDistributorAutoReinvestStatus).
+        /// Ошибки (ничего не изменено): DIVIDEND_POOL_SERVICE_NOT_ACTIVE,
+        /// DIVIDEND_POOL_NO_DAILY_RATE, DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES,
+        /// DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED.
+        async fn enroll_auto_reinvest_all(
+            &self,
+            request: tonic::Request<super::EnrollAutoReinvestAllRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EnrollAutoReinvestAllResponse>,
+            tonic::Status,
+        >;
     }
     /// DividendPoolAdminService — административный сервис управления дивидендным пулом.
     ///
     /// Позволяет администратору контролировать глобальное состояние модуля:
     /// включать, приостанавливать или полностью останавливать механику дивидендов.
-    /// Требует permission ADMIN_FINANCE.
+    /// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll — ROOT).
     #[derive(Debug)]
     pub struct DividendPoolAdminServiceServer<T> {
         inner: Arc<T>,
@@ -361,6 +421,57 @@ pub mod dividend_pool_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SetDistributorAutoReinvestStatusSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.dividend_pool.DividendPoolAdminService/EnrollAutoReinvestAll" => {
+                    #[allow(non_camel_case_types)]
+                    struct EnrollAutoReinvestAllSvc<T: DividendPoolAdminService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: DividendPoolAdminService,
+                    > tonic::server::UnaryService<super::EnrollAutoReinvestAllRequest>
+                    for EnrollAutoReinvestAllSvc<T> {
+                        type Response = super::EnrollAutoReinvestAllResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::EnrollAutoReinvestAllRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolAdminService>::enroll_auto_reinvest_all(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = EnrollAutoReinvestAllSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

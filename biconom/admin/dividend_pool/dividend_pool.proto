@@ -9,7 +9,7 @@ import "biconom/types/dividend_pool.proto";
 //
 // Позволяет администратору контролировать глобальное состояние модуля:
 // включать, приостанавливать или полностью останавливать механику дивидендов.
-// Требует permission ADMIN_FINANCE.
+// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll — ROOT).
 service DividendPoolAdminService {
     // Получить текущий статус и статистику дивидендного пула.
     rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse);
@@ -28,6 +28,23 @@ service DividendPoolAdminService {
     // Пользователь сам отменить авто-реинвест не может — только админ.
     // Ошибка DIVIDEND_POOL_AUTO_REINVEST_NOT_FOUND, если состояния нет.
     rpc SetDistributorAutoReinvestStatus(SetDistributorAutoReinvestStatusRequest) returns (SetDistributorAutoReinvestStatusResponse);
+
+    // Массово включить авто-реинвест на `cycles` циклов всем, кто может, но не в
+    // реинвесте: инвестиция в пул есть (правило ActivateAll), активного авто-реинвеста
+    // нет. Завершённые (циклы исчерпаны) включаются заново. Процент — снэпшот ТЕКУЩЕГО
+    // тарифа конфигурации на `cycles` циклов, как при выборе самим партнёром.
+    //
+    // Не трогает активные состояния: ни процент, ни счётчик циклов не меняются.
+    // Выключенных администратором пропускает, пока не задан `include_admin_disabled`.
+    // Повторный вызов безопасен — уже включённые считаются в `already_active`.
+    // `dry_run` возвращает те же счётчики без изменений.
+    //
+    // Требует permission ROOT (строже остальных методов сервиса: отката нет —
+    // выключать обратно только поштучно через SetDistributorAutoReinvestStatus).
+    // Ошибки (ничего не изменено): DIVIDEND_POOL_SERVICE_NOT_ACTIVE,
+    // DIVIDEND_POOL_NO_DAILY_RATE, DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES,
+    // DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED.
+    rpc EnrollAutoReinvestAll(EnrollAutoReinvestAllRequest) returns (EnrollAutoReinvestAllResponse);
 }
 
 // Ответ с текущим статусом и агрегированной статистикой.
@@ -74,4 +91,40 @@ message SetDistributorAutoReinvestStatusRequest {
 // Ответ с обновлённым состоянием авто-реинвеста.
 message SetDistributorAutoReinvestStatusResponse {
     biconom.types.DividendPool.AutoReinvestState state = 1;
+}
+
+// Запрос на массовое включение авто-реинвеста.
+message EnrollAutoReinvestAllRequest {
+    // Срок в циклах клейма (на проде цикл — сутки). Должен совпадать с тарифом
+    // конфигурации, иначе DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES.
+    uint32 cycles = 1;
+
+    // true — включить и тех, кому авто-реинвест выключил администратор.
+    // По умолчанию (false) их запрет сильнее массового включения.
+    bool include_admin_disabled = 2;
+
+    // true — только посчитать, кого затронет; состояние не меняется.
+    bool dry_run = 3;
+}
+
+// Итог массового включения (при dry_run — прогноз, ничего не изменено).
+message EnrollAutoReinvestAllResponse {
+    // Процент дисконта, с которым включены партнёры (например "40.0000").
+    string discount_percent = 1;
+
+    // Включено: инвестиция есть, состояния не было или циклы исчерпаны.
+    // Выключенные админом, включённые по include_admin_disabled, сюда НЕ входят.
+    uint32 enrolled = 2;
+
+    // Пропущено: авто-реинвест уже активен — состояние не тронуто.
+    uint32 already_active = 3;
+
+    // Пропущено: выключен администратором (include_admin_disabled = false).
+    uint32 admin_disabled_skipped = 4;
+
+    // Включено поверх выключения администратором (include_admin_disabled = true).
+    uint32 admin_disabled_enrolled = 5;
+
+    // Эхо запроса: true — ответ является прогнозом, изменений нет.
+    bool dry_run = 6;
 }
