@@ -974,7 +974,7 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
@@ -1445,6 +1445,25 @@ pub mod transaction {
                 #[prost(uint32, tag = "4")]
                 pub extra_promo_id: u32,
             }
+            /// Награда WinTime «Быстрого старта» (`quick_start`) за закрытую задачу.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct QuickStartTaskRewardDetails {
+                /// Закрытая задача (`QuickStart.Task.id`).
+                #[prost(uint32, tag = "1")]
+                pub task_id: u32,
+                /// `QuickStart.Task.code` (обогащение при извлечении).
+                #[prost(string, tag = "2")]
+                pub task_code: ::prost::alloc::string::String,
+            }
+            /// Финальный бонус WinTime «Быстрого старта»: закрыты все неархивные
+            /// задачи в пределах окна. Выплачивается один раз на дистрибьютора.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct QuickStartCompletionBonusDetails {
+                /// За сколько секунд от начала окна (регистрации) закрыта последняя
+                /// задача — фактическое время прохождения, ≤ длины окна.
+                #[prost(uint32, tag = "1")]
+                pub completed_in_secs: u32,
+            }
             /// Реинвест прибыли: заработанное за этот же цикл ушло с кошелька
             /// обратно в тело депозита. Приходит в одной группе с начислением
             /// (`staking_income` и/или `staking_extra_income`): сначала
@@ -1555,6 +1574,10 @@ pub mod transaction {
                 StakingPromoToken(StakingPromoTokenDetails),
                 #[prost(message, tag = "33")]
                 StakingExtraIncome(StakingExtraIncomeDetails),
+                #[prost(message, tag = "34")]
+                QuickStartTaskReward(QuickStartTaskRewardDetails),
+                #[prost(message, tag = "35")]
+                QuickStartCompletionBonus(QuickStartCompletionBonusDetails),
             }
         }
     }
@@ -10437,6 +10460,455 @@ pub mod wintime_shop {
             /// Отменены администратором.
             #[prost(uint64, tag = "3")]
             pub cancelled: u64,
+        }
+    }
+}
+/// QuickStart — пространство имён моделей быстрого старта.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct QuickStart {}
+/// Nested message and enum types in `QuickStart`.
+pub mod quick_start {
+    /// Задача шаблона.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Task {
+        /// Стабильный идентификатор, назначает сервер.
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        /// Блокирующая задача; 0 — корень (открыта с начала окна).
+        #[prost(uint32, tag = "2")]
+        pub parent_id: u32,
+        /// Slug для фронта — по нему выбираются тексты и иконка карточки.
+        /// Уникален, `\[a-z0-9_\]`.
+        #[prost(string, tag = "3")]
+        pub code: ::prost::alloc::string::String,
+        #[prost(enumeration = "ConditionKind", tag = "4")]
+        pub condition: i32,
+        /// Порог условия: для `CONDITION_KIND_REFERRAL` — сколько личников (≥ 1);
+        /// для остальных видов не используется (0).
+        #[prost(uint32, tag = "5")]
+        pub condition_count: u32,
+        /// Награда в WinTime за закрытие задачи.
+        #[prost(string, tag = "6")]
+        pub reward: ::prost::alloc::string::String,
+        /// Порядок среди задач одного родителя (по возрастанию, затем по `id`).
+        #[prost(uint32, tag = "7")]
+        pub position: u32,
+        #[prost(enumeration = "task::Status", tag = "8")]
+        pub status: i32,
+    }
+    /// Nested message and enum types in `Task`.
+    pub mod task {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(uint32, tag = "1")]
+            pub id: u32,
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Task>,
+        }
+        /// Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Видна и открывается участникам.
+            Active = 1,
+            /// В архиве: новым участникам не показывается; кто её уже закрыл —
+            /// продолжает видеть. Дети архивной задачи открываются по её
+            /// ближайшему неархивному предку. Обратимо.
+            Archived = 2,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Active => "STATUS_ACTIVE",
+                    Self::Archived => "STATUS_ARCHIVED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_ACTIVE" => Some(Self::Active),
+                    "STATUS_ARCHIVED" => Some(Self::Archived),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Telegram-канал или группа из YAML.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct TelegramChat {
+        /// Telegram chat_id — у каналов и супергрупп отрицательный, вида `-100…`.
+        #[prost(int64, tag = "1")]
+        pub id: i64,
+        /// Язык чата, ISO 639-1 (`ru`, `en`, …).
+        #[prost(string, tag = "2")]
+        pub language: ::prost::alloc::string::String,
+        /// Название для карточки.
+        #[prost(string, tag = "3")]
+        pub title: ::prost::alloc::string::String,
+        /// Ссылка-приглашение (`<https://t.me/...`>).
+        #[prost(string, tag = "4")]
+        pub url: ::prost::alloc::string::String,
+    }
+    /// Nested message and enum types in `TelegramChat`.
+    pub mod telegram_chat {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            #[prost(int64, tag = "1")]
+            pub id: i64,
+        }
+    }
+    /// Последняя перепроверка членства. Хранится только в памяти сервера.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct TelegramCheck {
+        /// `TelegramChat.id`.
+        #[prost(int64, tag = "1")]
+        pub chat_id: i64,
+        #[prost(enumeration = "telegram_check::Status", tag = "2")]
+        pub status: i32,
+        #[prost(message, optional, tag = "3")]
+        pub checked_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Раньше этого момента повторная проверка ЭТОГО чата отклоняется
+        /// (`check_cooldown` из YAML, на проде 30 с).
+        #[prost(message, optional, tag = "4")]
+        pub next_allowed_at: ::core::option::Option<::prost_types::Timestamp>,
+    }
+    /// Nested message and enum types in `TelegramCheck`.
+    pub mod telegram_check {
+        /// Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// В очереди воркера.
+            Pending = 1,
+            /// Участник — условие выполнено.
+            Member = 2,
+            /// Не участник.
+            NotMember = 3,
+            /// Не удалось проверить (ошибка Telegram API).
+            Failed = 4,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Pending => "STATUS_PENDING",
+                    Self::Member => "STATUS_MEMBER",
+                    Self::NotMember => "STATUS_NOT_MEMBER",
+                    Self::Failed => "STATUS_FAILED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_PENDING" => Some(Self::Pending),
+                    "STATUS_MEMBER" => Some(Self::Member),
+                    "STATUS_NOT_MEMBER" => Some(Self::NotMember),
+                    "STATUS_FAILED" => Some(Self::Failed),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Задача глазами дистрибьютора.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct TaskProgress {
+        /// Задача шаблона (архивная — только если закрыта этим дистрибьютором).
+        #[prost(message, optional, tag = "1")]
+        pub task: ::core::option::Option<Task>,
+        #[prost(enumeration = "task_progress::Status", tag = "2")]
+        pub status: i32,
+        #[prost(message, optional, tag = "3")]
+        pub fulfilled_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "4")]
+        pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Чаты на выбор — только для задач канала / группы.
+        #[prost(message, repeated, tag = "5")]
+        pub chats: ::prost::alloc::vec::Vec<TelegramChat>,
+        /// Чат, которым засчитано условие (`TelegramChat.id`); 0 — не засчитано.
+        #[prost(int64, tag = "6")]
+        pub fulfilled_chat_id: i64,
+        /// Последняя перепроверка по чатам этой задачи, если была.
+        #[prost(message, optional, tag = "7")]
+        pub last_check: ::core::option::Option<TelegramCheck>,
+        /// Текущее значение условия; цель — `task.condition_count` для
+        /// `CONDITION_KIND_REFERRAL` (сколько личников уже пришло в окне), для
+        /// остальных видов — 1 (0 — не выполнено, 1 — выполнено).
+        #[prost(uint32, tag = "8")]
+        pub progress: u32,
+    }
+    /// Nested message and enum types in `TaskProgress`.
+    pub mod task_progress {
+        /// Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Родитель не закрыт, условие не выполнено.
+            Locked = 1,
+            /// Открыта, условие не выполнено.
+            Active = 2,
+            /// Условие выполнено, задача ещё закрыта родителем — награда придёт
+            /// при открытии (в пределах окна).
+            Fulfilled = 3,
+            /// Открыта и выполнена, награда `task.reward` выплачена.
+            Completed = 4,
+            /// Окно закрылось до закрытия задачи.
+            Expired = 5,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Locked => "STATUS_LOCKED",
+                    Self::Active => "STATUS_ACTIVE",
+                    Self::Fulfilled => "STATUS_FULFILLED",
+                    Self::Completed => "STATUS_COMPLETED",
+                    Self::Expired => "STATUS_EXPIRED",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_LOCKED" => Some(Self::Locked),
+                    "STATUS_ACTIVE" => Some(Self::Active),
+                    "STATUS_FULFILLED" => Some(Self::Fulfilled),
+                    "STATUS_COMPLETED" => Some(Self::Completed),
+                    "STATUS_EXPIRED" => Some(Self::Expired),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Прохождение дистрибьютора.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct State {
+        #[prost(enumeration = "state::Status", tag = "1")]
+        pub status: i32,
+        /// Конец окна = регистрация + `duration`.
+        #[prost(message, optional, tag = "2")]
+        pub deadline_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Неархивные задачи + архивные, закрытые этим дистрибьютором.
+        /// Порядок — обход дерева в глубину по (`position`, `id`).
+        #[prost(message, repeated, tag = "3")]
+        pub tasks: ::prost::alloc::vec::Vec<TaskProgress>,
+        /// Финальный бонус за закрытие всех неархивных задач.
+        #[prost(string, tag = "4")]
+        pub completion_bonus: ::prost::alloc::string::String,
+        /// Когда прохождение завершено — закрыта последняя задача и в тот же
+        /// момент выплачен финальный бонус, если он задан (только `STATUS_COMPLETED`).
+        #[prost(message, optional, tag = "5")]
+        pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Telegram пользователя: перепроверка членства доступна только при
+        /// `TELEGRAM_STATUS_LINKED`.
+        #[prost(enumeration = "TelegramStatus", tag = "6")]
+        pub telegram: i32,
+    }
+    /// Nested message and enum types in `State`.
+    pub mod state {
+        /// Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Окно открыто.
+            Active = 1,
+            /// Все неархивные задачи закрыты в окне, финальный бонус выплачен
+            /// (если он задан ненулевым).
+            Completed = 2,
+            /// Окно закрылось (в т.ч. у зарегистрированных до запуска).
+            Expired = 3,
+            /// Программа выключена в YAML; `tasks` пуст.
+            Unavailable = 4,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Active => "STATUS_ACTIVE",
+                    Self::Completed => "STATUS_COMPLETED",
+                    Self::Expired => "STATUS_EXPIRED",
+                    Self::Unavailable => "STATUS_UNAVAILABLE",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_ACTIVE" => Some(Self::Active),
+                    "STATUS_COMPLETED" => Some(Self::Completed),
+                    "STATUS_EXPIRED" => Some(Self::Expired),
+                    "STATUS_UNAVAILABLE" => Some(Self::Unavailable),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Вид условия задачи. Значения append-only: новый вид — в конец.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum ConditionKind {
+        Unspecified = 0,
+        /// Привязан собственный Telegram-аккаунт.
+        TelegramLinked = 1,
+        /// Состоит в ЛЮБОМ канале из YAML-списка `channels`.
+        TelegramChannel = 2,
+        /// Состоит в ЛЮБОЙ группе из YAML-списка `groups`.
+        TelegramGroup = 3,
+        /// Загружена аватарка профиля.
+        Avatar = 4,
+        /// Пригласил по своей ссылке не меньше `Task.condition_count` прямых
+        /// личников, зарегистрированных ПОСЛЕ начала окна.
+        Referral = 5,
+    }
+    impl ConditionKind {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "CONDITION_KIND_UNSPECIFIED",
+                Self::TelegramLinked => "CONDITION_KIND_TELEGRAM_LINKED",
+                Self::TelegramChannel => "CONDITION_KIND_TELEGRAM_CHANNEL",
+                Self::TelegramGroup => "CONDITION_KIND_TELEGRAM_GROUP",
+                Self::Avatar => "CONDITION_KIND_AVATAR",
+                Self::Referral => "CONDITION_KIND_REFERRAL",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "CONDITION_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+                "CONDITION_KIND_TELEGRAM_LINKED" => Some(Self::TelegramLinked),
+                "CONDITION_KIND_TELEGRAM_CHANNEL" => Some(Self::TelegramChannel),
+                "CONDITION_KIND_TELEGRAM_GROUP" => Some(Self::TelegramGroup),
+                "CONDITION_KIND_AVATAR" => Some(Self::Avatar),
+                "CONDITION_KIND_REFERRAL" => Some(Self::Referral),
+                _ => None,
+            }
+        }
+    }
+    /// Telegram пользователя глазами быстрого старта. Значения append-only.
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum TelegramStatus {
+        Unspecified = 0,
+        /// Telegram не привязан — задачи Telegram выполнить нельзя.
+        NotLinked = 1,
+        /// Привязан и может засчитывать задачи.
+        Linked = 2,
+        /// Привязан, но этот Telegram-аккаунт уже засчитывал задачи быстрого
+        /// старта другому дистрибьютору: награды за Telegram-задачи — не больше
+        /// одного раза на Telegram-аккаунт.
+        AlreadyUsed = 3,
+    }
+    impl TelegramStatus {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Self::Unspecified => "TELEGRAM_STATUS_UNSPECIFIED",
+                Self::NotLinked => "TELEGRAM_STATUS_NOT_LINKED",
+                Self::Linked => "TELEGRAM_STATUS_LINKED",
+                Self::AlreadyUsed => "TELEGRAM_STATUS_ALREADY_USED",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "TELEGRAM_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                "TELEGRAM_STATUS_NOT_LINKED" => Some(Self::NotLinked),
+                "TELEGRAM_STATUS_LINKED" => Some(Self::Linked),
+                "TELEGRAM_STATUS_ALREADY_USED" => Some(Self::AlreadyUsed),
+                _ => None,
+            }
         }
     }
 }

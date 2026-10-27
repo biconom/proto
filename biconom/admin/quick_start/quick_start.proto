@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package biconom.admin.quick_start;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/distributor.proto";
+import "biconom/types/quick_start.proto";
+
+// QuickStartAdminService — админское управление «Быстрым стартом».
+//
+// Шаблон задач — здесь; параметры программы и списки чатов — в YAML, здесь
+// только для чтения. Доступ — только под Permission::ROOT.
+service QuickStartAdminService {
+    // Программа целиком: параметры из YAML + шаблон задач (без удалённых).
+    rpc GetProgram(google.protobuf.Empty) returns (Program);
+
+    // Создать (`id == 0`, id назначает сервер) или обновить задачу.
+    //
+    // `status` и `position` меняются всегда; `code` — если уникален.
+    // `parent_id`, `condition`, `condition_count`, `reward` нельзя менять, если
+    // по задаче у кого-то есть прогресс (FailedPrecondition
+    // `QUICK_START_TASK_IN_USE`) — архивировать и создать новую.
+    //
+    // Отказы (код — в сообщении ошибки):
+    //   * NotFound `QUICK_START_TASK_NOT_FOUND` — нет задачи с таким `id`;
+    //   * InvalidArgument `QUICK_START_TASK_NOT_FOUND` — нет родителя `parent_id`;
+    //   * InvalidArgument `QUICK_START_TASK_CYCLE` — `parent_id` замыкает цикл;
+    //   * InvalidArgument `QUICK_START_CODE_INVALID` — `code` пуст, не
+    //     `[a-z0-9_]` или занят;
+    //   * InvalidArgument `QUICK_START_CONDITION_INVALID` — вид не задан или
+    //     `condition_count` не подходит виду;
+    //   * FailedPrecondition `QUICK_START_TASK_IN_USE`.
+    rpc UpsertTask(biconom.types.QuickStart.Task) returns (biconom.types.QuickStart.Task);
+
+    // Удалить задачу. Только если по ней ни у кого нет прогресса и у неё нет
+    // детей, иначе FailedPrecondition `QUICK_START_TASK_IN_USE` — архивировать.
+    // Нет задачи — NotFound `QUICK_START_TASK_NOT_FOUND`.
+    rpc DeleteTask(biconom.types.QuickStart.Task.Id) returns (google.protobuf.Empty);
+
+    // Засчитать дистрибьютору условие задачи вручную (поддержка: сбой Telegram,
+    // спорный случай). Дальше — обычный путь: если задача открыта, награда
+    // выплачивается сразу и каскад открывает следующие. Только в пределах окна.
+    // Возвращает прохождение после изменения.
+    //
+    // Отказы:
+    //   * NotFound `DISTRIBUTOR_NOT_FOUND` / `QUICK_START_TASK_NOT_FOUND`;
+    //   * FailedPrecondition `QUICK_START_NOT_ACTIVE` — окно закрыто или
+    //     программа выключена;
+    //   * FailedPrecondition `QUICK_START_ALREADY_FULFILLED`;
+    //   * InvalidArgument `QUICK_START_REASON_REQUIRED` — пустая причина.
+    rpc FulfillTask(FulfillTaskRequest) returns (biconom.types.QuickStart.State);
+
+    // Прохождение дистрибьютора — то же, что видит он сам (поддержка).
+    rpc GetDistributorState(biconom.types.Distributor.Id) returns (biconom.types.QuickStart.State);
+
+    // Воронка по задачам и итоги выплат.
+    rpc GetStats(google.protobuf.Empty) returns (Stats);
+}
+
+message FulfillTaskRequest {
+    biconom.types.Distributor.Id distributor = 1;
+    uint32 task_id = 2;
+    // Причина — сохраняется в прогрессе и в примечании проводки награды.
+    string reason = 3;
+}
+
+// Параметры YAML-секции `quick_start:` и шаблон задач.
+message Program {
+    bool enabled = 1;
+    // Длина окна от регистрации, секунды (на проде 86400).
+    uint32 duration_secs = 2;
+    // Финальный бонус в WinTime.
+    string completion_bonus = 3;
+    // Интервал перепроверки одного чата одним дистрибьютором, секунды.
+    uint32 check_cooldown_secs = 4;
+    repeated biconom.types.QuickStart.TelegramChat channels = 5;
+    repeated biconom.types.QuickStart.TelegramChat groups = 6;
+    // Порядок — обход дерева в глубину по (`position`, `id`).
+    repeated biconom.types.QuickStart.Task tasks = 7;
+}
+
+message Stats {
+    message TaskStats {
+        uint32 task_id = 1;
+        // Выполнили условие (FULFILLED + COMPLETED).
+        uint64 fulfilled = 2;
+        // Закрыли с наградой.
+        uint64 completed = 3;
+        // Выплачено WinTime.
+        string rewarded = 4;
+    }
+
+    repeated TaskStats tasks = 1;
+    // Дистрибьюторов, у которых окно ещё не истекло (включая уже завершивших).
+    uint64 active_windows = 2;
+    // Завершили прохождение (закрыли все задачи в окне).
+    uint64 completed_windows = 3;
+    // Выплачено WinTime финальными бонусами.
+    string completion_bonus_rewarded = 4;
+}

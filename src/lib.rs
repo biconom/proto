@@ -43,6 +43,9 @@ pub mod biconom {
         pub mod wintime {
             include!("generated/biconom.admin.wintime.rs");
         }
+        pub mod quick_start {
+            include!("generated/biconom.admin.quick_start.rs");
+        }
     }
     pub mod client {
         pub mod account {
@@ -152,6 +155,9 @@ pub mod biconom {
         }
         pub mod wintime {
             include!("generated/biconom.client.wintime.rs");
+        }
+        pub mod quick_start {
+            include!("generated/biconom.client.quick_start.rs");
         }
     }
     pub mod types {

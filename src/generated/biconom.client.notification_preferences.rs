@@ -125,6 +125,11 @@ pub enum Topic {
     /// возвращается автоматически, и без напоминания деньги могут месяцами
     /// лежать без движения. Доставляется ТОЛЬКО в Telegram.
     StakingDepositMatured = 22,
+    /// Награда «Быстрого старта» (Welcome Road) в WinTime: закрыта задача
+    /// онбординга или выплачен финальный бонус за все задачи в окне.
+    /// Каналы и значения по умолчанию те же, что у `TOPIC_BONUS_RECEIVED`:
+    /// Telegram и push включены, email запрещён.
+    QuickStartRewarded = 23,
 }
 impl Topic {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -156,6 +161,7 @@ impl Topic {
             Self::BonusReceived => "TOPIC_BONUS_RECEIVED",
             Self::StakingRankAchieved => "TOPIC_STAKING_RANK_ACHIEVED",
             Self::StakingDepositMatured => "TOPIC_STAKING_DEPOSIT_MATURED",
+            Self::QuickStartRewarded => "TOPIC_QUICK_START_REWARDED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -184,6 +190,7 @@ impl Topic {
             "TOPIC_BONUS_RECEIVED" => Some(Self::BonusReceived),
             "TOPIC_STAKING_RANK_ACHIEVED" => Some(Self::StakingRankAchieved),
             "TOPIC_STAKING_DEPOSIT_MATURED" => Some(Self::StakingDepositMatured),
+            "TOPIC_QUICK_START_REWARDED" => Some(Self::QuickStartRewarded),
             _ => None,
         }
     }

@@ -57,6 +57,8 @@ message Transaction {
                 StakingRankBonusDetails staking_rank_bonus = 31;
                 StakingPromoTokenDetails staking_promo_token = 32;
                 StakingExtraIncomeDetails staking_extra_income = 33;
+                QuickStartTaskRewardDetails quick_start_task_reward = 34;
+                QuickStartCompletionBonusDetails quick_start_completion_bonus = 35;
             }
 
             // Метаданные для карточки пополнения (Receive)
@@ -465,6 +467,22 @@ message Transaction {
                 string rate = 3;
                 // Версия акции, по которой начислено.
                 uint32 extra_promo_id = 4;
+            }
+
+            // Награда WinTime «Быстрого старта» (`quick_start`) за закрытую задачу.
+            message QuickStartTaskRewardDetails {
+                // Закрытая задача (`QuickStart.Task.id`).
+                uint32 task_id = 1;
+                // `QuickStart.Task.code` (обогащение при извлечении).
+                string task_code = 2;
+            }
+
+            // Финальный бонус WinTime «Быстрого старта»: закрыты все неархивные
+            // задачи в пределах окна. Выплачивается один раз на дистрибьютора.
+            message QuickStartCompletionBonusDetails {
+                // За сколько секунд от начала окна (регистрации) закрыта последняя
+                // задача — фактическое время прохождения, ≤ длины окна.
+                uint32 completed_in_secs = 1;
             }
 
             // Реинвест прибыли: заработанное за этот же цикл ушло с кошелька

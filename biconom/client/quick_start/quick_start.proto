@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package biconom.client.quick_start;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/quick_start.proto";
+
+// QuickStartService — клиентский «Быстрый старт» (Welcome Road).
+//
+// Дистрибьютор — из контекста авторизации. Все методы требуют Session-токен.
+//
+// Выполнение условий сервер фиксирует сам, по событиям: привязка Telegram,
+// загрузка аватарки, регистрация личника, вступление в чат (`chat_member` от
+// бота). `CheckTelegramMembership` — запасной путь, когда пользователь вступил
+// в чат, а карточка не обновилась.
+service QuickStartService {
+    // Состояние прохождения. После окна закрытые задачи остаются видны.
+    rpc Get(google.protobuf.Empty) returns (biconom.types.QuickStart.State);
+
+    // Поставить в очередь проверку членства в чате (Telegram `getChatMember`).
+    // Результат — в `TaskProgress.last_check` следующего `Get`: фронт опрашивает
+    // `Get`, пока `STATUS_PENDING`. Участник → задачи этого чата становятся
+    // FULFILLED / COMPLETED.
+    //
+    // Проверять можно и задачу, закрытую родителем: выполнение запомнится.
+    //
+    // Отказы (код — в сообщении ошибки):
+    //   * FailedPrecondition `QUICK_START_NOT_ACTIVE` — окно закрыто,
+    //     программа выключена или прохождение уже завершено;
+    //   * FailedPrecondition `QUICK_START_TELEGRAM_NOT_LINKED`;
+    //   * FailedPrecondition `QUICK_START_TELEGRAM_ALREADY_USED` — этот
+    //     Telegram-аккаунт уже засчитывал задачи другому дистрибьютору;
+    //   * FailedPrecondition `QUICK_START_ALREADY_FULFILLED` — условие задачи
+    //     этого чата уже выполнено;
+    //   * NotFound `QUICK_START_CHAT_NOT_FOUND` — нет чата с таким id (или
+    //     задачи его вида нет в шаблоне);
+    //   * ResourceExhausted `QUICK_START_CHECK_TOO_FREQUENT` — с прошлой
+    //     проверки этого чата прошло меньше `check_cooldown` или очередь
+    //     проверок сервера переполнена (повторить через несколько секунд).
+    rpc CheckTelegramMembership(biconom.types.QuickStart.TelegramChat.Id) returns (biconom.types.QuickStart.TelegramCheck);
+}

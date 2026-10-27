@@ -1,0 +1,201 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Переиспользуемые модели «Быстрого старта» (`quick_start`, Welcome Road).
+//
+// Быстрый старт — лес онбординг-задач с наградой в WinTime. У задачи не более
+// одного родителя (`parent_id`, 0 — корень). Задача открывается, когда закрыт
+// её родитель. Окно прохождения — `duration` из YAML от регистрации
+// дистрибьютора (на проде 24 ч).
+//
+// Условие можно выполнить в любом порядке: выполнение фиксируется сразу
+// (`STATUS_FULFILLED`), а награда выплачивается только когда задача открыта.
+// Закрытие задачи открывает её детей, и если их условия уже выполнены — они
+// закрываются тут же (каскад вниз до упора). За закрытие ВСЕХ неархивных задач
+// в пределах окна выплачивается финальный бонус.
+//
+// Шаблон задач — админский; параметры программы и списки Telegram-каналов и
+// групп — в YAML (`quick_start:`). Тексты карточек — на фронте по `Task.code`.
+//
+// Все суммы WinTime передаются СТРОКАМИ — как балансы в `biconom.types.Ledger`.
+
+// QuickStart — пространство имён моделей быстрого старта.
+message QuickStart {
+    // Вид условия задачи. Значения append-only: новый вид — в конец.
+    enum ConditionKind {
+        CONDITION_KIND_UNSPECIFIED = 0;
+        // Привязан собственный Telegram-аккаунт.
+        CONDITION_KIND_TELEGRAM_LINKED = 1;
+        // Состоит в ЛЮБОМ канале из YAML-списка `channels`.
+        CONDITION_KIND_TELEGRAM_CHANNEL = 2;
+        // Состоит в ЛЮБОЙ группе из YAML-списка `groups`.
+        CONDITION_KIND_TELEGRAM_GROUP = 3;
+        // Загружена аватарка профиля.
+        CONDITION_KIND_AVATAR = 4;
+        // Пригласил по своей ссылке не меньше `Task.condition_count` прямых
+        // личников, зарегистрированных ПОСЛЕ начала окна.
+        CONDITION_KIND_REFERRAL = 5;
+    }
+
+    // Задача шаблона.
+    message Task {
+        message Id {
+            uint32 id = 1;
+        }
+
+        message List {
+            repeated Task items = 1;
+        }
+
+        // Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // Видна и открывается участникам.
+            STATUS_ACTIVE = 1;
+            // В архиве: новым участникам не показывается; кто её уже закрыл —
+            // продолжает видеть. Дети архивной задачи открываются по её
+            // ближайшему неархивному предку. Обратимо.
+            STATUS_ARCHIVED = 2;
+        }
+
+        // Стабильный идентификатор, назначает сервер.
+        uint32 id = 1;
+        // Блокирующая задача; 0 — корень (открыта с начала окна).
+        uint32 parent_id = 2;
+        // Slug для фронта — по нему выбираются тексты и иконка карточки.
+        // Уникален, `[a-z0-9_]`.
+        string code = 3;
+        ConditionKind condition = 4;
+        // Порог условия: для `CONDITION_KIND_REFERRAL` — сколько личников (≥ 1);
+        // для остальных видов не используется (0).
+        uint32 condition_count = 5;
+        // Награда в WinTime за закрытие задачи.
+        string reward = 6;
+        // Порядок среди задач одного родителя (по возрастанию, затем по `id`).
+        uint32 position = 7;
+        Status status = 8;
+    }
+
+    // Telegram-канал или группа из YAML.
+    message TelegramChat {
+        message Id {
+            int64 id = 1;
+        }
+
+        // Telegram chat_id — у каналов и супергрупп отрицательный, вида `-100…`.
+        int64 id = 1;
+        // Язык чата, ISO 639-1 (`ru`, `en`, …).
+        string language = 2;
+        // Название для карточки.
+        string title = 3;
+        // Ссылка-приглашение (`https://t.me/...`).
+        string url = 4;
+    }
+
+    // Telegram пользователя глазами быстрого старта. Значения append-only.
+    enum TelegramStatus {
+        TELEGRAM_STATUS_UNSPECIFIED = 0;
+        // Telegram не привязан — задачи Telegram выполнить нельзя.
+        TELEGRAM_STATUS_NOT_LINKED = 1;
+        // Привязан и может засчитывать задачи.
+        TELEGRAM_STATUS_LINKED = 2;
+        // Привязан, но этот Telegram-аккаунт уже засчитывал задачи быстрого
+        // старта другому дистрибьютору: награды за Telegram-задачи — не больше
+        // одного раза на Telegram-аккаунт.
+        TELEGRAM_STATUS_ALREADY_USED = 3;
+    }
+
+    // Последняя перепроверка членства. Хранится только в памяти сервера.
+    message TelegramCheck {
+        // Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // В очереди воркера.
+            STATUS_PENDING = 1;
+            // Участник — условие выполнено.
+            STATUS_MEMBER = 2;
+            // Не участник.
+            STATUS_NOT_MEMBER = 3;
+            // Не удалось проверить (ошибка Telegram API).
+            STATUS_FAILED = 4;
+        }
+
+        // `TelegramChat.id`.
+        int64 chat_id = 1;
+        Status status = 2;
+        google.protobuf.Timestamp checked_at = 3;
+        // Раньше этого момента повторная проверка ЭТОГО чата отклоняется
+        // (`check_cooldown` из YAML, на проде 30 с).
+        google.protobuf.Timestamp next_allowed_at = 4;
+    }
+
+    // Задача глазами дистрибьютора.
+    message TaskProgress {
+        // Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // Родитель не закрыт, условие не выполнено.
+            STATUS_LOCKED = 1;
+            // Открыта, условие не выполнено.
+            STATUS_ACTIVE = 2;
+            // Условие выполнено, задача ещё закрыта родителем — награда придёт
+            // при открытии (в пределах окна).
+            STATUS_FULFILLED = 3;
+            // Открыта и выполнена, награда `task.reward` выплачена.
+            STATUS_COMPLETED = 4;
+            // Окно закрылось до закрытия задачи.
+            STATUS_EXPIRED = 5;
+        }
+
+        // Задача шаблона (архивная — только если закрыта этим дистрибьютором).
+        Task task = 1;
+        Status status = 2;
+        google.protobuf.Timestamp fulfilled_at = 3;
+        google.protobuf.Timestamp completed_at = 4;
+        // Чаты на выбор — только для задач канала / группы.
+        repeated TelegramChat chats = 5;
+        // Чат, которым засчитано условие (`TelegramChat.id`); 0 — не засчитано.
+        int64 fulfilled_chat_id = 6;
+        // Последняя перепроверка по чатам этой задачи, если была.
+        optional TelegramCheck last_check = 7;
+        // Текущее значение условия; цель — `task.condition_count` для
+        // `CONDITION_KIND_REFERRAL` (сколько личников уже пришло в окне), для
+        // остальных видов — 1 (0 — не выполнено, 1 — выполнено).
+        uint32 progress = 8;
+    }
+
+    // Прохождение дистрибьютора.
+    message State {
+        // Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // Окно открыто.
+            STATUS_ACTIVE = 1;
+            // Все неархивные задачи закрыты в окне, финальный бонус выплачен
+            // (если он задан ненулевым).
+            STATUS_COMPLETED = 2;
+            // Окно закрылось (в т.ч. у зарегистрированных до запуска).
+            STATUS_EXPIRED = 3;
+            // Программа выключена в YAML; `tasks` пуст.
+            STATUS_UNAVAILABLE = 4;
+        }
+
+        Status status = 1;
+        // Конец окна = регистрация + `duration`.
+        google.protobuf.Timestamp deadline_at = 2;
+        // Неархивные задачи + архивные, закрытые этим дистрибьютором.
+        // Порядок — обход дерева в глубину по (`position`, `id`).
+        repeated TaskProgress tasks = 3;
+        // Финальный бонус за закрытие всех неархивных задач.
+        string completion_bonus = 4;
+        // Когда прохождение завершено — закрыта последняя задача и в тот же
+        // момент выплачен финальный бонус, если он задан (только `STATUS_COMPLETED`).
+        google.protobuf.Timestamp completed_at = 5;
+        // Telegram пользователя: перепроверка членства доступна только при
+        // `TELEGRAM_STATUS_LINKED`.
+        TelegramStatus telegram = 6;
+    }
+}
