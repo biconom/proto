@@ -3,13 +3,15 @@ syntax = "proto3";
 package biconom.admin.dividend_pool;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "biconom/types/dividend_pool.proto";
 
 // DividendPoolAdminService — административный сервис управления дивидендным пулом.
 //
 // Позволяет администратору контролировать глобальное состояние модуля:
 // включать, приостанавливать или полностью останавливать механику дивидендов.
-// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll, ExtendAutoReinvestUntil — ROOT).
+// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll, ExtendAutoReinvestUntil,
+// LimitAutoReinvestUntil — ROOT).
 service DividendPoolAdminService {
     // Получить текущий статус и статистику дивидендного пула.
     rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse);
@@ -67,6 +69,24 @@ service DividendPoolAdminService {
     // DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST (день уже прошёл по UTC),
     // DIVIDEND_POOL_SERVICE_NOT_ACTIVE, DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED.
     rpc ExtendAutoReinvestUntil(ExtendAutoReinvestUntilRequest) returns (ExtendAutoReinvestUntilResponse);
+
+    // Ограничить авто-реинвест датой — обратное продлению: тем, кто выбрал
+    // (или кому включили) авто-реинвест в интервале [selected_from, selected_to] и
+    // у кого последний цикл наступает ПОЗЖЕ дня `until`, оставить ровно столько
+    // циклов, чтобы последний пришёлся на этот день (UTC). Интервал обязателен —
+    // метод не обрезает всех разом; включённых одним массовым вызовом или миграцией
+    // отличает одинаковый момент выбора.
+    //
+    // Меняется только `cycles` (не ниже уже отработанных): процент и отработанные
+    // циклы прежние. Если ближайший цикл уже после этого дня — авто-реинвест
+    // заканчивается сразу (`stopped`), pending остаётся к ручному получению.
+    // Выключенные администратором не трогаются. Повтор с той же датой — no-op.
+    // `dry_run` — те же счётчики без изменений.
+    //
+    // Требует permission ROOT. Ошибки (ничего не изменено):
+    // DIVIDEND_POOL_AUTO_REINVEST_INVALID_DATE, DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST,
+    // DIVIDEND_POOL_AUTO_REINVEST_INVALID_SELECTION (интервал не задан или from > to).
+    rpc LimitAutoReinvestUntil(LimitAutoReinvestUntilRequest) returns (LimitAutoReinvestUntilResponse);
 }
 
 // Ответ с текущим статусом и агрегированной статистикой.
@@ -194,4 +214,42 @@ message ExtendAutoReinvestUntilResponse {
 
     // Эхо запроса: true — ответ является прогнозом, изменений нет.
     bool dry_run = 9;
+}
+
+// Ограничение авто-реинвеста датой.
+message LimitAutoReinvestUntilRequest {
+    // День последнего цикла, UTC, строго DD-MM-YYYY (например "01-11-2026").
+    string until = 1;
+
+    // Кого касается: момент выбора авто-реинвеста (selected_at) в интервале,
+    // обе границы включительно. Обязательны.
+    google.protobuf.Timestamp selected_from = 2;
+    google.protobuf.Timestamp selected_to = 3;
+
+    // true — только посчитать, кого затронет; состояние не меняется.
+    bool dry_run = 4;
+}
+
+// Итог ограничения (при dry_run — прогноз, ничего не изменено).
+message LimitAutoReinvestUntilResponse {
+    // Эхо даты из запроса (DD-MM-YYYY).
+    string until = 1;
+
+    // Обрезано: последний цикл был позже дня `until`, теперь — в этот день.
+    uint32 limited = 2;
+
+    // Из них авто-реинвест закончился сразу: ближайший цикл уже после этого дня.
+    uint32 stopped = 3;
+
+    // Не тронуто: в интервале, но последний цикл и так не позже этого дня.
+    uint32 already_within = 4;
+
+    // Пропущено: в интервале, но выключен администратором или циклы исчерпаны.
+    uint32 inactive_skipped = 5;
+
+    // Сколько циклов снято всем вместе.
+    uint64 cycles_removed = 6;
+
+    // Эхо запроса: true — ответ является прогнозом, изменений нет.
+    bool dry_run = 7;
 }

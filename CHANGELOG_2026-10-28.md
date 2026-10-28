@@ -65,3 +65,36 @@ message ExtendAutoReinvestUntilResponse {
 | `DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST` | день уже прошёл по UTC |
 | `DIVIDEND_POOL_SERVICE_NOT_ACTIVE` | пул на паузе или остановлен |
 | `DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED` | не настроена пара WIN/USDT |
+
+---
+
+# Дополнение: proto `v0.3.33` → `v0.3.34` (ядро `1.10.46`)
+
+## 2. `DividendPoolAdminService.LimitAutoReinvestUntil`
+
+Обратное продлению: ограничить авто-реинвест датой для тех, кто выбрал его в заданном
+интервале времени.
+
+```protobuf
+rpc LimitAutoReinvestUntil(LimitAutoReinvestUntilRequest) returns (LimitAutoReinvestUntilResponse);
+
+message LimitAutoReinvestUntilRequest {
+    string until = 1;                              // день последнего цикла, UTC, DD-MM-YYYY
+    google.protobuf.Timestamp selected_from = 2;   // момент выбора авто-реинвеста, от (включительно)
+    google.protobuf.Timestamp selected_to = 3;     // … до (включительно); обе границы обязательны
+    bool dry_run = 4;
+}
+
+message LimitAutoReinvestUntilResponse {
+    string until = 1;
+    uint32 limited = 2;          // обрезано до этого дня
+    uint32 stopped = 3;          // из них закончился сразу (ближайший цикл уже после дня)
+    uint32 already_within = 4;   // и так не дольше этого дня
+    uint32 inactive_skipped = 5; // выключен администратором или исчерпан
+    uint64 cycles_removed = 6;   // снято циклов всем вместе
+    bool dry_run = 7;
+}
+```
+
+**Права:** `ROOT`. Меняется только `cycles` (не ниже отработанных), процент прежний.
+Повтор с той же датой — no-op. Новая ошибка: `DIVIDEND_POOL_AUTO_REINVEST_INVALID_SELECTION`.

@@ -74,6 +74,15 @@
 - **Ответ**: `extended`, `reactivated`, `already_until`, `admin_disabled_skipped`, `admin_disabled_extended`, `without_auto_reinvest`, `cycles_added` (сумма добавленных циклов), эхо `until` и `dry_run`.
 - **Авторизация**: `ROOT`.
 
+### `rpc LimitAutoReinvestUntil(LimitAutoReinvestUntilRequest) returns (LimitAutoReinvestUntilResponse)`
+
+- **Назначение**: Обратное продлению — ограничить авто-реинвест датой. Тем, кто выбрал (или кому включили) авто-реинвест в интервале `[selected_from, selected_to]` и у кого последний цикл **позже** дня `until`, остаётся ровно столько циклов, чтобы последний пришёлся на этот день.
+- **Выборка обязательна**: метод не обрезает всех разом. Включённых одним массовым вызовом или миграцией отличает одинаковый `selected_at` (виден в `AutoReinvestState.selected_at`).
+- **Что меняется**: только `cycles`, не ниже отработанных; процент прежний. Если ближайший цикл уже после этого дня — авто-реинвест заканчивается сразу (`stopped`), pending остаётся к ручному получению. Выключенные администратором и исчерпанные не трогаются (`inactive_skipped`).
+- **Повтор** с той же датой — no-op. Продлить обратно — `ExtendAutoReinvestUntil`.
+- **`dry_run = true`**: те же счётчики без изменений.
+- **Авторизация**: `ROOT`.
+
 ---
 
 ## 3. Ошибки
@@ -83,7 +92,8 @@
 | `INVALID_ARGUMENT` | `DIVIDEND_POOL_INVALID_STATUS` | Передан невалидный статус (UNSPECIFIED или неизвестное значение) |
 | `INVALID_ARGUMENT` | `DIVIDEND_POOL_AUTO_REINVEST_INVALID_CYCLES` | `EnrollAutoReinvestAll`: такого срока нет среди тарифов |
 | `INVALID_ARGUMENT` | `DIVIDEND_POOL_AUTO_REINVEST_INVALID_DATE` | `ExtendAutoReinvestUntil`: дата не в формате `DD-MM-YYYY` или такого дня нет |
-| `INVALID_ARGUMENT` | `DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST` | `ExtendAutoReinvestUntil`: день уже прошёл по UTC |
+| `INVALID_ARGUMENT` | `DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST` | `ExtendAutoReinvestUntil` / `LimitAutoReinvestUntil`: день уже прошёл по UTC |
+| `INVALID_ARGUMENT` | `DIVIDEND_POOL_AUTO_REINVEST_INVALID_SELECTION` | `LimitAutoReinvestUntil`: интервал выбора не задан или `selected_from > selected_to` |
 | `FAILED_PRECONDITION` | `DIVIDEND_POOL_SERVICE_NOT_ACTIVE` | Пул на паузе или остановлен |
 | `FAILED_PRECONDITION` | `DIVIDEND_POOL_NO_DAILY_RATE` | `EnrollAutoReinvestAll`: ещё нет дневного процента |
 | `FAILED_PRECONDITION` | `DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED` | Не настроена пара WIN/USDT |
@@ -92,4 +102,4 @@
 
 ## 4. Права доступа
 
-`GetStatus`, `SetStatus`, `ActivateAll`, `SetDistributorAutoReinvestStatus` — permission `ADMIN_FINANCE`. Массовые изменения авто-реинвеста `EnrollAutoReinvestAll` и `ExtendAutoReinvestUntil` — только `ROOT`. Доступ только для авторизованных сессий.
+`GetStatus`, `SetStatus`, `ActivateAll`, `SetDistributorAutoReinvestStatus` — permission `ADMIN_FINANCE`. Массовые изменения авто-реинвеста `EnrollAutoReinvestAll`, `ExtendAutoReinvestUntil` и `LimitAutoReinvestUntil` — только `ROOT`. Доступ только для авторизованных сессий.

@@ -143,6 +143,47 @@ pub struct ExtendAutoReinvestUntilResponse {
     #[prost(bool, tag = "9")]
     pub dry_run: bool,
 }
+/// Ограничение авто-реинвеста датой.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LimitAutoReinvestUntilRequest {
+    /// День последнего цикла, UTC, строго DD-MM-YYYY (например "01-11-2026").
+    #[prost(string, tag = "1")]
+    pub until: ::prost::alloc::string::String,
+    /// Кого касается: момент выбора авто-реинвеста (selected_at) в интервале,
+    /// обе границы включительно. Обязательны.
+    #[prost(message, optional, tag = "2")]
+    pub selected_from: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "3")]
+    pub selected_to: ::core::option::Option<::prost_types::Timestamp>,
+    /// true — только посчитать, кого затронет; состояние не меняется.
+    #[prost(bool, tag = "4")]
+    pub dry_run: bool,
+}
+/// Итог ограничения (при dry_run — прогноз, ничего не изменено).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LimitAutoReinvestUntilResponse {
+    /// Эхо даты из запроса (DD-MM-YYYY).
+    #[prost(string, tag = "1")]
+    pub until: ::prost::alloc::string::String,
+    /// Обрезано: последний цикл был позже дня `until`, теперь — в этот день.
+    #[prost(uint32, tag = "2")]
+    pub limited: u32,
+    /// Из них авто-реинвест закончился сразу: ближайший цикл уже после этого дня.
+    #[prost(uint32, tag = "3")]
+    pub stopped: u32,
+    /// Не тронуто: в интервале, но последний цикл и так не позже этого дня.
+    #[prost(uint32, tag = "4")]
+    pub already_within: u32,
+    /// Пропущено: в интервале, но выключен администратором или циклы исчерпаны.
+    #[prost(uint32, tag = "5")]
+    pub inactive_skipped: u32,
+    /// Сколько циклов снято всем вместе.
+    #[prost(uint64, tag = "6")]
+    pub cycles_removed: u64,
+    /// Эхо запроса: true — ответ является прогнозом, изменений нет.
+    #[prost(bool, tag = "7")]
+    pub dry_run: bool,
+}
 /// Generated server implementations.
 pub mod dividend_pool_admin_service_server {
     #![allow(
@@ -240,12 +281,36 @@ pub mod dividend_pool_admin_service_server {
             tonic::Response<super::ExtendAutoReinvestUntilResponse>,
             tonic::Status,
         >;
+        /// Ограничить авто-реинвест датой — обратное продлению: тем, кто выбрал
+        /// (или кому включили) авто-реинвест в интервале \[selected_from, selected_to\] и
+        /// у кого последний цикл наступает ПОЗЖЕ дня `until`, оставить ровно столько
+        /// циклов, чтобы последний пришёлся на этот день (UTC). Интервал обязателен —
+        /// метод не обрезает всех разом; включённых одним массовым вызовом или миграцией
+        /// отличает одинаковый момент выбора.
+        ///
+        /// Меняется только `cycles` (не ниже уже отработанных): процент и отработанные
+        /// циклы прежние. Если ближайший цикл уже после этого дня — авто-реинвест
+        /// заканчивается сразу (`stopped`), pending остаётся к ручному получению.
+        /// Выключенные администратором не трогаются. Повтор с той же датой — no-op.
+        /// `dry_run` — те же счётчики без изменений.
+        ///
+        /// Требует permission ROOT. Ошибки (ничего не изменено):
+        /// DIVIDEND_POOL_AUTO_REINVEST_INVALID_DATE, DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST,
+        /// DIVIDEND_POOL_AUTO_REINVEST_INVALID_SELECTION (интервал не задан или from > to).
+        async fn limit_auto_reinvest_until(
+            &self,
+            request: tonic::Request<super::LimitAutoReinvestUntilRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LimitAutoReinvestUntilResponse>,
+            tonic::Status,
+        >;
     }
     /// DividendPoolAdminService — административный сервис управления дивидендным пулом.
     ///
     /// Позволяет администратору контролировать глобальное состояние модуля:
     /// включать, приостанавливать или полностью останавливать механику дивидендов.
-    /// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll, ExtendAutoReinvestUntil — ROOT).
+    /// Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll, ExtendAutoReinvestUntil,
+    /// LimitAutoReinvestUntil — ROOT).
     #[derive(Debug)]
     pub struct DividendPoolAdminServiceServer<T> {
         inner: Arc<T>,
@@ -599,6 +664,57 @@ pub mod dividend_pool_admin_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ExtendAutoReinvestUntilSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.admin.dividend_pool.DividendPoolAdminService/LimitAutoReinvestUntil" => {
+                    #[allow(non_camel_case_types)]
+                    struct LimitAutoReinvestUntilSvc<T: DividendPoolAdminService>(
+                        pub Arc<T>,
+                    );
+                    impl<
+                        T: DividendPoolAdminService,
+                    > tonic::server::UnaryService<super::LimitAutoReinvestUntilRequest>
+                    for LimitAutoReinvestUntilSvc<T> {
+                        type Response = super::LimitAutoReinvestUntilResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::LimitAutoReinvestUntilRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as DividendPoolAdminService>::limit_auto_reinvest_until(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = LimitAutoReinvestUntilSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
