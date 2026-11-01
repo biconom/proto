@@ -11,7 +11,7 @@ import "biconom/types/dividend_pool.proto";
 // Позволяет администратору контролировать глобальное состояние модуля:
 // включать, приостанавливать или полностью останавливать механику дивидендов.
 // Требует permission ADMIN_FINANCE (EnrollAutoReinvestAll, ExtendAutoReinvestUntil,
-// LimitAutoReinvestUntil — ROOT).
+// LimitAutoReinvestUntil, AlignAutoReinvestUntil — ROOT).
 service DividendPoolAdminService {
     // Получить текущий статус и статистику дивидендного пула.
     rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse);
@@ -87,6 +87,25 @@ service DividendPoolAdminService {
     // DIVIDEND_POOL_AUTO_REINVEST_INVALID_DATE, DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST,
     // DIVIDEND_POOL_AUTO_REINVEST_INVALID_SELECTION (интервал не задан или from > to).
     rpc LimitAutoReinvestUntil(LimitAutoReinvestUntilRequest) returns (LimitAutoReinvestUntilResponse);
+
+    // Выровнять авто-реинвест ВСЕХ с инвестицией по дате (акция «до 1 декабря, 40%»):
+    //   * авто-реинвеста нет или циклы исчерпаны — включить на столько циклов, чтобы
+    //     последний пришёлся на день `until` (UTC), с процентом `discount_percent`;
+    //   * активен, но последний цикл раньше `until` — добавить циклы до этого дня и
+    //     поставить `discount_percent` на все следующие циклы (прошлые не меняются);
+    //   * последний цикл в день `until` или позже — не трогать (процент свой).
+    // Выключенных администратором не трогает. Без инвестиции — пропуск. Циклы
+    // считаются по календарю от ближайшего (разблокировка pending, не раньше «сейчас»).
+    //
+    // Повтор с той же датой и процентом — no-op (все в `already_until`). `dry_run` —
+    // те же счётчики без изменений.
+    //
+    // Требует permission ROOT. Ошибки (ничего не изменено):
+    // DIVIDEND_POOL_AUTO_REINVEST_INVALID_DATE, DIVIDEND_POOL_AUTO_REINVEST_DATE_IN_PAST,
+    // DIVIDEND_POOL_AUTO_REINVEST_INVALID_PERCENT (не 1..=100),
+    // DIVIDEND_POOL_SERVICE_NOT_ACTIVE, DIVIDEND_POOL_AUTO_REINVEST_NOT_CONFIGURED,
+    // DIVIDEND_POOL_NO_DAILY_RATE.
+    rpc AlignAutoReinvestUntil(AlignAutoReinvestUntilRequest) returns (AlignAutoReinvestUntilResponse);
 }
 
 // Ответ с текущим статусом и агрегированной статистикой.
@@ -252,4 +271,44 @@ message LimitAutoReinvestUntilResponse {
 
     // Эхо запроса: true — ответ является прогнозом, изменений нет.
     bool dry_run = 7;
+}
+
+// Выравнивание авто-реинвеста всех по дате.
+message AlignAutoReinvestUntilRequest {
+    // День последнего цикла, UTC, строго DD-MM-YYYY (например "01-12-2026").
+    string until = 1;
+
+    // Процент дисконта для включённых и продлённых, целый, 1..=100 (например 40).
+    uint32 discount_percent = 2;
+
+    // true — только посчитать, кого затронет; состояние не меняется.
+    bool dry_run = 3;
+}
+
+// Итог выравнивания (при dry_run — прогноз, ничего не изменено).
+message AlignAutoReinvestUntilResponse {
+    // Эхо запроса.
+    string until = 1;
+    uint32 discount_percent = 2;
+
+    // Включено: инвестиция есть, авто-реинвеста не было.
+    uint32 enrolled = 3;
+
+    // Включено снова: циклы были исчерпаны.
+    uint32 reactivated = 4;
+
+    // Продлено: активен, но кончался раньше `until`; процент заменён.
+    uint32 extended = 5;
+
+    // Не тронуто: последний цикл и так в день `until` или позже.
+    uint32 already_until = 6;
+
+    // Пропущено: выключен администратором.
+    uint32 admin_disabled_skipped = 7;
+
+    // Сколько циклов добавлено всем вместе (у включённых — все их циклы).
+    uint64 cycles_added = 8;
+
+    // Эхо запроса: true — ответ является прогнозом, изменений нет.
+    bool dry_run = 9;
 }

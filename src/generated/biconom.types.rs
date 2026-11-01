@@ -1109,7 +1109,7 @@ pub mod transaction {
                 pub voucher_id: u32,
             }
             /// Метаданные для карточки получения реферального бонуса от торговой сделки нижестоящего партнера (Payout)
-            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct TradeReferralBonusDetails {
                 /// Идентификатор торговой/валютной пары, по которой была совершена сделка.
                 #[prost(uint32, tag = "1")]
@@ -1120,6 +1120,14 @@ pub mod transaction {
                 /// Идентификатор дистрибьютора (инициатора), который совершил сделку.
                 #[prost(uint32, tag = "3")]
                 pub initiator_distributor_id: u32,
+                /// Заполнены ТОЛЬКО когда награда выплачена WINZU (флаг маркетинга
+                /// `structure_reward_winzu`, с core 1.10.51): `amount` проводки тогда в
+                /// WINZU. `payout_usdt` — рассчитанная доля в USDT, которая была
+                /// переведена в токены; `winzu_rate` — цена этой сделки, USDT за 1 WINZU.
+                #[prost(string, optional, tag = "4")]
+                pub payout_usdt: ::core::option::Option<::prost::alloc::string::String>,
+                #[prost(string, optional, tag = "5")]
+                pub winzu_rate: ::core::option::Option<::prost::alloc::string::String>,
             }
             /// Метаданные для карточки получения реферального/структурного бонуса от покупки лицензии нижестоящим партнером (Payout)
             #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

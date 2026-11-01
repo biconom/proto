@@ -168,6 +168,12 @@ message Transaction {
                 uint32 depth_level = 2;
                 // Идентификатор дистрибьютора (инициатора), который совершил сделку.
                 uint32 initiator_distributor_id = 3;
+                // Заполнены ТОЛЬКО когда награда выплачена WINZU (флаг маркетинга
+                // `structure_reward_winzu`, с core 1.10.51): `amount` проводки тогда в
+                // WINZU. `payout_usdt` — рассчитанная доля в USDT, которая была
+                // переведена в токены; `winzu_rate` — цена этой сделки, USDT за 1 WINZU.
+                optional string payout_usdt = 4;
+                optional string winzu_rate = 5;
             }
 
             // Метаданные для карточки получения реферального/структурного бонуса от покупки лицензии нижестоящим партнером (Payout)
