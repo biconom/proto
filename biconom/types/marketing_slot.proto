@@ -92,8 +92,10 @@ message MarketingSlot {
 
 // MarketingSlotV2 — облегчённая модель просмотра слота.
 //
-// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains; в slots/distributors/
-// accounts/states присутствуют только авторизованный (executor) и просматриваемый (view) слоты.
+// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains. В slot_states и
+// distributor_states — только авторизованный (executor) и просматриваемый (view) слоты;
+// в slots/distributors/accounts — они же плюс слоты из upline_slot_ids и levels_state[].recent_slot_ids
+// (дедуплицированы, клиент сопоставляет по id).
 // Агрегированные данные структуры отдаются через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
 message MarketingSlotV2 {
     // Агрегированное состояние одного уровня глубины структуры (из level_agg слота).
@@ -110,6 +112,12 @@ message MarketingSlotV2 {
         uint64 structure_capacity_potential = 4;
         uint64 structure_capacity_reserved = 5; // Зарезервированная (фактическая) ёмкость мест на уровне от вышестоящих
         biconom.types.Price structure_income = 6; // Доход (USDT) структуры на уровне
+        // Награда за одного партнёра на этом уровне за каждую активацию его ваучера
+        // (раз в период лицензии, ~месяц) — из плана лицензии дерева. Может быть несколько валют.
+        repeated biconom.types.Price rewards = 7;
+        // До 3 слотов уровня с самой свежей ПЕРВОЙ активацией лицензии (продления не учитываются),
+        // новые первыми. Подробности слотов — в slots/distributors/accounts ответа.
+        repeated uint32 recent_slot_ids = 8;
     }
 
     // Состояние одного квеста слота.
@@ -147,10 +155,24 @@ message MarketingSlotV2 {
     uint32 view_slot_id = 2;              // Просматриваемый слот
     uint32 tree_id = 3;                   // Дерево, к которому относятся слоты
     repeated MarketingSlot.State slot_states = 4;              // Состояния только executor и view
-    repeated biconom.types.Slot slots = 5;                    // Только executor и view
+    repeated biconom.types.Slot slots = 5;                    // executor, view, upline_slot_ids и recent_slot_ids всех уровней
     repeated biconom.types.Distributor distributors = 6;      // Дистрибьюторы этих слотов
     repeated biconom.types.Account accounts = 7;              // Аккаунты этих дистрибьюторов
     repeated MarketingSlot.DistributorState distributor_states = 8; // Состояния дистрибьюторов
     repeated LevelState levels_state = 9; // Агрегаты по уровням глубины структуры view-слота
     repeated Quest quests = 10;           // Состояния всех квестов для просматриваемого слота
+    // До какого уровня включительно (1..MARKETING_LEVEL_LIMIT) владелец view-слота сейчас
+    // получает награды структуры: число активных личников + 1. Уровни глубже — не оплачиваются
+    // (награда проходит выше по цепочке).
+    uint32 payout_depth_max = 11;
+    // Число активных личников владельца view-слота: дистрибьюторы первой линии в Network
+    // с активной лицензией в этом дереве. Следующий уровень открывает ещё один такой личник.
+    uint32 qualified_first_line_count = 12;
+    // Шапка «Спонсоры»: до 3 вышестоящих view-слота на пути к слоту executor (включительно),
+    // ближайшие первыми — первый элемент = прямой вышестоящий. Выше слота executor не поднимаемся.
+    // Пусто, если view = executor или view не в структуре executor. Подробности — в slots/distributors/accounts.
+    repeated uint32 upline_slot_ids = 13;
+    // Сколько всего слотов на этом пути (view исключительно → executor включительно) = разница уровней.
+    // Остаток для «+N» = upline_count − размер upline_slot_ids.
+    uint32 upline_count = 14;
 }

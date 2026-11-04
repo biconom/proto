@@ -8582,8 +8582,10 @@ pub mod marketing_slot {
 }
 /// MarketingSlotV2 — облегчённая модель просмотра слота.
 ///
-/// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains; в slots/distributors/
-/// accounts/states присутствуют только авторизованный (executor) и просматриваемый (view) слоты.
+/// В отличие от MarketingSlot, не содержит breadcrumbs и view_chains. В slot_states и
+/// distributor_states — только авторизованный (executor) и просматриваемый (view) слоты;
+/// в slots/distributors/accounts — они же плюс слоты из upline_slot_ids и levels_state\[\].recent_slot_ids
+/// (дедуплицированы, клиент сопоставляет по id).
 /// Агрегированные данные структуры отдаются через levels_state (уровни 1..MARKETING_LEVEL_LIMIT).
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MarketingSlotV2 {
@@ -8599,7 +8601,7 @@ pub struct MarketingSlotV2 {
     /// Состояния только executor и view
     #[prost(message, repeated, tag = "4")]
     pub slot_states: ::prost::alloc::vec::Vec<marketing_slot::State>,
-    /// Только executor и view
+    /// executor, view, upline_slot_ids и recent_slot_ids всех уровней
     #[prost(message, repeated, tag = "5")]
     pub slots: ::prost::alloc::vec::Vec<Slot>,
     /// Дистрибьюторы этих слотов
@@ -8617,11 +8619,29 @@ pub struct MarketingSlotV2 {
     /// Состояния всех квестов для просматриваемого слота
     #[prost(message, repeated, tag = "10")]
     pub quests: ::prost::alloc::vec::Vec<marketing_slot_v2::Quest>,
+    /// До какого уровня включительно (1..MARKETING_LEVEL_LIMIT) владелец view-слота сейчас
+    /// получает награды структуры: число активных личников + 1. Уровни глубже — не оплачиваются
+    /// (награда проходит выше по цепочке).
+    #[prost(uint32, tag = "11")]
+    pub payout_depth_max: u32,
+    /// Число активных личников владельца view-слота: дистрибьюторы первой линии в Network
+    /// с активной лицензией в этом дереве. Следующий уровень открывает ещё один такой личник.
+    #[prost(uint32, tag = "12")]
+    pub qualified_first_line_count: u32,
+    /// Шапка «Спонсоры»: до 3 вышестоящих view-слота на пути к слоту executor (включительно),
+    /// ближайшие первыми — первый элемент = прямой вышестоящий. Выше слота executor не поднимаемся.
+    /// Пусто, если view = executor или view не в структуре executor. Подробности — в slots/distributors/accounts.
+    #[prost(uint32, repeated, tag = "13")]
+    pub upline_slot_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Сколько всего слотов на этом пути (view исключительно → executor включительно) = разница уровней.
+    /// Остаток для «+N» = upline_count − размер upline_slot_ids.
+    #[prost(uint32, tag = "14")]
+    pub upline_count: u32,
 }
 /// Nested message and enum types in `MarketingSlotV2`.
 pub mod marketing_slot_v2 {
     /// Агрегированное состояние одного уровня глубины структуры (из level_agg слота).
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct LevelState {
         /// Уровень глубины (1..MARKETING_LEVEL_LIMIT)
         #[prost(uint32, tag = "1")]
@@ -8645,6 +8665,14 @@ pub mod marketing_slot_v2 {
         /// Доход (USDT) структуры на уровне
         #[prost(message, optional, tag = "6")]
         pub structure_income: ::core::option::Option<super::Price>,
+        /// Награда за одного партнёра на этом уровне за каждую активацию его ваучера
+        /// (раз в период лицензии, ~месяц) — из плана лицензии дерева. Может быть несколько валют.
+        #[prost(message, repeated, tag = "7")]
+        pub rewards: ::prost::alloc::vec::Vec<super::Price>,
+        /// До 3 слотов уровня с самой свежей ПЕРВОЙ активацией лицензии (продления не учитываются),
+        /// новые первыми. Подробности слотов — в slots/distributors/accounts ответа.
+        #[prost(uint32, repeated, tag = "8")]
+        pub recent_slot_ids: ::prost::alloc::vec::Vec<u32>,
     }
     /// Состояние одного квеста слота.
     ///
