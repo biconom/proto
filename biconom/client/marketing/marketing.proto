@@ -66,6 +66,11 @@ service MarketingService {
     // slot-контекст сессии не используется.
     rpc GetSlotBreadcrumbs(biconom.types.Slot.Id) returns (GetSlotBreadcrumbsResponse);
 
+    // Слоты одного уровня глубины под просматриваемым слотом (экран линии): свежие первыми по дате
+    // ПЕРВОЙ активации лицензии, без ограничения MARKETING_LEVEL_LIMIT. Пагинация курсором —
+    // последний slot_id предыдущей страницы. Права — те же, что у GetSlotV2.
+    rpc ListLevelSlots(ListLevelSlotsRequest) returns (ListLevelSlotsResponse);
+
     // Деактивировать автопродление подписки для текущего слота.
     rpc DeactivateAutoRenewal(google.protobuf.Empty) returns (biconom.types.MarketingSlot.State);
     // Восстановить автопродление подписки для текущего слота.
@@ -291,6 +296,41 @@ message ListTreePoolBalancesResponse {
     }
 
     repeated Balance items = 1;
+}
+
+// Запрос слотов одного уровня глубины под просматриваемым слотом.
+message ListLevelSlotsRequest {
+    // Просматриваемый слот. Если не указан — слот по умолчанию (как у GetSlotV2).
+    optional biconom.types.Slot.Id slot_id = 1;
+    // Уровень глубины под просматриваемым слотом: 1 — первая линия. Ограничения 7 нет. 0 — ошибка.
+    uint32 level = 2;
+    // Курсор: последний слот предыдущей страницы. Должен стоять ровно на этом уровне под
+    // просматриваемым слотом. Не указан — первая страница.
+    optional biconom.types.Slot.Id cursor = 3;
+    // Размер страницы: 1..100. Не указан, 0 или больше 100 — 100.
+    optional uint32 limit = 4;
+}
+
+// Страница слотов уровня. Порядок всегда один: по дате первой активации лицензии, свежие первыми;
+// при равной дате — больший slot_id выше; слоты без единой активации — в конце.
+// Справочники как везде: `slot_ids` → `slots` → `slots[].distributor_id` → `distributors`
+// → `distributors[].account_id` → `accounts`; дедуплицированы, сопоставлять по id.
+message ListLevelSlotsResponse {
+    uint32 executor_slot_id = 1;     // Авторизованный слот
+    uint32 view_slot_id = 2;         // Просматриваемый слот (его владелец — в шапке экрана)
+    uint32 tree_id = 3;              // Дерево обоих слотов
+    uint32 level = 4;                // Запрошенный уровень
+    uint32 total_count = 5;          // Всего слотов на уровне (без учёта курсора)
+    repeated uint32 slot_ids = 6;    // Страница: не более limit слотов
+    bool has_more = 7;               // Есть следующая страница (курсор = последний из slot_ids)
+    // view-слот и слоты страницы. `relationship_state` — положение относительно executor_slot_id
+    // в слотовой иерархии.
+    repeated biconom.types.Slot slots = 8;
+    // Владельцы этих слотов. `relationship_state` — РЕФЕРАЛЬНАЯ связь с авторизованным
+    // дистрибьютором: PERSONAL — вы, TEAM + level_diff 1 — First Line, TEAM + N — Team: N line,
+    // UPLINE / NONE — Not in team.
+    repeated biconom.types.Distributor distributors = 9;
+    repeated biconom.types.Account accounts = 10;
 }
 
 // Ответ с хлебными крошками по слотам — цепочкой от активного слота запрашивающего

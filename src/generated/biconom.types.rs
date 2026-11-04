@@ -8669,8 +8669,9 @@ pub mod marketing_slot_v2 {
         /// (раз в период лицензии, ~месяц) — из плана лицензии дерева. Может быть несколько валют.
         #[prost(message, repeated, tag = "7")]
         pub rewards: ::prost::alloc::vec::Vec<super::Price>,
-        /// До 3 слотов уровня с самой свежей ПЕРВОЙ активацией лицензии (продления не учитываются),
-        /// новые первыми. Подробности слотов — в slots/distributors/accounts ответа.
+        /// Первые 3 слота уровня в порядке ListLevelSlots: по дате ПЕРВОЙ активации лицензии
+        /// (продления не учитываются), свежие первыми; равная дата — больший slot_id выше; слоты без
+        /// единой активации — в конце. Подробности слотов — в slots/distributors/accounts ответа.
         #[prost(uint32, repeated, tag = "8")]
         pub recent_slot_ids: ::prost::alloc::vec::Vec<u32>,
     }

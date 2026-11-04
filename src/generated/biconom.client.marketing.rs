@@ -283,6 +283,62 @@ pub mod list_tree_pool_balances_response {
         pub balance: ::core::option::Option<super::super::super::types::Price>,
     }
 }
+/// Запрос слотов одного уровня глубины под просматриваемым слотом.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLevelSlotsRequest {
+    /// Просматриваемый слот. Если не указан — слот по умолчанию (как у GetSlotV2).
+    #[prost(message, optional, tag = "1")]
+    pub slot_id: ::core::option::Option<super::super::types::slot::Id>,
+    /// Уровень глубины под просматриваемым слотом: 1 — первая линия. Ограничения 7 нет. 0 — ошибка.
+    #[prost(uint32, tag = "2")]
+    pub level: u32,
+    /// Курсор: последний слот предыдущей страницы. Должен стоять ровно на этом уровне под
+    /// просматриваемым слотом. Не указан — первая страница.
+    #[prost(message, optional, tag = "3")]
+    pub cursor: ::core::option::Option<super::super::types::slot::Id>,
+    /// Размер страницы: 1..100. Не указан, 0 или больше 100 — 100.
+    #[prost(uint32, optional, tag = "4")]
+    pub limit: ::core::option::Option<u32>,
+}
+/// Страница слотов уровня. Порядок всегда один: по дате первой активации лицензии, свежие первыми;
+/// при равной дате — больший slot_id выше; слоты без единой активации — в конце.
+/// Справочники как везде: `slot_ids` → `slots` → `slots\[\].distributor_id` → `distributors`
+/// → `distributors\[\].account_id` → `accounts`; дедуплицированы, сопоставлять по id.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLevelSlotsResponse {
+    /// Авторизованный слот
+    #[prost(uint32, tag = "1")]
+    pub executor_slot_id: u32,
+    /// Просматриваемый слот (его владелец — в шапке экрана)
+    #[prost(uint32, tag = "2")]
+    pub view_slot_id: u32,
+    /// Дерево обоих слотов
+    #[prost(uint32, tag = "3")]
+    pub tree_id: u32,
+    /// Запрошенный уровень
+    #[prost(uint32, tag = "4")]
+    pub level: u32,
+    /// Всего слотов на уровне (без учёта курсора)
+    #[prost(uint32, tag = "5")]
+    pub total_count: u32,
+    /// Страница: не более limit слотов
+    #[prost(uint32, repeated, tag = "6")]
+    pub slot_ids: ::prost::alloc::vec::Vec<u32>,
+    /// Есть следующая страница (курсор = последний из slot_ids)
+    #[prost(bool, tag = "7")]
+    pub has_more: bool,
+    /// view-слот и слоты страницы. `relationship_state` — положение относительно executor_slot_id
+    /// в слотовой иерархии.
+    #[prost(message, repeated, tag = "8")]
+    pub slots: ::prost::alloc::vec::Vec<super::super::types::Slot>,
+    /// Владельцы этих слотов. `relationship_state` — РЕФЕРАЛЬНАЯ связь с авторизованным
+    /// дистрибьютором: PERSONAL — вы, TEAM + level_diff 1 — First Line, TEAM + N — Team: N line,
+    /// UPLINE / NONE — Not in team.
+    #[prost(message, repeated, tag = "9")]
+    pub distributors: ::prost::alloc::vec::Vec<super::super::types::Distributor>,
+    #[prost(message, repeated, tag = "10")]
+    pub accounts: ::prost::alloc::vec::Vec<super::super::types::Account>,
+}
 /// Ответ с хлебными крошками по слотам — цепочкой от активного слота запрашивающего
 /// вниз до запрошенного слота. Плоские дедуплицированные справочники, как в
 /// SearchSlotsResponse: клиент джойнит `chain_ids` со `slots`,
@@ -411,6 +467,16 @@ pub mod marketing_service_server {
             request: tonic::Request<super::super::super::types::slot::Id>,
         ) -> std::result::Result<
             tonic::Response<super::GetSlotBreadcrumbsResponse>,
+            tonic::Status,
+        >;
+        /// Слоты одного уровня глубины под просматриваемым слотом (экран линии): свежие первыми по дате
+        /// ПЕРВОЙ активации лицензии, без ограничения MARKETING_LEVEL_LIMIT. Пагинация курсором —
+        /// последний slot_id предыдущей страницы. Права — те же, что у GetSlotV2.
+        async fn list_level_slots(
+            &self,
+            request: tonic::Request<super::ListLevelSlotsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLevelSlotsResponse>,
             tonic::Status,
         >;
         /// Деактивировать автопродление подписки для текущего слота.
@@ -1009,6 +1075,52 @@ pub mod marketing_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetSlotBreadcrumbsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.marketing.MarketingService/ListLevelSlots" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListLevelSlotsSvc<T: MarketingService>(pub Arc<T>);
+                    impl<
+                        T: MarketingService,
+                    > tonic::server::UnaryService<super::ListLevelSlotsRequest>
+                    for ListLevelSlotsSvc<T> {
+                        type Response = super::ListLevelSlotsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListLevelSlotsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as MarketingService>::list_level_slots(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListLevelSlotsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
