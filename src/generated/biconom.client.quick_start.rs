@@ -20,6 +20,23 @@ pub mod quick_start_service_server {
             tonic::Response<super::super::super::types::quick_start::State>,
             tonic::Status,
         >;
+        /// «Начать»: открыть окно (`duration`, на проде 24 ч) с текущего момента.
+        /// Один раз за всё время: повторный вызов ничего не меняет и возвращает
+        /// текущее состояние (окно не продлевается и не перезапускается). Сразу
+        /// после старта сервер засчитывает то, что уже выполнено (Telegram,
+        /// аватарка, личники), и сам проверяет членство в чатах — фронт опрашивает
+        /// `Get`, награды по цепочке приходят уведомлениями.
+        ///
+        /// Отказы (код — в сообщении ошибки):
+        ///
+        /// * FailedPrecondition `QUICK_START_NOT_ACTIVE` — программа выключена.
+        async fn start(
+            &self,
+            request: tonic::Request<()>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::types::quick_start::State>,
+            tonic::Status,
+        >;
         /// Поставить в очередь проверку членства в чате (Telegram `getChatMember`).
         /// Результат — в `TaskProgress.last_check` следующего `Get`: фронт опрашивает
         /// `Get`, пока `STATUS_PENDING`. Участник → задачи этого чата становятся
@@ -29,8 +46,8 @@ pub mod quick_start_service_server {
         ///
         /// Отказы (код — в сообщении ошибки):
         ///
-        /// * FailedPrecondition `QUICK_START_NOT_ACTIVE` — окно закрыто,
-        ///  программа выключена или прохождение уже завершено;
+        /// * FailedPrecondition `QUICK_START_NOT_ACTIVE` — «Начать» не нажато,
+        ///  окно закрыто, программа выключена или прохождение уже завершено;
         /// * FailedPrecondition `QUICK_START_TELEGRAM_NOT_LINKED`;
         /// * FailedPrecondition `QUICK_START_TELEGRAM_ALREADY_USED` — этот
         ///  Telegram-аккаунт уже засчитывал задачи другому дистрибьютору;
@@ -160,6 +177,46 @@ pub mod quick_start_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/biconom.client.quick_start.QuickStartService/Start" => {
+                    #[allow(non_camel_case_types)]
+                    struct StartSvc<T: QuickStartService>(pub Arc<T>);
+                    impl<T: QuickStartService> tonic::server::UnaryService<()>
+                    for StartSvc<T> {
+                        type Response = super::super::super::types::quick_start::State;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QuickStartService>::start(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = StartSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

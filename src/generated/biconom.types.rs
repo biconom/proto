@@ -10704,7 +10704,7 @@ pub mod quick_start {
         #[prost(message, optional, tag = "7")]
         pub last_check: ::core::option::Option<TelegramCheck>,
         /// Текущее значение условия; цель — `task.condition_count` для
-        /// `CONDITION_KIND_REFERRAL` (сколько личников уже пришло в окне), для
+        /// `CONDITION_KIND_REFERRAL` (сколько прямых личников сейчас, за всё время), для
         /// остальных видов — 1 (0 — не выполнено, 1 — выполнено).
         #[prost(uint32, tag = "8")]
         pub progress: u32,
@@ -10772,7 +10772,7 @@ pub mod quick_start {
     pub struct State {
         #[prost(enumeration = "state::Status", tag = "1")]
         pub status: i32,
-        /// Конец окна = регистрация + `duration`.
+        /// Конец окна = `started_at` + `duration_secs`; пусто до старта.
         #[prost(message, optional, tag = "2")]
         pub deadline_at: ::core::option::Option<::prost_types::Timestamp>,
         /// Неархивные задачи + архивные, закрытые этим дистрибьютором.
@@ -10790,6 +10790,12 @@ pub mod quick_start {
         /// `TELEGRAM_STATUS_LINKED`.
         #[prost(enumeration = "TelegramStatus", tag = "6")]
         pub telegram: i32,
+        /// Начало окна — нажатие «Начать»; пусто до старта.
+        #[prost(message, optional, tag = "7")]
+        pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// Длина окна в секундах (на проде 86400) — для текста «24 часа» до старта.
+        #[prost(uint32, tag = "8")]
+        pub duration_secs: u32,
     }
     /// Nested message and enum types in `State`.
     pub mod state {
@@ -10817,6 +10823,10 @@ pub mod quick_start {
             Expired = 3,
             /// Программа выключена в YAML; `tasks` пуст.
             Unavailable = 4,
+            /// «Начать» ещё не нажато: показать кнопку `Start`. Задачи видны со
+            /// статусами по графу (LOCKED / ACTIVE; COMPLETED — если уже
+            /// закрыты), срок не идёт, `deadline_at` и `started_at` пусты.
+            NotStarted = 5,
         }
         impl Status {
             /// String value of the enum field names used in the ProtoBuf definition.
@@ -10830,6 +10840,7 @@ pub mod quick_start {
                     Self::Completed => "STATUS_COMPLETED",
                     Self::Expired => "STATUS_EXPIRED",
                     Self::Unavailable => "STATUS_UNAVAILABLE",
+                    Self::NotStarted => "STATUS_NOT_STARTED",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
@@ -10840,6 +10851,7 @@ pub mod quick_start {
                     "STATUS_COMPLETED" => Some(Self::Completed),
                     "STATUS_EXPIRED" => Some(Self::Expired),
                     "STATUS_UNAVAILABLE" => Some(Self::Unavailable),
+                    "STATUS_NOT_STARTED" => Some(Self::NotStarted),
                     _ => None,
                 }
             }

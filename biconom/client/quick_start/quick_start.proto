@@ -17,6 +17,17 @@ service QuickStartService {
     // Состояние прохождения. После окна закрытые задачи остаются видны.
     rpc Get(google.protobuf.Empty) returns (biconom.types.QuickStart.State);
 
+    // «Начать»: открыть окно (`duration`, на проде 24 ч) с текущего момента.
+    // Один раз за всё время: повторный вызов ничего не меняет и возвращает
+    // текущее состояние (окно не продлевается и не перезапускается). Сразу
+    // после старта сервер засчитывает то, что уже выполнено (Telegram,
+    // аватарка, личники), и сам проверяет членство в чатах — фронт опрашивает
+    // `Get`, награды по цепочке приходят уведомлениями.
+    //
+    // Отказы (код — в сообщении ошибки):
+    //   * FailedPrecondition `QUICK_START_NOT_ACTIVE` — программа выключена.
+    rpc Start(google.protobuf.Empty) returns (biconom.types.QuickStart.State);
+
     // Поставить в очередь проверку членства в чате (Telegram `getChatMember`).
     // Результат — в `TaskProgress.last_check` следующего `Get`: фронт опрашивает
     // `Get`, пока `STATUS_PENDING`. Участник → задачи этого чата становятся
@@ -25,8 +36,8 @@ service QuickStartService {
     // Проверять можно и задачу, закрытую родителем: выполнение запомнится.
     //
     // Отказы (код — в сообщении ошибки):
-    //   * FailedPrecondition `QUICK_START_NOT_ACTIVE` — окно закрыто,
-    //     программа выключена или прохождение уже завершено;
+    //   * FailedPrecondition `QUICK_START_NOT_ACTIVE` — «Начать» не нажато,
+    //     окно закрыто, программа выключена или прохождение уже завершено;
     //   * FailedPrecondition `QUICK_START_TELEGRAM_NOT_LINKED`;
     //   * FailedPrecondition `QUICK_START_TELEGRAM_ALREADY_USED` — этот
     //     Telegram-аккаунт уже засчитывал задачи другому дистрибьютору;
