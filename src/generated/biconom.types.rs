@@ -5874,6 +5874,13 @@ pub mod staking {
         /// `MarketingService.SetMarketingFlags`; курс без флага ничего не даёт.
         #[prost(string, tag = "4")]
         pub promo_winzu_rate: ::prost::alloc::string::String,
+        /// Промо-акция стейкинга «токен за депозит» включена: за пополнение тела
+        /// депозита сейчас дарится WINZU по `promo_winzu_rate`. `false` — фронт
+        /// не показывает блок акции (курс при этом может оставаться заполненным).
+        /// ТОЛЬКО ЧТЕНИЕ: зеркало бита `staking_promo_winzu` из
+        /// `MarketingService.SetMarketingFlags`; `UpdateSettings` поле не принимает.
+        #[prost(bool, tag = "5")]
+        pub staking_promo_winzu_enabled: bool,
     }
     /// Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
     #[derive(Clone, PartialEq, ::prost::Message)]

@@ -612,6 +612,12 @@ message Staking {
         // Сама акция включается битом `staking_promo_winzu` в
         // `MarketingService.SetMarketingFlags`; курс без флага ничего не даёт.
         string promo_winzu_rate = 4;
+        // Промо-акция стейкинга «токен за депозит» включена: за пополнение тела
+        // депозита сейчас дарится WINZU по `promo_winzu_rate`. `false` — фронт
+        // не показывает блок акции (курс при этом может оставаться заполненным).
+        // ТОЛЬКО ЧТЕНИЕ: зеркало бита `staking_promo_winzu` из
+        // `MarketingService.SetMarketingFlags`; `UpdateSettings` поле не принимает.
+        bool staking_promo_winzu_enabled = 5;
     }
 
     // Полная конфигурация модуля: неизменяемая экономика + изменяемые настройки.
