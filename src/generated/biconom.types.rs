@@ -974,12 +974,36 @@ pub mod transaction {
             pub amount: ::prost::alloc::string::String,
             #[prost(
                 oneof = "entry::Details",
-                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35"
+                tags = "4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37"
             )]
             pub details: ::core::option::Option<entry::Details>,
         }
         /// Nested message and enum types in `Entry`.
         pub mod entry {
+            /// Списание WIN_TIME за билет лотереи «5 из 36»; сумма — в `amount`.
+            #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct LotteryTicketDetails {
+                /// Тираж (YYYYMMDD).
+                #[prost(uint32, tag = "1")]
+                pub draw_id: u32,
+                #[prost(uint64, tag = "2")]
+                pub ticket_id: u64,
+                /// Числа билета по возрастанию.
+                #[prost(uint32, repeated, tag = "3")]
+                pub numbers: ::prost::alloc::vec::Vec<u32>,
+            }
+            /// Начисление выигрыша лотереи (одна часть фонда); сумма — в `amount`.
+            #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+            pub struct LotteryPrizeDetails {
+                #[prost(uint32, tag = "1")]
+                pub draw_id: u32,
+                #[prost(uint64, tag = "2")]
+                pub ticket_id: u64,
+                /// Вид части фонда: `biconom.types.Lottery.Prize.Kind` (числом,
+                /// чтобы transaction.proto не импортировал lottery.proto).
+                #[prost(uint32, tag = "3")]
+                pub prize_kind: u32,
+            }
             /// Метаданные для карточки пополнения (Receive)
             #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct ReceiveDetails {
@@ -1586,6 +1610,10 @@ pub mod transaction {
                 QuickStartTaskReward(QuickStartTaskRewardDetails),
                 #[prost(message, tag = "35")]
                 QuickStartCompletionBonus(QuickStartCompletionBonusDetails),
+                #[prost(message, tag = "36")]
+                LotteryTicket(LotteryTicketDetails),
+                #[prost(message, tag = "37")]
+                LotteryPrize(LotteryPrizeDetails),
             }
         }
     }
@@ -10497,6 +10525,347 @@ pub mod wintime_shop {
             /// Отменены администратором.
             #[prost(uint64, tag = "3")]
             pub cancelled: u64,
+        }
+    }
+}
+/// Переиспользуемые модели суточной лотереи «5 из 36» (`lottery`).
+///
+/// Один тираж живёт сутки. Идентификатор тиража — UTC-дата его раскрытия в виде
+/// числа YYYYMMDD (например 20261118). Точки жизни тиража (всё по UTC):
+///
+/// * sales_open_at  = (дата − 1 сутки) 00:00 — приём билетов открыт, сервер
+///   публикует `server_seed_hash` и фиксирует призовой фонд;
+/// * sales_close_at = (дата − 1 сутки) 23:55 — приём закрыт; с 23:55 до 00:00
+///   купить билет нельзя (переноса в следующий тираж нет);
+/// * после закрытия сервер ждёт внешнюю случайность (блок BSC) и считает числа
+///   и победителей (наружу не отдаются);
+/// * reveals_at     = дата 00:00 — числа и все данные для проверки открываются,
+///   начинаются начисления призов. Если к 00:00 числа ещё не
+///   вычислены (ждём блок), раскрытие сдвигается до момента
+///   вычисления.
+///
+/// Числа тиража НЕ известны никому до закрытия продаж: они вычисляются из трёх
+/// частей, две из которых появляются только после 23:55 (см. lottery.md,
+/// раздел «Алгоритм»):
+/// numbers = pick5of36( HMAC-SHA256(server_seed, "win5draw" ‖ draw_id ‖ tickets_root ‖ entropy ‖ counter) )
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Lottery {}
+/// Nested message and enum types in `Lottery`.
+pub mod lottery {
+    /// Приз — одна часть призового фонда.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct Prize {
+        #[prost(enumeration = "prize::Kind", tag = "1")]
+        pub kind: i32,
+        #[prost(uint32, tag = "2")]
+        pub currency_id: u32,
+        /// Сумма в единицах валюты, десятичная строка с точностью валюты
+        /// (как `Transaction.Group.Entry.amount`).
+        #[prost(string, tag = "3")]
+        pub amount: ::prost::alloc::string::String,
+        /// Символ валюты (`USDT`, `WINZU`…) — заполняет сервер, чтобы фронт
+        /// лотереи не ходил в справочник валют (Lottery-токен туда не пускает).
+        #[prost(string, tag = "4")]
+        pub currency_symbol: ::prost::alloc::string::String,
+    }
+    /// Nested message and enum types in `Prize`.
+    pub mod prize {
+        /// Куда зачисляется приз. Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Kind {
+            Unspecified = 0,
+            /// Зачисление валюты `currency_id` на спот-кошелёк победителя
+            /// (USDT, WINZU и любая другая валюта движка).
+            Wallet = 1,
+            /// Стейкинг-депозит на сумму `amount` в валюте стейкинга
+            /// (`currency_id` — валюта стейкинга, заполняется сервером).
+            StakingDeposit = 2,
+        }
+        impl Kind {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "KIND_UNSPECIFIED",
+                    Self::Wallet => "KIND_WALLET",
+                    Self::StakingDeposit => "KIND_STAKING_DEPOSIT",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "KIND_UNSPECIFIED" => Some(Self::Unspecified),
+                    "KIND_WALLET" => Some(Self::Wallet),
+                    "KIND_STAKING_DEPOSIT" => Some(Self::StakingDeposit),
+                    _ => None,
+                }
+            }
+        }
+    }
+    /// Призовой фонд: делится поровну между всеми угадавшими 5 из 5. Остаток от
+    /// целочисленного деления (в минимальных единицах валюты) не выплачивается.
+    /// Не накапливается: если победителей нет, фонд тиража не переносится.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Fund {
+        #[prost(message, repeated, tag = "1")]
+        pub items: ::prost::alloc::vec::Vec<Prize>,
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Draw {
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
+        #[prost(enumeration = "draw::Status", tag = "2")]
+        pub status: i32,
+        #[prost(message, optional, tag = "3")]
+        pub sales_open_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "4")]
+        pub sales_close_at: ::core::option::Option<::prost_types::Timestamp>,
+        #[prost(message, optional, tag = "5")]
+        pub reveals_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// hex(SHA-256(server_seed)) — публикуется при открытии продаж.
+        #[prost(string, tag = "6")]
+        pub server_seed_hash: ::prost::alloc::string::String,
+        /// Призовой фонд, зафиксированный при открытии продаж. Правка фонда в
+        /// админке действует только на тиражи, открывшиеся после неё.
+        #[prost(message, optional, tag = "7")]
+        pub fund: ::core::option::Option<Fund>,
+        /// Продано билетов (растёт до закрытия продаж).
+        #[prost(uint32, tag = "8")]
+        pub tickets_sold: u32,
+        /// Раскрыт ли тираж (now ≥ reveals_at и числа вычислены). Поля ниже до
+        /// раскрытия пустые.
+        #[prost(bool, tag = "9")]
+        pub revealed: bool,
+        /// Выигрышные числа по возрастанию.
+        #[prost(uint32, repeated, tag = "10")]
+        pub numbers: ::prost::alloc::vec::Vec<u32>,
+        /// hex(server_seed), 32 байта.
+        #[prost(string, tag = "11")]
+        pub server_seed: ::prost::alloc::string::String,
+        /// hex(SHA-256(отсортированные отпечатки всех билетов)) — см. lottery.md.
+        #[prost(string, tag = "12")]
+        pub tickets_root: ::prost::alloc::string::String,
+        #[prost(enumeration = "draw::EntropySource", tag = "13")]
+        pub entropy_source: i32,
+        /// Только для ENTROPY_SOURCE_BSC_BLOCK.
+        #[prost(uint64, tag = "14")]
+        pub bsc_block_height: u64,
+        #[prost(string, tag = "15")]
+        pub bsc_block_hash: ::prost::alloc::string::String,
+        /// Число билетов, угадавших 5 из 5.
+        #[prost(uint32, tag = "16")]
+        pub winners: u32,
+        /// Доля одного победителя (фонд / winners по каждой части). Пусто, если
+        /// победителей нет.
+        #[prost(message, repeated, tag = "17")]
+        pub prize_per_winner: ::prost::alloc::vec::Vec<Prize>,
+    }
+    /// Nested message and enum types in `Draw`.
+    pub mod draw {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+        pub struct Id {
+            /// YYYYMMDD — UTC-дата раскрытия.
+            #[prost(uint32, tag = "1")]
+            pub id: u32,
+        }
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Draw>,
+        }
+        /// Стадия тиража. Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Приём билетов открыт.
+            Open = 1,
+            /// Приём закрыт, сервер ждёт внешнюю случайность.
+            Closed = 2,
+            /// Числа и победители вычислены. До reveals_at они скрыты; призы
+            /// начисляются только после reveals_at (баланс победителя не должен
+            /// выдать результат раньше раскрытия).
+            Drawn = 3,
+            /// Все призы начислены (или победителей нет).
+            Paid = 4,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Open => "STATUS_OPEN",
+                    Self::Closed => "STATUS_CLOSED",
+                    Self::Drawn => "STATUS_DRAWN",
+                    Self::Paid => "STATUS_PAID",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_OPEN" => Some(Self::Open),
+                    "STATUS_CLOSED" => Some(Self::Closed),
+                    "STATUS_DRAWN" => Some(Self::Drawn),
+                    "STATUS_PAID" => Some(Self::Paid),
+                    _ => None,
+                }
+            }
+        }
+        /// Источник внешней случайности тиража. Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum EntropySource {
+            Unspecified = 0,
+            /// Хэш блока BSC: первый принятый блок с временем ≥ sales_close_at + 30 с,
+            /// взят после 15 подтверждений. Не известен никому, включая оператора,
+            /// до закрытия продаж.
+            BscBlock = 1,
+            /// Внешний блок недоступен: числа вычислены только из server_seed и
+            /// tickets_root. Посторонний подобрать результат не может, но это
+            /// слабее, чем BSC_BLOCK — интерфейс обязан это показать.
+            Internal = 2,
+        }
+        impl EntropySource {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "ENTROPY_SOURCE_UNSPECIFIED",
+                    Self::BscBlock => "ENTROPY_SOURCE_BSC_BLOCK",
+                    Self::Internal => "ENTROPY_SOURCE_INTERNAL",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "ENTROPY_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
+                    "ENTROPY_SOURCE_BSC_BLOCK" => Some(Self::BscBlock),
+                    "ENTROPY_SOURCE_INTERNAL" => Some(Self::Internal),
+                    _ => None,
+                }
+            }
+        }
+    }
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Ticket {
+        #[prost(uint64, tag = "1")]
+        pub id: u64,
+        #[prost(uint32, tag = "2")]
+        pub draw_id: u32,
+        /// 5 разных чисел 1..36 по возрастанию.
+        #[prost(uint32, repeated, tag = "3")]
+        pub numbers: ::prost::alloc::vec::Vec<u32>,
+        #[prost(enumeration = "ticket::Status", tag = "4")]
+        pub status: i32,
+        /// Совпадений с выигрышными числами (после раскрытия).
+        #[prost(uint32, tag = "5")]
+        pub matches: u32,
+        #[prost(message, optional, tag = "6")]
+        pub purchased_at: ::core::option::Option<::prost_types::Timestamp>,
+        /// hex — отпечаток билета: входит в список тиража (`GetDrawProof`).
+        #[prost(string, tag = "7")]
+        pub digest: ::prost::alloc::string::String,
+        /// hex — соль билета (16 байт). Отдаётся ВЛАДЕЛЬЦУ после раскрытия, чтобы он
+        /// мог пересчитать свой `digest` и найти его в списке тиража.
+        #[prost(string, tag = "8")]
+        pub salt: ::prost::alloc::string::String,
+        /// Начисленный выигрыш (только STATUS_WON).
+        #[prost(message, repeated, tag = "9")]
+        pub payout: ::prost::alloc::vec::Vec<Prize>,
+        /// Все ли части выигрыша уже зачислены.
+        #[prost(bool, tag = "10")]
+        pub payout_completed: bool,
+    }
+    /// Nested message and enum types in `Ticket`.
+    pub mod ticket {
+        #[derive(Clone, PartialEq, ::prost::Message)]
+        pub struct List {
+            #[prost(message, repeated, tag = "1")]
+            pub items: ::prost::alloc::vec::Vec<super::Ticket>,
+        }
+        /// Значения append-only.
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
+        )]
+        #[repr(i32)]
+        pub enum Status {
+            Unspecified = 0,
+            /// Оплачен, тираж ещё не раскрыт.
+            Active = 1,
+            /// Угадал 5 из 5.
+            Won = 2,
+            Lost = 3,
+        }
+        impl Status {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    Self::Unspecified => "STATUS_UNSPECIFIED",
+                    Self::Active => "STATUS_ACTIVE",
+                    Self::Won => "STATUS_WON",
+                    Self::Lost => "STATUS_LOST",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+                    "STATUS_ACTIVE" => Some(Self::Active),
+                    "STATUS_WON" => Some(Self::Won),
+                    "STATUS_LOST" => Some(Self::Lost),
+                    _ => None,
+                }
+            }
         }
     }
 }

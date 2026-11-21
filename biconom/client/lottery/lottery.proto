@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package biconom.client.lottery;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "biconom/types/lottery.proto";
+import "biconom/types/transaction.proto";
+
+// LotteryService — клиентская суточная лотерея «5 из 36».
+//
+// Игрок — дистрибьютор из контекста авторизации, НИКОГДА не из запроса.
+// Принимаются два вида авторизации (`authorization: Bearer …`):
+//   * обычный Session-токен (основной фронт на том же домене);
+//   * Lottery-токен — выдаётся `ExchangeLaunchCode` для фронта лотереи на
+//     отдельном поддомене. Он действует ТОЛЬКО в этом сервисе, привязан к
+//     родительской сессии (её отзыв/истечение/бан пользователя сразу гасят
+//     Lottery-токен) и не даёт доступа ни к выводам, ни к переводам.
+// `x-act-as` (вход админа под пользователем) в лотерее не поддерживается:
+// покупка и выдача кода под чужим именем отклоняются (ACCESS_SCOPE_DENIED).
+service LotteryService {
+    // Основной фронт (Session-токен) получает одноразовый код на 60 секунд и
+    // открывает фронт лотереи с ним: `https://<поддомен>/#code=<code>`.
+    // Lottery-токеном вызвать нельзя.
+    rpc CreateLaunchCode(google.protobuf.Empty) returns (LaunchCode);
+
+    // Фронт лотереи меняет код на Lottery-токен. Вызывается БЕЗ авторизации.
+    // Код одноразовый: повтор / просроченный код — UNAUTHENTICATED
+    // (LOTTERY_LAUNCH_CODE_INVALID).
+    rpc ExchangeLaunchCode(ExchangeLaunchCodeRequest) returns (LotteryToken);
+
+    // Состояние экрана: тираж, в который сейчас идёт продажа (или ближайший,
+    // если сейчас окно 23:55–00:00), последний раскрытый тираж, цена, баланс
+    // WinTime, свой билет на текущий тираж, допуск.
+    rpc GetState(google.protobuf.Empty) returns (State);
+
+    // Купить билет в тираж `draw_id` (должен совпадать с открытым сейчас — иначе
+    // FailedPrecondition LOTTERY_SALES_CLOSED). Пустой `numbers` — сервер выберет
+    // числа сам. Один билет на дистрибьютора на тираж: повторный вызов
+    // возвращает уже купленный билет с `replayed = true` и НЕ списывает WinTime
+    // повторно (безопасно повторять при обрыве связи).
+    // Ошибки (FailedPrecondition): LOTTERY_DISABLED, LOTTERY_SALES_CLOSED,
+    // LOTTERY_NOT_ELIGIBLE, LOTTERY_INVALID_NUMBERS (InvalidArgument),
+    // LEDGER_INSUFFICIENT_FUNDS.
+    rpc BuyTicket(BuyTicketRequest) returns (BuyTicketResponse);
+
+    // Свои билеты, новые сверху.
+    rpc ListMyTickets(ListMyTicketsRequest) returns (biconom.types.Lottery.Ticket.List);
+
+    // Архив тиражей (раскрытые и текущие), новые сверху.
+    rpc ListDraws(ListDrawsRequest) returns (biconom.types.Lottery.Draw.List);
+
+    rpc GetDraw(biconom.types.Lottery.Draw.Id) returns (biconom.types.Lottery.Draw);
+
+    // Данные для независимой проверки раскрытого тиража: все отпечатки билетов.
+    // До раскрытия — FailedPrecondition LOTTERY_DRAW_NOT_REVEALED.
+    rpc GetDrawProof(biconom.types.Lottery.Draw.Id) returns (DrawProof);
+}
+
+message LaunchCode {
+    string code = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
+
+message ExchangeLaunchCodeRequest {
+    string code = 1;
+}
+
+message LotteryToken {
+    // Передавать как `authorization: Bearer <token>`.
+    string token = 1;
+    // Не позже срока родительской сессии.
+    google.protobuf.Timestamp expires_at = 2;
+    uint32 distributor_id = 3;
+    // Логин дистрибьютора — для шапки фронта лотереи.
+    string username = 4;
+}
+
+message State {
+    // Серверное время — фронт считает таймеры от него, а не от часов браузера.
+    google.protobuf.Timestamp now = 1;
+    // Лотерея включена. false — продажи закрыты, архив доступен.
+    bool enabled = 2;
+    // Тираж, в который идёт продажа; в окно 23:55–00:00 — следующий (ещё не
+    // открытый, `status = STATUS_UNSPECIFIED`, только расписание и фонд).
+    biconom.types.Lottery.Draw current = 3;
+    // Последний раскрытый тираж (если был).
+    optional biconom.types.Lottery.Draw last_revealed = 4;
+    // Цена билета в целых WinTime.
+    uint64 price_wintime = 5;
+    // Доступный к списанию остаток WinTime (целые токены).
+    uint64 wintime_balance = 6;
+    // Свой билет на `current` (если куплен).
+    optional biconom.types.Lottery.Ticket my_ticket = 7;
+    // Выполнены ли условия допуска (маска как у WinTime-магазина:
+    // `WintimeShop.Product.RequiredLicense`).
+    bool eligible = 8;
+    uint32 required_license_bit_mask = 9;
+}
+
+message BuyTicketRequest {
+    uint32 draw_id = 1;
+    // 5 разных чисел 1..36 в любом порядке; пусто — выбор сервера.
+    repeated uint32 numbers = 2;
+}
+
+message BuyTicketResponse {
+    biconom.types.Lottery.Ticket ticket = 1;
+    // true — билет уже был куплен раньше, WinTime не списан повторно.
+    bool replayed = 2;
+    // Транзакция списания (как элемент `TransactionService.History`).
+    biconom.types.Transaction.Group transaction = 3;
+    // Остаток WinTime после покупки.
+    uint64 wintime_balance = 4;
+}
+
+message ListMyTicketsRequest {
+    // 0 → 30; максимум 200.
+    uint32 limit = 1;
+    // Пагинация: билеты тиражей строго раньше этого id; 0 — с начала.
+    uint32 before_draw_id = 2;
+}
+
+message ListDrawsRequest {
+    // 0 → 30; максимум 200.
+    uint32 limit = 1;
+    uint32 before_draw_id = 2;
+}
+
+message DrawProof {
+    biconom.types.Lottery.Draw draw = 1;
+    // hex-отпечатки всех билетов тиража, отсортированные по байтам.
+    // SHA-256(конкатенация сырых байт в этом порядке) == draw.tickets_root.
+    repeated string ticket_digests = 2;
+}

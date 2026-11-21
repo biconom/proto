@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package biconom.types;
+
+import "google/protobuf/timestamp.proto";
+
+// Переиспользуемые модели суточной лотереи «5 из 36» (`lottery`).
+//
+// Один тираж живёт сутки. Идентификатор тиража — UTC-дата его раскрытия в виде
+// числа YYYYMMDD (например 20261118). Точки жизни тиража (всё по UTC):
+//   * sales_open_at  = (дата − 1 сутки) 00:00 — приём билетов открыт, сервер
+//                      публикует `server_seed_hash` и фиксирует призовой фонд;
+//   * sales_close_at = (дата − 1 сутки) 23:55 — приём закрыт; с 23:55 до 00:00
+//                      купить билет нельзя (переноса в следующий тираж нет);
+//   * после закрытия сервер ждёт внешнюю случайность (блок BSC) и считает числа
+//                      и победителей (наружу не отдаются);
+//   * reveals_at     = дата 00:00 — числа и все данные для проверки открываются,
+//                      начинаются начисления призов. Если к 00:00 числа ещё не
+//                      вычислены (ждём блок), раскрытие сдвигается до момента
+//                      вычисления.
+//
+// Числа тиража НЕ известны никому до закрытия продаж: они вычисляются из трёх
+// частей, две из которых появляются только после 23:55 (см. lottery.md,
+// раздел «Алгоритм»):
+//   numbers = pick5of36( HMAC-SHA256(server_seed, "win5draw" ‖ draw_id ‖ tickets_root ‖ entropy ‖ counter) )
+message Lottery {
+    // Приз — одна часть призового фонда.
+    message Prize {
+        // Куда зачисляется приз. Значения append-only.
+        enum Kind {
+            KIND_UNSPECIFIED = 0;
+            // Зачисление валюты `currency_id` на спот-кошелёк победителя
+            // (USDT, WINZU и любая другая валюта движка).
+            KIND_WALLET = 1;
+            // Стейкинг-депозит на сумму `amount` в валюте стейкинга
+            // (`currency_id` — валюта стейкинга, заполняется сервером).
+            KIND_STAKING_DEPOSIT = 2;
+        }
+        Kind kind = 1;
+        uint32 currency_id = 2;
+        // Сумма в единицах валюты, десятичная строка с точностью валюты
+        // (как `Transaction.Group.Entry.amount`).
+        string amount = 3;
+        // Символ валюты (`USDT`, `WINZU`…) — заполняет сервер, чтобы фронт
+        // лотереи не ходил в справочник валют (Lottery-токен туда не пускает).
+        string currency_symbol = 4;
+    }
+
+    // Призовой фонд: делится поровну между всеми угадавшими 5 из 5. Остаток от
+    // целочисленного деления (в минимальных единицах валюты) не выплачивается.
+    // Не накапливается: если победителей нет, фонд тиража не переносится.
+    message Fund {
+        repeated Prize items = 1;
+    }
+
+    message Draw {
+        message Id {
+            // YYYYMMDD — UTC-дата раскрытия.
+            uint32 id = 1;
+        }
+        message List {
+            repeated Draw items = 1;
+        }
+
+        // Стадия тиража. Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // Приём билетов открыт.
+            STATUS_OPEN = 1;
+            // Приём закрыт, сервер ждёт внешнюю случайность.
+            STATUS_CLOSED = 2;
+            // Числа и победители вычислены. До reveals_at они скрыты; призы
+            // начисляются только после reveals_at (баланс победителя не должен
+            // выдать результат раньше раскрытия).
+            STATUS_DRAWN = 3;
+            // Все призы начислены (или победителей нет).
+            STATUS_PAID = 4;
+        }
+
+        // Источник внешней случайности тиража. Значения append-only.
+        enum EntropySource {
+            ENTROPY_SOURCE_UNSPECIFIED = 0;
+            // Хэш блока BSC: первый принятый блок с временем ≥ sales_close_at + 30 с,
+            // взят после 15 подтверждений. Не известен никому, включая оператора,
+            // до закрытия продаж.
+            ENTROPY_SOURCE_BSC_BLOCK = 1;
+            // Внешний блок недоступен: числа вычислены только из server_seed и
+            // tickets_root. Посторонний подобрать результат не может, но это
+            // слабее, чем BSC_BLOCK — интерфейс обязан это показать.
+            ENTROPY_SOURCE_INTERNAL = 2;
+        }
+
+        uint32 id = 1;
+        Status status = 2;
+        google.protobuf.Timestamp sales_open_at = 3;
+        google.protobuf.Timestamp sales_close_at = 4;
+        google.protobuf.Timestamp reveals_at = 5;
+        // hex(SHA-256(server_seed)) — публикуется при открытии продаж.
+        string server_seed_hash = 6;
+        // Призовой фонд, зафиксированный при открытии продаж. Правка фонда в
+        // админке действует только на тиражи, открывшиеся после неё.
+        Fund fund = 7;
+        // Продано билетов (растёт до закрытия продаж).
+        uint32 tickets_sold = 8;
+        // Раскрыт ли тираж (now ≥ reveals_at и числа вычислены). Поля ниже до
+        // раскрытия пустые.
+        bool revealed = 9;
+        // Выигрышные числа по возрастанию.
+        repeated uint32 numbers = 10;
+        // hex(server_seed), 32 байта.
+        string server_seed = 11;
+        // hex(SHA-256(отсортированные отпечатки всех билетов)) — см. lottery.md.
+        string tickets_root = 12;
+        EntropySource entropy_source = 13;
+        // Только для ENTROPY_SOURCE_BSC_BLOCK.
+        uint64 bsc_block_height = 14;
+        string bsc_block_hash = 15;
+        // Число билетов, угадавших 5 из 5.
+        uint32 winners = 16;
+        // Доля одного победителя (фонд / winners по каждой части). Пусто, если
+        // победителей нет.
+        repeated Prize prize_per_winner = 17;
+    }
+
+    message Ticket {
+        message List {
+            repeated Ticket items = 1;
+        }
+
+        // Значения append-only.
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            // Оплачен, тираж ещё не раскрыт.
+            STATUS_ACTIVE = 1;
+            // Угадал 5 из 5.
+            STATUS_WON = 2;
+            STATUS_LOST = 3;
+        }
+
+        uint64 id = 1;
+        uint32 draw_id = 2;
+        // 5 разных чисел 1..36 по возрастанию.
+        repeated uint32 numbers = 3;
+        Status status = 4;
+        // Совпадений с выигрышными числами (после раскрытия).
+        uint32 matches = 5;
+        google.protobuf.Timestamp purchased_at = 6;
+        // hex — отпечаток билета: входит в список тиража (`GetDrawProof`).
+        string digest = 7;
+        // hex — соль билета (16 байт). Отдаётся ВЛАДЕЛЬЦУ после раскрытия, чтобы он
+        // мог пересчитать свой `digest` и найти его в списке тиража.
+        string salt = 8;
+        // Начисленный выигрыш (только STATUS_WON).
+        repeated Prize payout = 9;
+        // Все ли части выигрыша уже зачислены.
+        bool payout_completed = 10;
+    }
+}

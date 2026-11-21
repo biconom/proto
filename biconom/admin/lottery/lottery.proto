@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package biconom.admin.lottery;
+
+import "google/protobuf/empty.proto";
+import "biconom/types/lottery.proto";
+
+// LotteryAdminService — управление лотереей «5 из 36».
+//
+// Доступ — Permission::ADMIN_LOTTERY (изменение настроек — Permission::ROOT).
+// Админ НЕ видит server_seed и числа тиража до раскрытия — ни в одном методе.
+service LotteryAdminService {
+    rpc GetSettings(google.protobuf.Empty) returns (Settings);
+
+    // Новые настройки действуют на тиражи, которые ОТКРОЮТСЯ после изменения:
+    // фонд и цена уже открытого тиража не меняются (игрок покупает билет по
+    // условиям, опубликованным при открытии продаж).
+    rpc UpdateSettings(Settings) returns (Settings);
+
+    // Тиражи с продажами и статусом выплат, новые сверху.
+    rpc ListDraws(ListDrawsRequest) returns (AdminDraw.List);
+
+    rpc GetDraw(biconom.types.Lottery.Draw.Id) returns (AdminDraw);
+}
+
+message Settings {
+    // Продажи включены. Выключение не трогает уже купленные билеты: открытый
+    // тираж доигрывается и выплачивается.
+    bool enabled = 1;
+    // Цена билета в целых WinTime (> 0).
+    uint64 price_wintime = 2;
+    // Условия допуска — биты `WintimeShop.Product.RequiredLicense`; 0 — без
+    // условий (кроме обязательного: пользователь не забанен).
+    uint32 required_license_bit_mask = 3;
+    // Призовой фонд для следующих тиражей. Части KIND_WALLET — валюта по
+    // `currency_id`; KIND_STAKING_DEPOSIT — `currency_id` игнорируется.
+    biconom.types.Lottery.Fund fund = 4;
+}
+
+message ListDrawsRequest {
+    uint32 limit = 1;
+    uint32 before_draw_id = 2;
+}
+
+message AdminDraw {
+    message List {
+        repeated AdminDraw items = 1;
+    }
+    message Winner {
+        uint32 distributor_id = 1;
+        uint64 ticket_id = 2;
+        repeated biconom.types.Lottery.Prize payout = 3;
+        // Все части зачислены.
+        bool paid = 4;
+        // Последняя ошибка начисления (сервер повторяет сам).
+        string last_error = 5;
+    }
+    // Публичное представление (до раскрытия — без чисел и seed).
+    biconom.types.Lottery.Draw draw = 1;
+    // Списано WinTime за билеты (целые токены).
+    uint64 wintime_collected = 2;
+    // Победители — только после раскрытия.
+    repeated Winner winners = 3;
+}

@@ -59,6 +59,26 @@ message Transaction {
                 StakingExtraIncomeDetails staking_extra_income = 33;
                 QuickStartTaskRewardDetails quick_start_task_reward = 34;
                 QuickStartCompletionBonusDetails quick_start_completion_bonus = 35;
+                LotteryTicketDetails lottery_ticket = 36;
+                LotteryPrizeDetails lottery_prize = 37;
+            }
+
+            // Списание WIN_TIME за билет лотереи «5 из 36»; сумма — в `amount`.
+            message LotteryTicketDetails {
+                // Тираж (YYYYMMDD).
+                uint32 draw_id = 1;
+                uint64 ticket_id = 2;
+                // Числа билета по возрастанию.
+                repeated uint32 numbers = 3;
+            }
+
+            // Начисление выигрыша лотереи (одна часть фонда); сумма — в `amount`.
+            message LotteryPrizeDetails {
+                uint32 draw_id = 1;
+                uint64 ticket_id = 2;
+                // Вид части фонда: `biconom.types.Lottery.Prize.Kind` (числом,
+                // чтобы transaction.proto не импортировал lottery.proto).
+                uint32 prize_kind = 3;
             }
 
             // Метаданные для карточки пополнения (Receive)
