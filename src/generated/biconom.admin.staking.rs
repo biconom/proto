@@ -49,7 +49,7 @@ pub struct ListObligationsRequest {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetRankBonusAutoReleaseRequest {
-    /// Ранг 1..12. У рангов 1..3 бонуса нет, настройка неприменима — InvalidArgument.
+    /// УСТАРЕЛ (core 1.10.64): метод отвечает FAILED_PRECONDITION, см. SetRankBonusAutoRelease.
     #[prost(uint32, tag = "1")]
     pub rank: u32,
     #[prost(bool, tag = "2")]
@@ -277,8 +277,8 @@ pub mod staking_admin_service_server {
             tonic::Response<super::super::super::types::staking::Obligation>,
             tonic::Status,
         >;
-        /// Настройки автовыплаты бонусов за достижение: 12 строк
-        /// (ранг, сумма бонуса, флаг авто).
+        /// Выплаты за достижение рангов: 12 строк (ранг, выплаты по валютам, режим
+        /// каждой). Read-only: источник — секция `staking_rank_bonus` конфига ядра.
         async fn list_rank_bonus_settings(
             &self,
             request: tonic::Request<()>,
@@ -288,12 +288,9 @@ pub mod staking_admin_service_server {
             >,
             tonic::Status,
         >;
-        /// Включить/выключить автовыплату бонуса за достижение для ОДНОГО ранга.
-        ///
-        /// Действует только на БУДУЩИЕ достижения. Уже висящие невыплаченные
-        /// обязательства автоматически не выплачиваются — их по-прежнему нужно
-        /// реализовывать вручную. Это защита от того, что одно переключение тумблера
-        /// разом выпустит все накопленные суммы.
+        /// УСТАРЕЛ с core 1.10.64: режим выплаты (сразу / вручную) задаётся в секции
+        /// `staking_rank_bonus` конфига ядра по каждой валюте каждого ранга. Метод
+        /// всегда отвечает FAILED_PRECONDITION с кодом STAKING_RANK_BONUS_CONFIG_MANAGED.
         ///
         /// Требует ADMIN_STAKING.
         async fn set_rank_bonus_auto_release(

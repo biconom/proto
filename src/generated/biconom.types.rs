@@ -1513,11 +1513,14 @@ pub mod transaction {
                 pub payout_seq: u32,
             }
             /// Разовый бонус за достижение ранга — выплата по обязательству
-            /// (`Staking.Obligation`), автоматическая или ручная. Сумма проводки
-            /// входит в `Staking.State.total_achievement_bonus_received`.
+            /// (`Staking.Obligation`), автоматическая или ручная. Валюта — валюта
+            /// проводки: USDT или WINZU (с core 1.10.64 за ранг может платиться
+            /// несколько валют; выплаты «сразу» приходят одной группой проводок).
+            /// В `Staking.State.total_achievement_bonus_received` входят только
+            /// проводки в USDT.
             #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
             pub struct StakingRankBonusDetails {
-                /// Достигнутый ранг 4…12.
+                /// Достигнутый ранг 1…12.
                 #[prost(uint32, tag = "1")]
                 pub rank: u32,
                 /// Обязательство, по которому выплачено.
@@ -5809,7 +5812,7 @@ pub mod staking {
     /// раздаче с ЧУЖИХ депозитов и разовый бонус за достижение.
     ///
     /// Значения захардкожены в сервисе, отдаются read-only.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Rank {
         /// Номер ранга 1..12.
         #[prost(uint32, tag = "1")]
@@ -5834,10 +5837,17 @@ pub mod staking {
         /// запасом. Отсутствует там же, где и оборот.
         #[prost(string, optional, tag = "5")]
         pub max_per_leg: ::core::option::Option<::prost::alloc::string::String>,
-        /// Разовый бонус за достижение ранга. ОТСУТСТВУЕТ у рангов 1..3.
-        /// Пустое значение означает «бонуса нет», а не «ноль».
+        /// Разовый бонус за достижение ранга в валюте стейкинга (USDT).
+        /// Пустое значение означает «бонуса в USDT нет», а не «ноль».
+        /// Полный список выплат по всем валютам — `achievement_rewards`.
         #[prost(string, optional, tag = "6")]
         pub achievement_bonus: ::core::option::Option<::prost::alloc::string::String>,
+        /// ВСЕ выплаты за достижение ранга: по одной строке на валюту (USDT, WINZU…).
+        /// Источник — секция `staking_rank_bonus` конфига ядра (с core 1.10.64).
+        /// Пустой список — за ранг ничего не платится (в том числе когда бонусы
+        /// за ранги выключены целиком).
+        #[prost(message, repeated, tag = "7")]
+        pub achievement_rewards: ::prost::alloc::vec::Vec<RankReward>,
     }
     /// Nested message and enum types in `Rank`.
     pub mod rank {
@@ -5846,6 +5856,20 @@ pub mod staking {
             #[prost(message, repeated, tag = "1")]
             pub items: ::prost::alloc::vec::Vec<super::Rank>,
         }
+    }
+    /// Одна выплата за достижение ранга в конкретной валюте.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    pub struct RankReward {
+        /// Валюта выплаты (`Currency.id`).
+        #[prost(uint32, tag = "1")]
+        pub currency_id: u32,
+        /// Сумма в единицах валюты `currency_id`.
+        #[prost(string, tag = "2")]
+        pub amount: ::prost::alloc::string::String,
+        /// true — выплачивается сразу в момент достижения ранга.
+        /// false — создаётся обязательство, деньги выпускает админ (`ReleaseObligation`).
+        #[prost(bool, tag = "3")]
+        pub auto_release: bool,
     }
     /// ИЗМЕНЯЕМЫЕ настройки модуля.
     ///
@@ -6247,11 +6271,12 @@ pub mod staking {
         pub distributor_id: u32,
         #[prost(uint32, tag = "3")]
         pub rank: u32,
-        /// Сумма бонуса — СНИМОК на момент достижения. Последующее изменение
-        /// таблицы рангов не меняет уже созданные обязательства.
+        /// Сумма бонуса — СНИМОК на момент достижения, в валюте `currency_id`.
+        /// Последующее изменение таблицы рангов не меняет уже созданные обязательства.
         #[prost(string, tag = "4")]
         pub amount: ::prost::alloc::string::String,
-        /// Валюта бонуса. Совпадает с `Config.currency_id`.
+        /// Валюта бонуса. За один ранг может быть несколько обязательств — по
+        /// одному на валюту (USDT, WINZU…), с core 1.10.64.
         #[prost(uint32, tag = "5")]
         pub currency_id: u32,
         #[prost(message, optional, tag = "6")]
@@ -6296,20 +6321,23 @@ pub mod staking {
             pub items: ::prost::alloc::vec::Vec<super::Obligation>,
         }
     }
-    /// Настройка автовыплаты бонуса для одного ранга. Единственная динамическая
-    /// настройка модуля: меняется админом на лету и переживает рестарт.
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+    /// Выплаты за достижение одного ранга. С core 1.10.64 — read-only: источник —
+    /// секция `staking_rank_bonus` конфига ядра, меняется правкой конфига и рестартом.
+    #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct RankBonusSetting {
         #[prost(uint32, tag = "1")]
         pub rank: u32,
-        /// Сумма бонуса этого ранга из конфигурации, read-only.
-        /// Отсутствует у рангов 1..3 — для них настройка неприменима.
+        /// Бонус этого ранга в валюте стейкинга (USDT). Отсутствует, если выплаты
+        /// в USDT за ранг нет.
         #[prost(string, optional, tag = "2")]
         pub achievement_bonus: ::core::option::Option<::prost::alloc::string::String>,
-        /// true — бонус выплачивается автоматически в момент достижения ранга.
-        /// false — обязательство ждёт ручной реализации админом.
+        /// Режим выплаты USDT-бонуса: true — сразу, false — обязательство ждёт
+        /// админа. Для ранга без USDT-бонуса — false.
         #[prost(bool, tag = "3")]
         pub auto_release: bool,
+        /// ВСЕ выплаты ранга по валютам, с режимом каждой.
+        #[prost(message, repeated, tag = "4")]
+        pub rewards: ::prost::alloc::vec::Vec<RankReward>,
     }
     /// Nested message and enum types in `RankBonusSetting`.
     pub mod rank_bonus_setting {
@@ -6598,13 +6626,18 @@ pub mod staking {
         pub struct RankBonusReleased {
             #[prost(uint32, tag = "1")]
             pub rank: u32,
-            /// Выплаченный бонус. Сумма этого поля по всем событиям =
-            /// `State.total_achievement_bonus_received`.
+            /// Выплаченный бонус в валюте `currency_id`. Сумма этого поля по
+            /// событиям в валюте стейкинга (USDT) = `State.total_achievement_bonus_received`.
             #[prost(string, tag = "2")]
             pub amount: ::prost::alloc::string::String,
             /// Обязательство, по которому выплачено.
             #[prost(uint64, tag = "3")]
             pub obligation_id: u64,
+            /// Валюта выплаты (`Currency.id`). Выплаты «сразу» в нескольких валютах
+            /// за один ранг приходят одной группой проводок — у таких событий общий
+            /// `Event.ledger_group_id`.
+            #[prost(uint32, tag = "4")]
+            pub currency_id: u32,
         }
         /// Достигнут новый ранг.
         #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

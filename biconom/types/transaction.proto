@@ -526,10 +526,13 @@ message Transaction {
             }
 
             // Разовый бонус за достижение ранга — выплата по обязательству
-            // (`Staking.Obligation`), автоматическая или ручная. Сумма проводки
-            // входит в `Staking.State.total_achievement_bonus_received`.
+            // (`Staking.Obligation`), автоматическая или ручная. Валюта — валюта
+            // проводки: USDT или WINZU (с core 1.10.64 за ранг может платиться
+            // несколько валют; выплаты «сразу» приходят одной группой проводок).
+            // В `Staking.State.total_achievement_bonus_received` входят только
+            // проводки в USDT.
             message StakingRankBonusDetails {
-                // Достигнутый ранг 4…12.
+                // Достигнутый ранг 1…12.
                 uint32 rank = 1;
                 // Обязательство, по которому выплачено.
                 uint64 obligation_id = 2;
